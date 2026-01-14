@@ -1,0 +1,21 @@
+{
+  "name": "STAR Workforce Solutions",
+  "short_name": "STAR",
+  "description": "Consulting & Contract Job Services - Resume Distribution, ATS Optimization, Recruiter Network",
+  "icons": [
+    {
+      "src": "/icon-192x192.jpg",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/icon-512x512.jpg",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ],
+  "theme_color": "#0A1A2F",
+  "background_color": "#0A1A2F",
+  "display": "standalone",
+  "start_url": "/"
+}
