@@ -1,18 +1,17 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
+
+// CRITICAL: Force dynamic rendering to prevent static generation
+// This page uses useSession() which requires runtime session context
+export const dynamic = 'force-dynamic';
 
 export default function HireRecruiter() {
   const { data: session, status } = useSession();
   const router = useRouter();
   const [loading, setLoading] = useState(false);
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
 
   const plans = [
     {
@@ -64,8 +63,6 @@ export default function HireRecruiter() {
   ];
 
   const handleSelectPlan = async (subscriptionType: string) => {
-    if (status === 'loading') return;
-    
     if (!session) {
       router.push(`/auth/login?callbackUrl=/hire-recruiter`);
       return;
@@ -96,15 +93,6 @@ export default function HireRecruiter() {
       setLoading(false);
     }
   };
-
-  // Prevent hydration mismatch
-  if (!mounted) {
-    return (
-      <div className="min-h-screen bg-gradient-to-b from-[#0A1A2F] to-[#132A47] flex items-center justify-center">
-        <div className="text-white">Loading...</div>
-      </div>
-    );
-  }
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-[#0A1A2F] to-[#132A47] text-white">
@@ -177,7 +165,7 @@ export default function HireRecruiter() {
                     : 'bg-[#E8C547] text-[#0A1A2F] hover:bg-[#D4AF37]'
                 } disabled:opacity-50`}
               >
-                {loading ? 'Processing...' : 'Choose Plan'}
+                {loading ? 'Processing...' : status === 'loading' ? 'Loading...' : 'Choose Plan'}
               </button>
             </div>
           ))}
