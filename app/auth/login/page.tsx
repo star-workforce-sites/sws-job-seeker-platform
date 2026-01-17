@@ -1,10 +1,11 @@
 'use client';
 
 import { signIn } from 'next-auth/react';
-import { useState } from 'react';
+import { useState, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 
-export default function LoginPage() {
+// Separate component that uses useSearchParams - wrapped in Suspense
+function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const callbackUrl = searchParams.get('callbackUrl') || '/';
@@ -226,5 +227,18 @@ export default function LoginPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+// Main page component - wraps LoginForm in Suspense
+export default function LoginPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-gradient-to-b from-[#0A1A2F] to-[#132A47] flex items-center justify-center">
+        <div className="text-white">Loading...</div>
+      </div>
+    }>
+      <LoginForm />
+    </Suspense>
   );
 }
