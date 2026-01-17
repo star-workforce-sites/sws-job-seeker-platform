@@ -1,5 +1,6 @@
-// Force dynamic rendering for this route
-// This MUST be in a server component (layout), not in client component (page)
+import { SessionProviderWrapper } from '@/components/providers/session-provider-wrapper';
+
+// Force dynamic rendering for this route (required for useSession)
 export const dynamic = 'force-dynamic';
 
 export default function HireRecruiterLayout({
@@ -7,5 +8,5 @@ export default function HireRecruiterLayout({
 }: {
   children: React.ReactNode;
 }) {
-  return children;
+  return <SessionProviderWrapper>{children}</SessionProviderWrapper>;
 }
