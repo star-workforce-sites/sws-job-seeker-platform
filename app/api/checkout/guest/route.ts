@@ -75,26 +75,8 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    let customer;
-    const existingCustomers = await stripe.customers.list({
-      email: email,
-      limit: 1,
-    });
-
-    if (existingCustomers.data.length > 0) {
-      customer = existingCustomers.data[0];
-    } else {
-      customer = await stripe.customers.create({
-        email: email,
-        metadata: {
-          source: 'guest_purchase',
-          purchase_type: purchaseType,
-        },
-      });
-    }
-
+    // FIX: Only use customer_email, not both customer and customer_email
     const session = await stripe.checkout.sessions.create({
-      customer: customer.id,
       line_items: [
         {
           price: purchaseInfo.priceId,
