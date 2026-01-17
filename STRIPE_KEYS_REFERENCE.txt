@@ -1,0 +1,63 @@
+╔════════════════════════════════════════════════════════════════════════════╗
+║                      STRIPE API KEYS REFERENCE                             ║
+║                    SAVE THIS FILE SECURELY!                                ║
+╚════════════════════════════════════════════════════════════════════════════╝
+
+Account: startekk.net (acct_1Ovttc04KnTBJoOr)
+Device: Merianda-Group
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                           TEST MODE KEYS                                    │
+│                   (Use for development & testing)                           │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+Secret Key (Backend):
+sk_test_51Ovttc04KnTBJoOr4AKXGF9q1e63zlBwHgVqtJ2yzUlsAZUSZzc3OIz83PKRm0VF2RzJnlyMHa8bEtOPfS82V7Kw00ugXuPTcB
+
+Publishable Key (Frontend):
+pk_test_51Ovttc04KnTBJoOr8HIhDKDUoDhcxntd8fAPZWs3gy4PU8Jh4n8MhQBuC0an0DNzs1VEQcadfzWg9TMTP5x16BSZ001WgNE9fm
+
+Expires: 2026-04-15
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                           LIVE MODE KEYS                                    │
+│                   (Use ONLY for production)                                 │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+Secret Key (Backend):
+rk_live_***********************************************************************************************96pB
+
+Publishable Key (Frontend):
+pk_live_51Ovttc04KnTBJoOrRxzcUPrZJpackknQjBOLItXhy2rINRX6PmHkTY5uGeKzaX9zgFErvkh0oojGHHJXTNgLil4W00BaiCTFcY
+
+Expires: 2026-04-15
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                       VERCEL ENVIRONMENT VARIABLES                          │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+FOR TESTING (Current Setup):
+  STRIPE_SECRET_KEY=sk_test_51Ovttc04KnTBJoOr4AKXGF9q1e63zlBwHgVqtJ2yzUlsAZUSZzc3OIz83PKRm0VF2RzJnlyMHa8bEtOPfS82V7Kw00ugXuPTcB
+  NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=pk_test_51Ovttc04KnTBJoOr8HIhDKDUoDhcxntd8fAPZWs3gy4PU8Jh4n8MhQBuC0an0DNzs1VEQcadfzWg9TMTP5x16BSZ001WgNE9fm
+
+FOR PRODUCTION (Switch when going live):
+  STRIPE_SECRET_KEY=rk_live_***********************************************************************************************96pB
+  NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=pk_live_51Ovttc04KnTBJoOrRxzcUPrZJpackknQjBOLItXhy2rINRX6PmHkTY5uGeKzaX9zgFErvkh0oojGHHJXTNgLil4W00BaiCTFcY
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                              IMPORTANT NOTES                                │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+⚠️  CRITICAL REMINDERS:
+  1. Test mode prices only work with test mode keys
+  2. Live mode prices only work with live mode keys
+  3. Always test thoroughly before switching to live mode
+  4. Update both SECRET and PUBLISHABLE keys together
+  5. Webhook secret is the same for both modes
+
+🔐 SECURITY:
+  - Never commit these keys to git
+  - Store this file in a secure password manager
+  - Rotate keys if exposed
+
+📅 Created: $(date)
