@@ -4,10 +4,6 @@ import { useState } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 
-// CRITICAL: Force dynamic rendering to prevent static generation
-// This page uses useSession() which requires runtime session context
-export const dynamic = 'force-dynamic';
-
 export default function HireRecruiter() {
   const { data: session, status } = useSession();
   const router = useRouter();
