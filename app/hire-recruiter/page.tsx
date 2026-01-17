@@ -1,13 +1,18 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 
 export default function HireRecruiter() {
-  const { data: session } = useSession();
+  const { data: session, status } = useSession();
   const router = useRouter();
   const [loading, setLoading] = useState(false);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const plans = [
     {
@@ -59,6 +64,8 @@ export default function HireRecruiter() {
   ];
 
   const handleSelectPlan = async (subscriptionType: string) => {
+    if (status === 'loading') return;
+    
     if (!session) {
       router.push(`/auth/login?callbackUrl=/hire-recruiter`);
       return;
@@ -90,9 +97,17 @@ export default function HireRecruiter() {
     }
   };
 
+  // Prevent hydration mismatch
+  if (!mounted) {
+    return (
+      <div className="min-h-screen bg-gradient-to-b from-[#0A1A2F] to-[#132A47] flex items-center justify-center">
+        <div className="text-white">Loading...</div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-b from-[#0A1A2F] to-[#132A47] text-white">
-      {/* Header */}
       <div className="max-w-7xl mx-auto px-4 py-16">
         <div className="text-center mb-16">
           <h1 className="text-5xl font-bold mb-4">
@@ -103,7 +118,6 @@ export default function HireRecruiter() {
           </p>
         </div>
 
-        {/* Pricing Cards */}
         <div className="grid md:grid-cols-3 gap-8 max-w-6xl mx-auto">
           {plans.map((plan, index) => (
             <div
@@ -156,7 +170,7 @@ export default function HireRecruiter() {
 
               <button
                 onClick={() => handleSelectPlan(plan.subscriptionType)}
-                disabled={loading}
+                disabled={loading || status === 'loading'}
                 className={`w-full py-3 px-6 rounded-lg font-bold transition-all ${
                   plan.popular
                     ? 'bg-[#0A1A2F] text-[#E8C547] hover:bg-[#132A47]'
@@ -169,7 +183,6 @@ export default function HireRecruiter() {
           ))}
         </div>
 
-        {/* Info Section */}
         <div className="mt-16 text-center">
           <p className="text-gray-400">
             Not sure which plan is right for you?{' '}
