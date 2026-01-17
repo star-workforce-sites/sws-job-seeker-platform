@@ -59,3 +59,19 @@ diagnose-*.sh
 switch-*.sh
 emergency-*.sh
 save-*.sh
+
+# Prevent test scripts and credential files
+*.sh
+test-*.sh
+fix-*.sh
+verify-*.sh
+switch-*.sh
+diagnose-*.sh
+save-*.sh
+emergency-*.sh
+STRIPE_*.txt
+YOUR_*.txt
+ENV_VARIABLES.md
+.env.local
+.env*.local
+*.backup-*
