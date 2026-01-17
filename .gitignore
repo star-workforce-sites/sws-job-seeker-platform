@@ -43,3 +43,19 @@ diagnose-*.sh
 switch-*.sh
 emergency-*.sh
 save-*.sh
+
+# Prevent any files with secrets
+*.sh
+STRIPE_*.txt
+YOUR_*.txt
+ENV_VARIABLES.md
+.env.local
+.env*.local
+*.backup-*
+test-*.sh
+fix-*.sh
+verify-*.sh
+diagnose-*.sh
+switch-*.sh
+emergency-*.sh
+save-*.sh
