@@ -17,7 +17,10 @@ export default function DashboardRouter() {
     }
 
     // Redirect based on role
+    // Database stores: 'jobseeker', 'employer', 'admin', 'recruiter'
     const role = session.user?.role;
+    
+    console.log('[Dashboard] User role:', role);
     
     switch (role) {
       case 'admin':
@@ -26,8 +29,12 @@ export default function DashboardRouter() {
       case 'recruiter':
         router.push('/dashboard/recruiter');
         break;
-      case 'job_seeker':
+      case 'employer':
+        router.push('/employer/dashboard');
+        break;
+      case 'jobseeker':
       default:
+        // Default to job-seeker dashboard for jobseeker role or any unrecognized role
         router.push('/dashboard/job-seeker');
         break;
     }

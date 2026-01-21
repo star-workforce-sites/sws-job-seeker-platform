@@ -1,4 +1,5 @@
-import { SessionProviderWrapper } from '@/components/providers/session-provider-wrapper';
+// Dashboard layout - SessionProvider is already in root layout
+// No need for duplicate provider here
 
 export const dynamic = 'force-dynamic';
 
@@ -7,5 +8,5 @@ export default function DashboardLayout({
 }: {
   children: React.ReactNode;
 }) {
-  return <SessionProviderWrapper>{children}</SessionProviderWrapper>;
+  return <>{children}</>;
 }
