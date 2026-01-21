@@ -1,0 +1,351 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model application_limits {
+  id     String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId String   @db.Uuid
+  date   DateTime @default(dbgenerated("CURRENT_DATE")) @db.Date
+  count  Int      @default(0)
+
+  @@unique([userId, date])
+  @@index([userId, date], map: "idx_application_limits_user_date")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model application_tracking {
+  id                String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  assignment_id     String    @db.Uuid
+  client_id         String    @db.Uuid
+  recruiter_id      String    @db.Uuid
+  job_title         String    @db.VarChar(255)
+  company_name      String    @db.VarChar(255)
+  job_url           String?
+  job_description   String?
+  application_date  DateTime? @default(dbgenerated("CURRENT_DATE")) @db.Date
+  submitted_at      DateTime? @default(now()) @db.Timestamp(6)
+  status            String?   @default("submitted") @db.VarChar(50)
+  feedback_received Boolean?  @default(false)
+  feedback_date     DateTime? @db.Timestamp(6)
+  feedback_notes    String?
+  notes             String?
+  created_at        DateTime? @default(now()) @db.Timestamp(6)
+  updated_at        DateTime? @default(now()) @db.Timestamp(6)
+
+  @@index([application_date(sort: Desc)], map: "idx_application_tracking_application_date")
+  @@index([assignment_id], map: "idx_application_tracking_assignment_id")
+  @@index([client_id], map: "idx_application_tracking_client_id")
+  @@index([feedback_received], map: "idx_application_tracking_feedback_received")
+  @@index([recruiter_id], map: "idx_application_tracking_recruiter_id")
+  @@index([status], map: "idx_application_tracking_status")
+}
+
+model applications {
+  id        String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId    String    @db.Uuid
+  jobId     String    @db.Uuid
+  status    String    @default("applied")
+  appliedAt DateTime? @default(now()) @db.Timestamp(6)
+  updatedAt DateTime? @default(now()) @db.Timestamp(6)
+  notes     String?
+
+  @@unique([userId, jobId])
+  @@index([jobId], map: "idx_applications_job")
+  @@index([jobId], map: "idx_applications_job_id")
+  @@index([status], map: "idx_applications_status")
+  @@index([userId, appliedAt(sort: Desc)], map: "idx_applications_user")
+  @@index([userId, appliedAt(sort: Desc)], map: "idx_applications_user_date")
+  @@index([userId], map: "idx_applications_user_id")
+}
+
+model cover_letter_uploads {
+  id                     String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  email                  String?   @db.VarChar(255)
+  resume_url             String
+  resume_filename        String    @db.VarChar(500)
+  job_description        String
+  uploaded_at            DateTime? @default(now()) @db.Timestamp(6)
+  generated_cover_letter String?
+  tone_score             Int?
+
+  @@index([email], map: "idx_cover_letter_email")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model guest_purchases {
+  id                 String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  email              String    @db.VarChar(255)
+  purchase_type      String    @db.VarChar(50)
+  stripe_payment_id  String    @db.VarChar(255)
+  stripe_customer_id String?   @db.VarChar(255)
+  amount_paid        Int
+  currency           String?   @default("usd") @db.VarChar(10)
+  access_token       String?   @unique @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  expires_at         DateTime? @db.Timestamp(6)
+  metadata           Json?     @default("{}")
+  created_at         DateTime? @default(now()) @db.Timestamp(6)
+  updated_at         DateTime? @default(now()) @db.Timestamp(6)
+
+  @@index([access_token], map: "idx_guest_purchases_access_token")
+  @@index([created_at(sort: Desc)], map: "idx_guest_purchases_created_at")
+  @@index([email], map: "idx_guest_purchases_email")
+  @@index([stripe_payment_id], map: "idx_guest_purchases_stripe_payment_id")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model interview_answers {
+  id          String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  sessionId   String    @db.Uuid
+  questionId  String    @db.Uuid
+  user_answer String
+  is_correct  Boolean
+  answeredAt  DateTime? @default(now()) @db.Timestamptz(6)
+
+  @@index([sessionId], map: "idx_interview_answers_session")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model interview_questions {
+  id             String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  skill          String
+  topic          String
+  difficulty     String
+  question       String
+  option_a       String
+  option_b       String
+  option_c       String
+  option_d       String
+  correct_option String
+  explanation    String?
+  createdAt      DateTime? @default(now()) @db.Timestamptz(6)
+
+  @@unique([skill, topic, question])
+  @@index([skill], map: "idx_interview_questions_skill")
+  @@index([topic], map: "idx_interview_questions_topic")
+}
+
+model interview_sessions {
+  id              String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  email           String
+  jobDescription  String
+  skills          Json
+  score           Int       @default(0)
+  total_questions Int       @default(0)
+  percentage      Decimal?  @db.Decimal(5, 2)
+  completed       Boolean?  @default(false)
+  createdAt       DateTime? @default(now()) @db.Timestamptz(6)
+  completedAt     DateTime? @db.Timestamptz(6)
+
+  @@index([email], map: "idx_interview_sessions_email")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+/// This model contains an expression index which requires additional setup for migrations. Visit https://pris.ly/d/expression-indexes for more info.
+model jobs {
+  id             String    @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  employerId     String    @db.Uuid
+  title          String
+  description    String
+  location       String
+  industry       String
+  employmentType String    @default("contract")
+  visa           String?
+  salaryMin      Int?
+  salaryMax      Int?
+  expiresAt      DateTime? @default(dbgenerated("(now() + '30 days'::interval)")) @db.Timestamp(6)
+  createdAt      DateTime? @default(now()) @db.Timestamp(6)
+  isActive       Boolean?  @default(true)
+
+  @@index([createdAt(sort: Desc)], map: "idx_jobs_created_date")
+  @@index([employerId], map: "idx_jobs_employer")
+  @@index([employmentType], map: "idx_jobs_employment_type")
+  @@index([expiresAt], map: "idx_jobs_expires")
+  @@index([industry], map: "idx_jobs_industry")
+  @@index([location], map: "idx_jobs_location")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model payment_methods {
+  id                       String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  user_id                  String    @db.Uuid
+  stripe_payment_method_id String    @unique @db.VarChar(255)
+  type                     String    @db.VarChar(50)
+  card_brand               String?   @db.VarChar(50)
+  card_last4               String?   @db.VarChar(4)
+  card_exp_month           Int?
+  card_exp_year            Int?
+  is_default               Boolean?  @default(false)
+  created_at               DateTime? @default(now()) @db.Timestamp(6)
+  updated_at               DateTime? @default(now()) @db.Timestamp(6)
+
+  @@index([stripe_payment_method_id], map: "idx_payment_methods_stripe_id")
+  @@index([user_id], map: "idx_payment_methods_user_id")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model payments {
+  id              String    @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  userId          String    @db.Uuid
+  stripeSessionId String    @unique
+  amount          Int
+  product         String
+  createdAt       DateTime? @default(now()) @db.Timestamp(6)
+
+  @@index([stripeSessionId], map: "idx_payments_stripe_session")
+  @@index([userId], map: "idx_payments_user")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model premium_access {
+  id               String    @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  email            String
+  stripeCustomerId String?
+  stripeSessionId  String?
+  paidAt           DateTime? @default(now()) @db.Timestamp(6)
+  expiresAt        DateTime? @db.Timestamp(6)
+  resumeId         String?   @db.Uuid
+  product          String?   @default("ATS_OPTIMIZER") @db.VarChar(50)
+  priceId          String?
+  user_id          String?   @db.Uuid
+  access_token     String?   @unique @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+
+  @@unique([email, product])
+  @@index([access_token], map: "idx_premium_access_access_token")
+  @@index([email], map: "idx_premium_access_email")
+  @@index([product], map: "idx_premium_access_product")
+  @@index([user_id], map: "idx_premium_access_user_id")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model recruiter_assignments {
+  id                   String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  recruiter_id         String    @db.Uuid
+  client_id            String    @db.Uuid
+  subscription_id      String?   @db.Uuid
+  plan_type            String    @db.VarChar(50)
+  applications_per_day Int
+  assigned_at          DateTime? @default(now()) @db.Timestamp(6)
+  status               String?   @default("active") @db.VarChar(50)
+  paused_at            DateTime? @db.Timestamp(6)
+  completed_at         DateTime? @db.Timestamp(6)
+  notes                String?
+
+  @@index([client_id], map: "idx_recruiter_assignments_client_id")
+  @@index([recruiter_id], map: "idx_recruiter_assignments_recruiter_id")
+  @@index([status], map: "idx_recruiter_assignments_status")
+  @@index([subscription_id], map: "idx_recruiter_assignments_subscription_id")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model resume_uploads {
+  id            String    @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  userId        String?   @db.Uuid
+  email         String?
+  fileName      String
+  fileContent   String
+  fileType      String
+  uploadedAt    DateTime? @default(now()) @db.Timestamp(6)
+  expiresAt     DateTime? @default(dbgenerated("(now() + '30 days'::interval)")) @db.Timestamp(6)
+  analysisCache Json?
+
+  @@index([email], map: "idx_resume_uploads_email")
+  @@index([expiresAt], map: "idx_resume_uploads_expires")
+  @@index([id], map: "idx_resume_uploads_id")
+  @@index([userId], map: "idx_resume_uploads_user")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model resumes {
+  id        String    @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  userId    String    @db.Uuid
+  fileUrl   String
+  createdAt DateTime? @default(now()) @db.Timestamp(6)
+
+  @@index([userId], map: "idx_resumes_user")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model saved_jobs {
+  id      String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId  String    @db.Uuid
+  jobId   String    @db.Uuid
+  savedAt DateTime? @default(now()) @db.Timestamp(6)
+
+  @@unique([userId, jobId])
+  @@index([jobId], map: "idx_saved_jobs_job")
+  @@index([userId], map: "idx_saved_jobs_user")
+  @@index([userId, savedAt(sort: Desc)], map: "idx_saved_jobs_user_date")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model subscription_history {
+  id              String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  subscription_id String    @db.Uuid
+  user_id         String    @db.Uuid
+  event_type      String    @db.VarChar(50)
+  old_status      String?   @db.VarChar(50)
+  new_status      String?   @db.VarChar(50)
+  old_type        String?   @db.VarChar(50)
+  new_type        String?   @db.VarChar(50)
+  metadata        Json?     @default("{}")
+  created_at      DateTime? @default(now()) @db.Timestamp(6)
+
+  @@index([created_at(sort: Desc)], map: "idx_subscription_history_created_at")
+  @@index([subscription_id], map: "idx_subscription_history_subscription_id")
+  @@index([user_id], map: "idx_subscription_history_user_id")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model subscriptions {
+  id                     String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  user_id                String    @db.Uuid
+  subscription_type      String    @db.VarChar(50)
+  stripe_customer_id     String    @db.VarChar(255)
+  stripe_subscription_id String    @unique @db.VarChar(255)
+  stripe_price_id        String    @db.VarChar(255)
+  status                 String    @default("active") @db.VarChar(50)
+  current_period_start   DateTime  @db.Timestamp(6)
+  current_period_end     DateTime  @db.Timestamp(6)
+  cancel_at_period_end   Boolean?  @default(false)
+  canceled_at            DateTime? @db.Timestamp(6)
+  trial_start            DateTime? @db.Timestamp(6)
+  trial_end              DateTime? @db.Timestamp(6)
+  created_at             DateTime? @default(now()) @db.Timestamp(6)
+  updated_at             DateTime? @default(now()) @db.Timestamp(6)
+
+  @@index([current_period_end], map: "idx_subscriptions_period_end")
+  @@index([status], map: "idx_subscriptions_status")
+  @@index([stripe_subscription_id], map: "idx_subscriptions_stripe_subscription_id")
+  @@index([subscription_type], map: "idx_subscriptions_type")
+  @@index([user_id], map: "idx_subscriptions_user_id")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model users {
+  id                 String    @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  name               String?
+  email              String    @unique
+  emailVerified      DateTime? @db.Timestamp(6)
+  role               String    @default("jobseeker")
+  atsPremium         Boolean?  @default(false)
+  createdAt          DateTime? @default(now()) @db.Timestamp(6)
+  user_type          String?   @default("jobseeker") @db.VarChar(50)
+  email_verified     Boolean?  @default(false)
+  verification_token String?   @db.VarChar(255)
+  phone              String?   @db.VarChar(20)
+  stripe_customer_id String?   @db.VarChar(255)
+  last_login         DateTime? @db.Timestamp(6)
+  updated_at         DateTime? @default(now()) @db.Timestamp(6)
+}

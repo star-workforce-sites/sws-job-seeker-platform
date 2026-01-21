@@ -3,6 +3,7 @@ import type { Metadata } from "next"
 import { Montserrat, Open_Sans } from "next/font/google"
 import { Analytics } from "@vercel/analytics/next"
 import Script from "next/script"
+import AuthProvider from "@/components/auth-provider"
 import CookieConsent from "@/components/cookie-consent"
 import { Toaster } from "@/components/ui/toaster"
 import "./globals.css"
@@ -67,7 +68,9 @@ export default function RootLayout({
         />
       </head>
       <body className={`font-sans antialiased bg-background text-foreground`}>
-        {children}
+        <AuthProvider>
+          {children}
+        </AuthProvider>
         <CookieConsent />
         <Analytics />
         <Toaster />

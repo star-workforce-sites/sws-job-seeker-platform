@@ -1,0 +1,4288 @@
+===============================================================================
+STAR WORKFORCE SOLUTIONS - COMPLETE SITE STRUCTURE REPORT
+===============================================================================
+Generated: Wed Jan 21 12:06:50 CST 2026
+Working Directory: /c/Users/STAR Workforce/projects/sws-job-seeker-platform
+
+===============================================================================
+SECTION 1: ALL PAGE.TSX FILES IN PROJECT
+===============================================================================
+
+app/admin/panel/page.tsx
+app/auth/error/page.tsx
+app/auth/forgot-password/page.tsx
+app/auth/login/page.tsx
+app/auth/register/page.tsx
+app/auth/signup/page.tsx
+app/auth/verify/page.tsx
+app/contact/page.tsx
+app/dashboard/admin/page.tsx
+app/dashboard/analytics/page.tsx
+app/dashboard/job-seeker/page.tsx
+app/dashboard/page.tsx
+app/dashboard/recruiter/page.tsx
+app/distribution-wizard/page.tsx
+app/employer/dashboard/page.tsx
+app/employer/register/page.tsx
+app/faq/page.tsx
+app/guest-dashboard/page.tsx
+app/hire-recruiter/page.tsx
+app/jobs/page.tsx
+app/legal/disclaimer/page.tsx
+app/legal/privacy/page.tsx
+app/legal/terms/page.tsx
+app/page.tsx
+app/payment/cancel/page.tsx
+app/payment/success/page.tsx
+app/pricing/page.tsx
+app/services/page.tsx
+app/tools/ats-optimizer/page.tsx
+app/tools/cover-letter/page.tsx
+app/tools/interview-prep/page.tsx
+
+===============================================================================
+SECTION 2: ALL LAYOUT.TSX FILES
+===============================================================================
+
+app/dashboard/layout.tsx
+app/hire-recruiter/layout.tsx
+app/layout.tsx
+
+===============================================================================
+SECTION 3: COMPONENTS DIRECTORY STRUCTURE
+===============================================================================
+
+components/analytics-tracker.tsx
+components/ats-optimizer-client.tsx
+components/auth-provider.tsx
+components/contact-form-client.tsx
+components/cookie-consent.tsx
+components/cover-letter-client.tsx
+components/footer.tsx
+components/interview-prep-client.tsx
+components/navigation.tsx
+components/providers/session-provider-wrapper.tsx
+components/resume-upload.tsx
+components/theme-provider.tsx
+components/ui/accordion.tsx
+components/ui/alert-dialog.tsx
+components/ui/alert.tsx
+components/ui/aspect-ratio.tsx
+components/ui/avatar.tsx
+components/ui/badge.tsx
+components/ui/breadcrumb.tsx
+components/ui/button-group.tsx
+components/ui/button.tsx
+components/ui/calendar.tsx
+components/ui/card.tsx
+components/ui/carousel.tsx
+components/ui/chart.tsx
+components/ui/checkbox.tsx
+components/ui/collapsible.tsx
+components/ui/command.tsx
+components/ui/context-menu.tsx
+components/ui/dialog.tsx
+components/ui/drawer.tsx
+components/ui/dropdown-menu.tsx
+components/ui/empty.tsx
+components/ui/field.tsx
+components/ui/form.tsx
+components/ui/hover-card.tsx
+components/ui/input-group.tsx
+components/ui/input-otp.tsx
+components/ui/input.tsx
+components/ui/item.tsx
+components/ui/kbd.tsx
+components/ui/label.tsx
+components/ui/menubar.tsx
+components/ui/navigation-menu.tsx
+components/ui/pagination.tsx
+components/ui/popover.tsx
+components/ui/progress.tsx
+components/ui/radio-group.tsx
+components/ui/resizable.tsx
+components/ui/scroll-area.tsx
+components/ui/select.tsx
+components/ui/separator.tsx
+components/ui/sheet.tsx
+components/ui/sidebar.tsx
+components/ui/skeleton.tsx
+components/ui/slider.tsx
+components/ui/sonner.tsx
+components/ui/spinner.tsx
+components/ui/switch.tsx
+components/ui/table.tsx
+components/ui/tabs.tsx
+components/ui/textarea.tsx
+components/ui/toast.tsx
+components/ui/toaster.tsx
+components/ui/toggle-group.tsx
+components/ui/toggle.tsx
+components/ui/tooltip.tsx
+components/ui/use-mobile.tsx
+
+===============================================================================
+SECTION 4: HIRE RECRUITER PAGE - app/hire-recruiter/page.tsx
+===============================================================================
+
+'use client';
+
+import { useState } from 'react';
+import { useSession } from 'next-auth/react';
+import { useRouter } from 'next/navigation';
+
+export default function HireRecruiter() {
+  const { data: session, status } = useSession();
+  const router = useRouter();
+  const [loading, setLoading] = useState(false);
+
+  const plans = [
+    {
+      name: 'Basic Plan',
+      price: '$199',
+      period: '/month',
+      description: '3-5 daily job applications',
+      features: [
+        '3-5 targeted applications per day',
+        'Resume optimization',
+        'Cover letter customization',
+        'Weekly progress reports',
+        'Email support'
+      ],
+      subscriptionType: 'recruiter_basic'
+    },
+    {
+      name: 'Standard Plan',
+      price: '$399',
+      period: '/month',
+      description: '10-15 daily job applications',
+      features: [
+        '10-15 targeted applications per day',
+        'Advanced resume optimization',
+        'Custom cover letters',
+        'Bi-weekly strategy calls',
+        'Priority email support',
+        'Interview preparation'
+      ],
+      subscriptionType: 'recruiter_standard',
+      popular: true
+    },
+    {
+      name: 'Pro Plan',
+      price: '$599',
+      period: '/month',
+      description: '20-30 daily job applications',
+      features: [
+        '20-30 targeted applications per day',
+        'Premium resume optimization',
+        'Personalized cover letters',
+        'Weekly strategy calls',
+        'Priority phone support',
+        'Interview coaching',
+        'Salary negotiation support'
+      ],
+      subscriptionType: 'recruiter_pro'
+    }
+  ];
+
+  const handleSelectPlan = async (subscriptionType: string) => {
+    if (!session) {
+      router.push(`/auth/login?callbackUrl=/hire-recruiter`);
+      return;
+    }
+
+    setLoading(true);
+
+    try {
+      const response = await fetch('/api/checkout/subscription', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ subscriptionType }),
+      });
+
+      const data = await response.json();
+
+      if (data.url) {
+        window.location.href = data.url;
+      } else {
+        alert('Failed to create checkout session');
+        setLoading(false);
+      }
+    } catch (error) {
+      console.error('Checkout error:', error);
+      alert('An error occurred');
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-gradient-to-b from-[#0A1A2F] to-[#132A47] text-white">
+      <div className="max-w-7xl mx-auto px-4 py-16">
+        <div className="text-center mb-16">
+          <h1 className="text-5xl font-bold mb-4">
+            Hire Your <span className="text-[#E8C547]">Dedicated Offshore Recruiter</span>
+          </h1>
+          <p className="text-xl text-gray-300 max-w-3xl mx-auto">
+            Let our expert recruiters handle your job search while you focus on interview preparation
+          </p>
+        </div>
+
+        <div className="grid md:grid-cols-3 gap-8 max-w-6xl mx-auto">
+          {plans.map((plan, index) => (
+            <div
+              key={index}
+              className={`rounded-lg p-8 ${
+                plan.popular
+                  ? 'bg-gradient-to-b from-[#E8C547] to-[#D4AF37] text-[#0A1A2F] scale-105 shadow-2xl'
+                  : 'bg-white/10 backdrop-blur-lg'
+              } relative`}
+            >
+              {plan.popular && (
+                <div className="absolute -top-4 left-1/2 transform -translate-x-1/2">
+                  <span className="bg-[#0A1A2F] text-[#E8C547] px-4 py-1 rounded-full text-sm font-bold">
+                    MOST POPULAR
+                  </span>
+                </div>
+              )}
+
+              <div className="text-center mb-6">
+                <h3 className="text-2xl font-bold mb-2">{plan.name}</h3>
+                <div className="text-4xl font-bold mb-1">
+                  {plan.price}
+                  <span className="text-lg font-normal">{plan.period}</span>
+                </div>
+                <p className={`text-sm ${plan.popular ? 'text-[#0A1A2F]/80' : 'text-gray-400'}`}>
+                  {plan.description}
+                </p>
+              </div>
+
+              <ul className="space-y-3 mb-8">
+                {plan.features.map((feature, i) => (
+                  <li key={i} className="flex items-start gap-2">
+                    <svg
+                      className={`w-5 h-5 mt-0.5 flex-shrink-0 ${
+                        plan.popular ? 'text-[#0A1A2F]' : 'text-[#E8C547]'
+                      }`}
+                      fill="none"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth="2"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                    >
+                      <path d="M5 13l4 4L19 7"></path>
+                    </svg>
+                    <span className="text-sm">{feature}</span>
+                  </li>
+                ))}
+              </ul>
+
+              <button
+                onClick={() => handleSelectPlan(plan.subscriptionType)}
+                disabled={loading || status === 'loading'}
+                className={`w-full py-3 px-6 rounded-lg font-bold transition-all ${
+                  plan.popular
+                    ? 'bg-[#0A1A2F] text-[#E8C547] hover:bg-[#132A47]'
+                    : 'bg-[#E8C547] text-[#0A1A2F] hover:bg-[#D4AF37]'
+                } disabled:opacity-50`}
+              >
+                {loading ? 'Processing...' : status === 'loading' ? 'Loading...' : 'Choose Plan'}
+              </button>
+            </div>
+          ))}
+        </div>
+
+        <div className="mt-16 text-center">
+          <p className="text-gray-400">
+            Not sure which plan is right for you?{' '}
+            <a href="/contact" className="text-[#E8C547] hover:underline">
+              Contact us
+            </a>{' '}
+            for personalized guidance
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+===============================================================================
+SECTION 5: AUTH LOGIN PAGE - app/auth/login/page.tsx
+===============================================================================
+
+'use client';
+
+import { signIn } from 'next-auth/react';
+import { useState, Suspense } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
+
+// Separate component that uses useSearchParams - wrapped in Suspense
+function LoginForm() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const callbackUrl = searchParams.get('callbackUrl') || '/';
+  
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError('');
+    setLoading(true);
+
+    try {
+      const result = await signIn('credentials', {
+        email,
+        password,
+        redirect: false,
+      });
+
+      if (result?.error) {
+        setError('Invalid email or password');
+      } else {
+        router.push(callbackUrl);
+      }
+    } catch (err) {
+      setError('An error occurred. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleOAuthSignIn = (provider: 'google' | 'linkedin') => {
+    signIn(provider, { callbackUrl });
+  };
+
+  return (
+    <div className="min-h-screen bg-gradient-to-b from-[#0A1A2F] to-[#132A47] flex">
+      {/* Left side - Login Form */}
+      <div className="w-full lg:w-1/2 flex items-center justify-center px-4 py-12">
+        <div className="max-w-md w-full">
+          {/* Logo/Brand */}
+          <div className="text-center mb-8">
+            <h1 className="text-4xl font-bold text-[#E8C547] mb-2">
+              STAR Workforce
+            </h1>
+            <p className="text-xl text-white">Welcome Back</p>
+            <p className="text-gray-400 mt-2">Sign in to your account</p>
+          </div>
+
+          {/* Error Message */}
+          {error && (
+            <div className="bg-red-500/10 border border-red-500 text-red-500 rounded-lg p-3 mb-6">
+              {error}
+            </div>
+          )}
+
+          {/* OAuth Buttons - PROFESSIONAL STYLE */}
+          <div className="space-y-3 mb-6">
+            <button
+              type="button"
+              onClick={() => handleOAuthSignIn('google')}
+              className="w-full flex items-center justify-center gap-3 bg-white text-gray-900 py-3.5 px-4 rounded-lg font-medium hover:bg-gray-50 transition border border-gray-300 shadow-sm"
+            >
+              <svg className="w-5 h-5" viewBox="0 0 24 24">
+                <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+                <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+                <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
+                <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+              </svg>
+              <span className="text-sm font-semibold">Continue with Google</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => handleOAuthSignIn('linkedin')}
+              className="w-full flex items-center justify-center gap-3 bg-[#0077B5] text-white py-3.5 px-4 rounded-lg font-medium hover:bg-[#006399] transition shadow-sm"
+            >
+              <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/>
+              </svg>
+              <span className="text-sm font-semibold">Continue with LinkedIn</span>
+            </button>
+          </div>
+
+          {/* Divider */}
+          <div className="relative my-6">
+            <div className="absolute inset-0 flex items-center">
+              <div className="w-full border-t border-gray-600"></div>
+            </div>
+            <div className="relative flex justify-center text-sm">
+              <span className="px-4 bg-[#0A1A2F] text-gray-400">Or sign in with email</span>
+            </div>
+          </div>
+
+          {/* Email/Password Form */}
+          <form onSubmit={handleSubmit} className="space-y-5">
+            <div>
+              <label htmlFor="email" className="block text-sm font-medium text-gray-300 mb-2">
+                Email Address
+              </label>
+              <input
+                id="email"
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className="w-full px-4 py-3 bg-white/5 border border-gray-600 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-[#E8C547] focus:ring-1 focus:ring-[#E8C547]"
+                placeholder="you@example.com"
+                required
+              />
+            </div>
+
+            <div>
+              <label htmlFor="password" className="block text-sm font-medium text-gray-300 mb-2">
+                Password
+              </label>
+              <input
+                id="password"
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className="w-full px-4 py-3 bg-white/5 border border-gray-600 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-[#E8C547] focus:ring-1 focus:ring-[#E8C547]"
+                placeholder="••••••••"
+                required
+              />
+            </div>
+
+            <div className="flex items-center justify-between">
+              <label className="flex items-center">
+                <input type="checkbox" className="w-4 h-4 text-[#E8C547] bg-gray-700 border-gray-600 rounded focus:ring-[#E8C547]" />
+                <span className="ml-2 text-sm text-gray-300">Remember me</span>
+              </label>
+              <a href="/auth/forgot-password" className="text-sm text-[#E8C547] hover:underline">
+                Forgot password?
+              </a>
+            </div>
+
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full bg-[#E8C547] text-[#0A1A2F] py-3.5 rounded-lg font-bold hover:bg-[#D4AF37] transition disabled:opacity-50 disabled:cursor-not-allowed shadow-lg"
+            >
+              {loading ? 'Signing in...' : 'Sign In'}
+            </button>
+          </form>
+
+          <p className="mt-6 text-center text-sm text-gray-400">
+            Don't have an account?{' '}
+            <a href="/auth/register" className="text-[#E8C547] hover:underline font-medium">
+              Sign up for free
+            </a>
+          </p>
+        </div>
+      </div>
+
+      {/* Right side - Features/Marketing */}
+      <div className="hidden lg:flex lg:w-1/2 bg-gradient-to-br from-[#E8C547] to-[#D4AF37] items-center justify-center p-12">
+        <div className="max-w-md text-[#0A1A2F]">
+          <h2 className="text-3xl font-bold mb-6">
+            Welcome to STAR Workforce Solutions
+          </h2>
+          
+          <div className="space-y-6">
+            <div className="flex items-start gap-4">
+              <div className="flex-shrink-0 w-12 h-12 bg-[#0A1A2F] rounded-lg flex items-center justify-center">
+                <svg className="w-6 h-6 text-[#E8C547]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                </svg>
+              </div>
+              <div>
+                <h3 className="font-bold text-lg mb-1">ATS Optimizer</h3>
+                <p className="text-[#0A1A2F]/80">Beat applicant tracking systems with optimized resumes</p>
+              </div>
+            </div>
+
+            <div className="flex items-start gap-4">
+              <div className="flex-shrink-0 w-12 h-12 bg-[#0A1A2F] rounded-lg flex items-center justify-center">
+                <svg className="w-6 h-6 text-[#E8C547]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+              </div>
+              <div>
+                <h3 className="font-bold text-lg mb-1">Cover Letter Generator</h3>
+                <p className="text-[#0A1A2F]/80">Create compelling cover letters in seconds</p>
+              </div>
+            </div>
+
+            <div className="flex items-start gap-4">
+              <div className="flex-shrink-0 w-12 h-12 bg-[#0A1A2F] rounded-lg flex items-center justify-center">
+                <svg className="w-6 h-6 text-[#E8C547]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                </svg>
+              </div>
+              <div>
+                <h3 className="font-bold text-lg mb-1">Dedicated Recruiters</h3>
+                <p className="text-[#0A1A2F]/80">Offshore recruiting team working for you 24/7</p>
+              </div>
+            </div>
+
+            <div className="flex items-start gap-4">
+              <div className="flex-shrink-0 w-12 h-12 bg-[#0A1A2F] rounded-lg flex items-center justify-center">
+                <svg className="w-6 h-6 text-[#E8C547]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                </svg>
+              </div>
+              <div>
+                <h3 className="font-bold text-lg mb-1">Resume Distribution</h3>
+                <p className="text-[#0A1A2F]/80">Get your resume in front of 1000+ recruiters</p>
+              </div>
+            </div>
+          </div>
+
+          <div className="mt-8 p-4 bg-[#0A1A2F]/10 rounded-lg">
+            <p className="text-sm italic">
+              "STAR Workforce helped me land my dream job in just 3 weeks!" - Sarah M.
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// Main page component - wraps LoginForm in Suspense
+export default function LoginPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-gradient-to-b from-[#0A1A2F] to-[#132A47] flex items-center justify-center">
+        <div className="text-white">Loading...</div>
+      </div>
+    }>
+      <LoginForm />
+    </Suspense>
+  );
+}
+
+===============================================================================
+SECTION 6: AUTH ERROR PAGE - app/auth/error/page.tsx
+===============================================================================
+
+import Link from "next/link"
+import { Button } from "@/components/ui/button"
+import { AlertCircle } from "lucide-react"
+
+export default function AuthError({
+  searchParams,
+}: {
+  searchParams: { error?: string }
+}) {
+  const error = searchParams.error
+
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-black/90 via-[#0A1A2F]/80 to-black/70 px-4">
+      <div className="max-w-md w-full bg-white rounded-lg shadow-xl p-8 text-center">
+        <AlertCircle className="w-16 h-16 text-red-500 mx-auto mb-4" />
+        <h1 className="text-2xl font-bold text-[#0A1A2F] mb-2">Authentication Error</h1>
+        <p className="text-gray-600 mb-6">
+          {error === "Configuration"
+            ? "There is a problem with the server configuration."
+            : error === "AccessDenied"
+              ? "You do not have permission to sign in."
+              : error === "Verification"
+                ? "The verification token has expired or has already been used."
+                : "An error occurred during authentication. Please try again."}
+        </p>
+        <Button asChild className="w-full">
+          <Link href="/auth/login">Back to Login</Link>
+        </Button>
+      </div>
+    </div>
+  )
+}
+
+===============================================================================
+SECTION 7: DASHBOARD PAGE - app/dashboard/page.tsx
+===============================================================================
+
+'use client';
+
+import { useSession } from 'next-auth/react';
+import { useRouter } from 'next/navigation';
+import { useEffect } from 'react';
+
+export default function DashboardRouter() {
+  const { data: session, status } = useSession();
+  const router = useRouter();
+
+  useEffect(() => {
+    if (status === 'loading') return;
+
+    if (!session) {
+      router.push('/auth/login');
+      return;
+    }
+
+    // Redirect based on role
+    const role = session.user?.role;
+    
+    switch (role) {
+      case 'admin':
+        router.push('/dashboard/admin');
+        break;
+      case 'recruiter':
+        router.push('/dashboard/recruiter');
+        break;
+      case 'job_seeker':
+      default:
+        router.push('/dashboard/job-seeker');
+        break;
+    }
+  }, [session, status, router]);
+
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-[#0A1A2F] to-[#132A47]">
+      <div className="text-white text-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#E8C547] mx-auto mb-4"></div>
+        <p>Redirecting to your dashboard...</p>
+      </div>
+    </div>
+  );
+}
+
+===============================================================================
+SECTION 8: PRICING PAGE - app/pricing/page.tsx
+===============================================================================
+
+"use client"
+
+import Link from "next/link"
+import { Button } from "@/components/ui/button"
+import { Card } from "@/components/ui/card"
+import Navigation from "@/components/navigation"
+import Footer from "@/components/footer"
+import { Check } from "lucide-react"
+
+export default function Pricing() {
+  return (
+    <div className="min-h-screen bg-background flex flex-col">
+      <Navigation />
+
+      <section className="abstract-gradient text-primary-foreground py-16 px-4 sm:px-6 lg:px-8 relative">
+        <div className="max-w-6xl mx-auto text-center relative z-10">
+          <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold mb-4 text-white premium-heading">
+            Simple Pricing – Get Hired Faster, No Subscriptions
+          </h1>
+          <p className="text-lg text-white/90 max-w-2xl mx-auto premium-body">
+            Pay once, optimize forever. Built by recruiters – 75% of resumes fail ATS; fix yours today.
+          </p>
+        </div>
+      </section>
+
+      <section className="py-16 px-4 sm:px-6 lg:px-8">
+        <div className="max-w-6xl mx-auto">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {/* Free Tier Card */}
+            <Card className="p-6 border-2 border-border bg-background flex flex-col">
+              <div className="text-center mb-6">
+                <h3 className="text-2xl font-bold text-foreground mb-3 premium-heading">Free Tier</h3>
+                <div className="mb-4">
+                  <span className="text-4xl font-bold text-foreground premium-heading">$0</span>
+                  <p className="text-sm text-muted-foreground mt-1 premium-body">Start Here</p>
+                </div>
+              </div>
+
+              <div className="space-y-3 mb-6 flex-1">
+                <div className="flex items-start gap-2">
+                  <Check className="w-5 h-5 text-primary flex-shrink-0 mt-0.5" />
+                  <span className="text-sm text-foreground premium-body">
+                    Limited ATS preview (5 keywords, 2 issues – blurred full report)
+                  </span>
+                </div>
+                <div className="flex items-start gap-2">
+                  <Check className="w-5 h-5 text-primary flex-shrink-0 mt-0.5" />
+                  <span className="text-sm text-foreground premium-body">
+                    5 job applications per day (track progress, save jobs)
+                  </span>
+                </div>
+                <div className="flex items-start gap-2">
+                  <Check className="w-5 h-5 text-primary flex-shrink-0 mt-0.5" />
+                  <span className="text-sm text-foreground premium-body">Basic job search & filters</span>
+                </div>
+              </div>
+
+              <Link href="/tools/ats-optimizer" className="mt-auto">
+                <Button
+                  variant="outline"
+                  className="w-full border-primary text-primary hover:bg-primary/10 bg-transparent"
+                >
+                  Start Free
+                </Button>
+              </Link>
+            </Card>
+
+            {/* ATS Optimizer Card */}
+            <Card className="p-6 border-2 border-primary bg-primary/5 flex flex-col">
+              <div className="text-center mb-6">
+                <h3 className="text-2xl font-bold text-foreground mb-3 premium-heading">ATS Optimizer</h3>
+                <div className="mb-4">
+                  <span className="text-4xl font-bold text-foreground premium-heading">$5</span>
+                  <p className="text-sm text-muted-foreground mt-1 premium-body">one-time payment</p>
+                  <p className="text-xs text-accent font-semibold mt-1 premium-body">
+                    Lifetime access – pay once, use forever
+                  </p>
+                </div>
+              </div>
+
+              <div className="space-y-3 mb-6 flex-1">
+                <div className="flex items-start gap-2">
+                  <Check className="w-5 h-5 text-primary flex-shrink-0 mt-0.5" />
+                  <span className="text-sm text-foreground premium-body">Complete ATS score & keyword analysis</span>
+                </div>
+                <div className="flex items-start gap-2">
+                  <Check className="w-5 h-5 text-primary flex-shrink-0 mt-0.5" />
+                  <span className="text-sm text-foreground premium-body">All formatting issues & improvement tips</span>
+                </div>
+                <div className="flex items-start gap-2">
+                  <Check className="w-5 h-5 text-primary flex-shrink-0 mt-0.5" />
+                  <span className="text-sm text-foreground premium-body">Unlimited resume uploads forever</span>
+                </div>
+                <div className="flex items-start gap-2">
+                  <Check className="w-5 h-5 text-primary flex-shrink-0 mt-0.5" />
+                  <span className="text-sm text-foreground premium-body">PDF export of full report</span>
+                </div>
+              </div>
+
+              <Link href="/tools/ats-optimizer" className="mt-auto">
+                <Button className="w-full bg-accent hover:bg-[#FFD700] text-primary-foreground hover:text-black border-2 border-black transition-colors shadow-lg">
+                  Unlock Now
+                </Button>
+              </Link>
+
+              <p className="text-xs text-center text-muted-foreground mt-3 premium-body">
+                No subscription, no monthly fees
+              </p>
+            </Card>
+
+            {/* Employer Plans Card */}
+            <Card className="p-6 border-2 border-border bg-background flex flex-col">
+              <div className="text-center mb-6">
+                <h3 className="text-2xl font-bold text-foreground mb-3 premium-heading">Employer Plans</h3>
+                <p className="text-sm text-muted-foreground premium-body">Post jobs, hire talent</p>
+              </div>
+
+              <div className="space-y-4 mb-6 flex-1">
+                <div className="p-3 bg-muted rounded-lg">
+                  <h4 className="font-bold text-foreground mb-1 premium-heading">Free</h4>
+                  <p className="text-xs text-muted-foreground premium-body">2 job listings/month</p>
+                </div>
+                <div className="p-3 bg-muted rounded-lg">
+                  <h4 className="font-bold text-foreground mb-1 premium-heading">Growth</h4>
+                  <p className="text-xs text-muted-foreground premium-body">10 listings + featured posts</p>
+                </div>
+                <div className="p-3 bg-muted rounded-lg">
+                  <h4 className="font-bold text-foreground mb-1 premium-heading">Enterprise</h4>
+                  <p className="text-xs text-muted-foreground premium-body">Unlimited + dedicated support</p>
+                </div>
+              </div>
+
+              <Link href="/contact" className="mt-auto">
+                <Button
+                  variant="outline"
+                  className="w-full border-primary text-primary hover:bg-primary/10 bg-transparent"
+                >
+                  Contact Sales
+                </Button>
+              </Link>
+            </Card>
+          </div>
+        </div>
+      </section>
+
+      {/* FAQ Section */}
+      <section className="py-16 px-4 sm:px-6 lg:px-8 bg-muted/30">
+        <div className="max-w-4xl mx-auto">
+          <h2 className="text-3xl font-bold text-center mb-12 premium-heading">Frequently Asked Questions</h2>
+
+          <div className="space-y-6">
+            <Card className="p-6">
+              <h3 className="font-bold text-foreground mb-2 premium-heading">Is the $5 payment really one-time?</h3>
+              <p className="text-muted-foreground premium-body">
+                Yes! Pay $5 once and get lifetime access. No recurring charges, no hidden fees. Upload and analyze
+                unlimited resumes forever.
+              </p>
+            </Card>
+
+            <Card className="p-6">
+              <h3 className="font-bold text-foreground mb-2 premium-heading">What's included in the free tier?</h3>
+              <p className="text-muted-foreground premium-body">
+                Free users get a limited preview (5 keywords, 2 issues shown with the full report blurred) and can apply
+                to 5 jobs per day. Perfect for testing before upgrading.
+              </p>
+            </Card>
+
+            <Card className="p-6">
+              <h3 className="font-bold text-foreground mb-2 premium-heading">Can I get a refund?</h3>
+              <p className="text-muted-foreground premium-body">
+                We offer a 7-day money-back guarantee. If you're not satisfied with the ATS analysis, contact us for a
+                full refund.
+              </p>
+            </Card>
+
+            <Card className="p-6">
+              <h3 className="font-bold text-foreground mb-2 premium-heading">Do employer plans include ATS access?</h3>
+              <p className="text-muted-foreground premium-body">
+                No. Employer plans are for job posting and candidate management only. If you need ATS optimization,
+                purchase the $5 one-time unlock separately.
+              </p>
+            </Card>
+          </div>
+        </div>
+      </section>
+
+      <Footer />
+    </div>
+  )
+}
+
+===============================================================================
+SECTION 9: ROOT LAYOUT - app/layout.tsx
+===============================================================================
+
+import type React from "react"
+import type { Metadata } from "next"
+import { Montserrat, Open_Sans } from "next/font/google"
+import { Analytics } from "@vercel/analytics/next"
+import Script from "next/script"
+import CookieConsent from "@/components/cookie-consent"
+import { Toaster } from "@/components/ui/toaster"
+import "./globals.css"
+
+const montserrat = Montserrat({
+  subsets: ["latin"],
+  weight: ["400", "500", "600", "700", "800"],
+  variable: "--font-heading",
+  display: "swap",
+})
+
+const openSans = Open_Sans({
+  subsets: ["latin"],
+  weight: ["300", "400", "500", "600", "700"],
+  variable: "--font-sans",
+  display: "swap",
+})
+
+export const metadata: Metadata = {
+  title: "STAR Workforce Solutions - Premium Contract & Consulting Career Services",
+  description:
+    "STAR Workforce Solutions: Consulting and contract job placement services for Software, AI, ML, Cloud, Cybersecurity, Data Engineering, DevOps professionals in USA & Canada. Resume distribution, ATS optimization, dedicated recruiter placement, and AI-powered career tools since 2013.",
+  keywords:
+    "consulting jobs, contract jobs, workforce solutions, resume distribution, ATS optimization, recruiter services, software engineer jobs, AI jobs, ML jobs, cloud jobs, cybersecurity jobs, Canada jobs USA jobs",
+  generator: "v0.app",
+  icons: {
+    icon: [
+      { url: "/favicon.svg", type: "image/svg+xml" },
+      { url: "/icon-192x192.jpg", sizes: "192x192", type: "image/jpeg" },
+      { url: "/icon-512x512.jpg", sizes: "512x512", type: "image/jpeg" },
+    ],
+    apple: [{ url: "/apple-touch-icon.jpg", sizes: "180x180", type: "image/jpeg" }],
+  },
+  manifest: "/site.webmanifest",
+}
+
+export default function RootLayout({
+  children,
+}: Readonly<{
+  children: React.ReactNode
+}>) {
+  return (
+    <html lang="en" className={`${montserrat.variable} ${openSans.variable}`}>
+      <head>
+        <Script
+          strategy="afterInteractive"
+          src={`https://www.googletagmanager.com/gtag/js?id=${process.env.NEXT_PUBLIC_GA_ID || "G-2KEG2N039D"}`}
+        />
+        <Script
+          id="google-analytics"
+          strategy="afterInteractive"
+          dangerouslySetInnerHTML={{
+            __html: `
+              window.dataLayer = window.dataLayer || [];
+              function gtag(){dataLayer.push(arguments);}
+              gtag('js', new Date());
+              gtag('config', '${process.env.NEXT_PUBLIC_GA_ID || "G-2KEG2N039D"}', {
+                page_path: window.location.pathname,
+              });
+            `,
+          }}
+        />
+      </head>
+      <body className={`font-sans antialiased bg-background text-foreground`}>
+        {children}
+        <CookieConsent />
+        <Analytics />
+        <Toaster />
+      </body>
+    </html>
+  )
+}
+
+===============================================================================
+SECTION 10: NAVIGATION COMPONENT
+===============================================================================
+
+'use client'
+
+import { useState } from 'react'
+import Link from 'next/link'
+import { Button } from '@/components/ui/button'
+import { Menu, X, Star } from 'lucide-react'
+
+export default function Navigation() {
+  const [isOpen, setIsOpen] = useState(false)
+
+  const navLinks = [
+    { href: '/services', label: 'Services' },
+    { href: '/tools/ats-optimizer', label: 'ATS Optimizer' },
+    { href: '/distribution-wizard', label: 'Distribution Wizard' },
+    { href: '/jobs', label: 'Job Search' },
+    { href: '/pricing', label: 'Pricing' },
+    { href: '/contact', label: 'Contact' },
+  ]
+
+  return (
+    <nav className="bg-[#0A1A2F] border-b border-white/10 sticky top-0 z-50 shadow-md">
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="flex justify-between items-center h-16">
+          <Link href="/" className="flex items-center gap-3">
+            <div className="w-10 h-10 bg-[#E8C547] rounded flex items-center justify-center shadow-md hover:shadow-lg transition-all">
+              <Star className="w-6 h-6 text-[#0A1A2F] fill-current" />
+            </div>
+            <div className="hidden sm:block">
+              <div className="text-white font-bold text-sm tracking-wider" style={{ fontFamily: 'Montserrat, sans-serif', fontWeight: 700 }}>
+                STAR
+              </div>
+              <div className="text-[#E8C547] text-xs font-bold uppercase" style={{ fontFamily: 'Montserrat, sans-serif', fontWeight: 700, letterSpacing: '0.05em' }}>
+                Workforce Solutions
+              </div>
+            </div>
+          </Link>
+
+          <div className="hidden md:flex items-center gap-8">
+            {navLinks.map((link) => (
+              <Link 
+                key={link.href} 
+                href={link.href} 
+                className="text-sm font-medium text-gray-300 hover:text-[#E8C547] transition-colors duration-200"
+                style={{ fontFamily: 'Open Sans, sans-serif', fontWeight: 500 }}
+              >
+                {link.label}
+              </Link>
+            ))}
+          </div>
+
+          <div className="hidden md:flex items-center gap-3">
+            <Link href="/auth/login">
+              <Button 
+                variant="ghost" 
+                className="text-gray-300 hover:text-[#E8C547] hover:bg-transparent font-medium transition-colors"
+                style={{ fontFamily: 'Open Sans, sans-serif' }}
+              >
+                Sign In
+              </Button>
+            </Link>
+            <Link href="/auth/signup">
+              <Button 
+                className="bg-[#0A1A2F] hover:bg-[#132A47] text-[#E8C547] font-semibold border border-[#E8C547]"
+                style={{ fontFamily: 'Montserrat, sans-serif', fontWeight: 700 }}
+              >
+                Get Started
+              </Button>
+            </Link>
+          </div>
+
+          <button
+            className="md:hidden p-2 hover:bg-white/10 rounded transition-colors"
+            onClick={() => setIsOpen(!isOpen)}
+            aria-label="Toggle menu"
+          >
+            {isOpen ? (
+              <X className="w-6 h-6 text-white" />
+            ) : (
+              <Menu className="w-6 h-6 text-white" />
+            )}
+          </button>
+        </div>
+
+        {isOpen && (
+          <div className="md:hidden pb-4 space-y-1 border-t border-white/10">
+            {navLinks.map((link) => (
+              <Link
+                key={link.href}
+                href={link.href}
+                className="block px-4 py-2 text-gray-300 hover:text-[#E8C547] hover:bg-white/5 rounded font-medium text-sm transition-colors"
+                style={{ fontFamily: 'Open Sans, sans-serif' }}
+                onClick={() => setIsOpen(false)}
+              >
+                {link.label}
+              </Link>
+            ))}
+            <div className="space-y-2 px-4 pt-4 border-t border-white/10 mt-4">
+              <Link href="/auth/login" className="block" onClick={() => setIsOpen(false)}>
+                <Button variant="outline" className="w-full text-white border-white/30 hover:bg-white/10">
+                  Sign In
+                </Button>
+              </Link>
+              <Link href="/auth/signup" className="block" onClick={() => setIsOpen(false)}>
+                <Button className="w-full bg-[#E8C547] text-[#0A1A2F] hover:bg-[#D4AF37] font-semibold">
+                  Get Started
+                </Button>
+              </Link>
+            </div>
+          </div>
+        )}
+      </div>
+    </nav>
+ 
+  )
+}
+
+===============================================================================
+SECTION 11: AUTH PROVIDER COMPONENT
+===============================================================================
+
+"use client"
+
+import { SessionProvider } from "next-auth/react"
+import type { ReactNode } from "react"
+
+// Client-side session provider wrapper
+
+interface AuthProviderProps {
+  children: ReactNode
+}
+
+export default function AuthProvider({ children }: AuthProviderProps) {
+  return <SessionProvider>{children}</SessionProvider>
+}
+
+===============================================================================
+SECTION 12: STRIPE WEBHOOK ROUTE - app/api/stripe/webhook/route.ts
+===============================================================================
+
+import { type NextRequest, NextResponse } from "next/server"
+import Stripe from "stripe"
+import { sql } from "@vercel/postgres"
+import { neon } from "@neondatabase/serverless"
+
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || "", {
+  apiVersion: "2024-11-20.acacia",
+})
+
+const sqlNeon = neon(process.env.DATABASE_URL!)
+
+// Legacy price IDs (keep for backward compatibility)
+const ATS_PRICE_ID = "price_1SVd4E04KnTBJoOrBcQTH6T5"
+const COVER_LETTER_PRICE_ID = "price_1SWUhp04KnTBJoOrG8W8C8OK"
+
+// New Phase 1 price IDs
+const NEW_PRICE_IDS = {
+  ATS_OPTIMIZER: process.env.STRIPE_PRICE_ATS_OPTIMIZER!,
+  COVER_LETTER: process.env.STRIPE_PRICE_COVER_LETTER!,
+  RESUME_DISTRIBUTION: process.env.STRIPE_PRICE_RESUME_DISTRIBUTION!,
+  DIY_PREMIUM: process.env.STRIPE_PRICE_DIY_PREMIUM!,
+  RECRUITER_BASIC: process.env.STRIPE_PRICE_RECRUITER_BASIC!,
+  RECRUITER_STANDARD: process.env.STRIPE_PRICE_RECRUITER_STANDARD!,
+  RECRUITER_PRO: process.env.STRIPE_PRICE_RECRUITER_PRO!,
+}
+
+export async function POST(request: NextRequest) {
+  try {
+    const body = await request.text()
+    const signature = request.headers.get("stripe-signature")
+
+    if (!signature) {
+      return NextResponse.json({ error: "Missing stripe-signature header" }, { status: 400 })
+    }
+
+    const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET!
+    const event = stripe.webhooks.constructEvent(body, signature, webhookSecret)
+
+    console.log("[WEBHOOK] Event type:", event.type)
+
+    switch (event.type) {
+      case "checkout.session.completed": {
+        const session = event.data.object as Stripe.Checkout.Session
+
+        const customerEmail = session.customer_email || session.metadata?.email
+        const resumeId = session.metadata?.resumeId
+        const coverLetterId = session.metadata?.coverLetterId
+
+        if (!customerEmail) {
+          console.error("[WEBHOOK] No customer email in session")
+          break
+        }
+
+        const sessionWithItems = await stripe.checkout.sessions.retrieve(session.id, {
+          expand: ["line_items"],
+        })
+
+        const lineItems = sessionWithItems.line_items?.data || []
+        const priceId = lineItems[0]?.price?.id
+
+        console.log("[WEBHOOK] Processing payment for priceId:", priceId)
+
+        // ===== GUEST PURCHASE HANDLER =====
+        if (session.metadata?.user_type === 'guest') {
+          const email = session.metadata.email
+          const purchaseType = session.metadata.purchase_type
+          
+          try {
+            // Create guest purchase record
+            const result = await sqlNeon`
+              INSERT INTO guest_purchases (
+                email,
+                purchase_type,
+                stripe_payment_id,
+                stripe_customer_id,
+                amount_paid,
+                metadata
+              ) VALUES (
+                ${email},
+                ${purchaseType},
+                ${session.payment_intent as string},
+                ${session.customer as string},
+                ${session.amount_total},
+                ${JSON.stringify(session.metadata)}
+              )
+              RETURNING access_token
+            `
+            
+            const accessToken = result[0].access_token
+            
+            // Send confirmation email with magic link
+            const { guestPurchaseConfirmationEmail } = await import('@/lib/email-templates/guest-purchase-confirmation')
+            const { sendEmail } = await import('@/lib/send-email')
+            
+            const emailContent = guestPurchaseConfirmationEmail(
+              email,
+              purchaseType,
+              accessToken
+            )
+            
+            await sendEmail(emailContent)
+            
+            console.log("[WEBHOOK] Guest purchase processed for:", email, purchaseType)
+          } catch (error) {
+            console.error("[WEBHOOK ERROR] Guest purchase failed:", error)
+          }
+          break
+        }
+
+        // ===== SUBSCRIPTION HANDLER =====
+        if (session.mode === 'subscription') {
+          console.log("[WEBHOOK] Subscription checkout completed:", session.id)
+          // Subscription will be handled by subscription.created event
+          break
+        }
+
+        // ===== LEGACY HANDLERS (Keep for backward compatibility) =====
+        if (priceId === COVER_LETTER_PRICE_ID) {
+          try {
+            await sql`
+              INSERT INTO premium_access (email, "stripeCustomerId", "stripeSessionId", "paidAt", product, "priceId", "expiresAt")
+              VALUES (
+                ${customerEmail.toLowerCase()},
+                ${session.customer as string},
+                ${session.id},
+                NOW(),
+                'COVER_LETTER',
+                ${COVER_LETTER_PRICE_ID},
+                NULL
+              )
+              ON CONFLICT (email, "priceId") DO NOTHING
+            `
+            console.log("[WEBHOOK] Cover Letter premium access granted for:", customerEmail)
+          } catch (dbError) {
+            console.error("[WEBHOOK ERROR] Cover Letter DB insert failed:", dbError)
+          }
+        }
+
+        if (priceId === ATS_PRICE_ID) {
+          try {
+            await sql`
+              INSERT INTO premium_access (email, "stripeCustomerId", "stripeSessionId", "paidAt", product, "priceId", "resumeId", "expiresAt")
+              VALUES (
+                ${customerEmail.toLowerCase()},
+                ${session.customer as string},
+                ${session.id},
+                NOW(),
+                'ATS_OPTIMIZER',
+                ${ATS_PRICE_ID},
+                ${resumeId || null},
+                NULL
+              )
+              ON CONFLICT (email, "priceId") DO NOTHING
+            `
+            console.log("[WEBHOOK] ATS Optimizer premium access granted for:", customerEmail)
+          } catch (dbError) {
+            console.error("[WEBHOOK ERROR] ATS Optimizer DB insert failed:", dbError)
+          }
+        }
+
+        // ===== NEW PHASE 1 ONE-TIME PURCHASES =====
+        if (priceId === NEW_PRICE_IDS.ATS_OPTIMIZER || priceId === NEW_PRICE_IDS.COVER_LETTER) {
+          try {
+            await sql`
+              INSERT INTO premium_access (email, "stripeCustomerId", "stripeSessionId", "paidAt", product, "priceId", "expiresAt")
+              VALUES (
+                ${customerEmail.toLowerCase()},
+                ${session.customer as string},
+                ${session.id},
+                NOW(),
+                ${priceId === NEW_PRICE_IDS.ATS_OPTIMIZER ? 'ATS_OPTIMIZER' : 'COVER_LETTER'},
+                ${priceId},
+                NULL
+              )
+              ON CONFLICT (email, "priceId") DO NOTHING
+            `
+            console.log("[WEBHOOK] Premium access granted for:", customerEmail, priceId)
+          } catch (dbError) {
+            console.error("[WEBHOOK ERROR] Premium access DB insert failed:", dbError)
+          }
+        }
+
+        console.log("[WEBHOOK] Payment completed for session:", session.id)
+        break
+      }
+
+      // ===== SUBSCRIPTION EVENT HANDLERS =====
+      case "customer.subscription.created":
+      case "customer.subscription.updated": {
+        const subscription = event.data.object as Stripe.Subscription
+        
+        try {
+          await sqlNeon`
+            INSERT INTO subscriptions (
+              user_id,
+              subscription_type,
+              stripe_customer_id,
+              stripe_subscription_id,
+              stripe_price_id,
+              status,
+              current_period_start,
+              current_period_end
+            ) VALUES (
+              ${subscription.metadata.user_id},
+              ${subscription.metadata.subscription_type},
+              ${subscription.customer as string},
+              ${subscription.id},
+              ${subscription.items.data[0].price.id},
+              ${subscription.status},
+              to_timestamp(${subscription.current_period_start}),
+              to_timestamp(${subscription.current_period_end})
+            )
+            ON CONFLICT (stripe_subscription_id) DO UPDATE SET
+              status = ${subscription.status},
+              current_period_end = to_timestamp(${subscription.current_period_end}),
+              updated_at = NOW()
+          `
+          
+          // Log to subscription history
+          await sqlNeon`
+            INSERT INTO subscription_history (
+              subscription_id,
+              user_id,
+              event_type,
+              new_status,
+              metadata
+            ) VALUES (
+              (SELECT id FROM subscriptions WHERE stripe_subscription_id = ${subscription.id}),
+              ${subscription.metadata.user_id},
+              ${event.type === 'customer.subscription.created' ? 'created' : 'updated'},
+              ${subscription.status},
+              ${JSON.stringify(event)}
+            )
+          `
+          
+          console.log("[WEBHOOK] Subscription", event.type, "for:", subscription.id)
+        } catch (error) {
+          console.error("[WEBHOOK ERROR] Subscription handler failed:", error)
+        }
+        break
+      }
+
+      case "customer.subscription.deleted": {
+        const subscription = event.data.object as Stripe.Subscription
+        
+        try {
+          await sqlNeon`
+            UPDATE subscriptions 
+            SET status = 'canceled', 
+                canceled_at = NOW(),
+                updated_at = NOW()
+            WHERE stripe_subscription_id = ${subscription.id}
+          `
+          
+          // Log cancellation
+          await sqlNeon`
+            INSERT INTO subscription_history (
+              subscription_id,
+              user_id,
+              event_type,
+              old_status,
+              new_status
+            ) VALUES (
+              (SELECT id FROM subscriptions WHERE stripe_subscription_id = ${subscription.id}),
+              (SELECT user_id FROM subscriptions WHERE stripe_subscription_id = ${subscription.id}),
+              'canceled',
+              'active',
+              'canceled'
+            )
+          `
+          
+          console.log("[WEBHOOK] Subscription canceled:", subscription.id)
+        } catch (error) {
+          console.error("[WEBHOOK ERROR] Subscription deletion failed:", error)
+        }
+        break
+      }
+
+      case "payment_intent.succeeded": {
+        const paymentIntent = event.data.object as Stripe.PaymentIntent
+        console.log("[WEBHOOK] Payment succeeded:", paymentIntent.id)
+        break
+      }
+
+      case "payment_intent.payment_failed": {
+        const paymentIntent = event.data.object as Stripe.PaymentIntent
+        console.error("[WEBHOOK] Payment failed:", paymentIntent.id)
+        break
+      }
+
+      default:
+        console.log("[WEBHOOK] Unhandled event type:", event.type)
+    }
+
+    return NextResponse.json({ received: true })
+  } catch (error) {
+    console.error("[WEBHOOK ERROR]", error)
+    return NextResponse.json({ error: "Webhook handler failed" }, { status: 400 })
+  }
+}
+
+===============================================================================
+SECTION 13: STRIPE CHECKOUT ROUTE - app/api/stripe/checkout/route.ts
+===============================================================================
+
+import { type NextRequest, NextResponse } from "next/server"
+import { createCheckoutSession, STRIPE_PRODUCTS } from "@/lib/stripe"
+import { getCurrentUser } from "@/lib/session"
+
+// POST /api/stripe/checkout
+// Creates a Stripe checkout session for ATS Optimizer or subscription
+
+export async function POST(request: NextRequest) {
+  try {
+    const user = await getCurrentUser()
+
+    if (!user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    }
+
+    const body = await request.json()
+    const { product } = body
+
+    // Validate product
+    if (!product || !(product in STRIPE_PRODUCTS)) {
+      return NextResponse.json({ error: "Invalid product" }, { status: 400 })
+    }
+
+    const baseUrl = process.env.NEXT_PUBLIC_URL || "http://localhost:3000"
+
+    // Create checkout session
+    const session = await createCheckoutSession({
+      userId: user.id,
+      productKey: product as keyof typeof STRIPE_PRODUCTS,
+      successUrl: `${baseUrl}/payment/success?session_id={CHECKOUT_SESSION_ID}`,
+      cancelUrl: `${baseUrl}/payment/cancel`,
+    })
+
+    return NextResponse.json({
+      sessionId: session.id,
+      url: session.url,
+    })
+  } catch (error) {
+    console.error("[v0] Error creating checkout session:", error)
+    return NextResponse.json({ error: "Failed to create checkout session" }, { status: 500 })
+  }
+}
+
+===============================================================================
+SECTION 14: CHECKOUT SUBSCRIPTION ROUTE - app/api/checkout/subscription/route.ts
+===============================================================================
+
+import { NextRequest, NextResponse } from 'next/server';
+import Stripe from 'stripe';
+import { getServerSession } from 'next-auth';
+import { neon } from '@neondatabase/serverless';
+
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
+  apiVersion: '2024-11-20.acacia',
+});
+
+const sql = neon(process.env.DATABASE_URL!);
+
+const SUBSCRIPTION_PRICES: Record<string, string> = {
+  diy_premium: process.env.STRIPE_PRICE_DIY_PREMIUM!,
+  recruiter_basic: process.env.STRIPE_PRICE_RECRUITER_BASIC!,
+  recruiter_standard: process.env.STRIPE_PRICE_RECRUITER_STANDARD!,
+  recruiter_pro: process.env.STRIPE_PRICE_RECRUITER_PRO!,
+};
+
+export async function POST(req: NextRequest) {
+  try {
+    const session = await getServerSession();
+    
+    if (!session?.user?.email) {
+      return NextResponse.json(
+        { error: 'Authentication required' },
+        { status: 401 }
+      );
+    }
+
+    const { subscriptionType } = await req.json();
+    
+    if (!SUBSCRIPTION_PRICES[subscriptionType]) {
+      return NextResponse.json(
+        { error: 'Invalid subscription type' },
+        { status: 400 }
+      );
+    }
+
+    const users = await sql`
+      SELECT id, email, stripe_customer_id 
+      FROM users 
+      WHERE email = ${session.user.email}
+      LIMIT 1
+    `;
+
+    if (users.length === 0) {
+      return NextResponse.json(
+        { error: 'User not found' },
+        { status: 404 }
+      );
+    }
+
+    const user = users[0];
+    let customerId = user.stripe_customer_id;
+    
+    if (!customerId) {
+      const customer = await stripe.customers.create({
+        email: user.email,
+        metadata: {
+          user_id: user.id,
+        },
+      });
+      customerId = customer.id;
+      
+      await sql`
+        UPDATE users 
+        SET stripe_customer_id = ${customerId}
+        WHERE id = ${user.id}
+      `;
+    }
+
+    const checkoutSession = await stripe.checkout.sessions.create({
+      customer: customerId,
+      line_items: [
+        {
+          price: SUBSCRIPTION_PRICES[subscriptionType],
+          quantity: 1,
+        },
+      ],
+      mode: 'subscription',
+      success_url: `${process.env.NEXT_PUBLIC_URL}/dashboard?success=true&session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `${process.env.NEXT_PUBLIC_URL}/hire-recruiter`,
+      metadata: {
+        user_id: user.id,
+        subscription_type: subscriptionType,
+      },
+      subscription_data: {
+        metadata: {
+          user_id: user.id,
+          subscription_type: subscriptionType,
+        },
+      },
+    });
+
+    return NextResponse.json({
+      sessionId: checkoutSession.id,
+      url: checkoutSession.url,
+    });
+
+  } catch (error: any) {
+    console.error('Subscription checkout error:', error);
+    return NextResponse.json(
+      { error: 'Failed to create checkout session', details: error.message },
+      { status: 500 }
+    );
+  }
+}
+
+===============================================================================
+SECTION 15: CHECKOUT GUEST ROUTE - app/api/checkout/guest/route.ts
+===============================================================================
+
+import { NextRequest, NextResponse } from 'next/server';
+import Stripe from 'stripe';
+import { neon } from '@neondatabase/serverless';
+
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
+  apiVersion: '2024-11-20.acacia',
+});
+
+const sql = neon(process.env.DATABASE_URL!);
+
+const GUEST_PURCHASE_TYPES = {
+  ats_optimizer: {
+    priceId: process.env.STRIPE_PRICE_ATS_OPTIMIZER!,
+    name: 'ATS Optimizer',
+    amount: 500,
+  },
+  cover_letter: {
+    priceId: process.env.STRIPE_PRICE_COVER_LETTER!,
+    name: 'Cover Letter Generator',
+    amount: 500,
+  },
+  resume_distribution: {
+    priceId: process.env.STRIPE_PRICE_RESUME_DISTRIBUTION!,
+    name: 'Resume Distribution',
+    amount: 14900,
+  },
+} as const;
+
+type GuestPurchaseType = keyof typeof GUEST_PURCHASE_TYPES;
+
+export async function POST(req: NextRequest) {
+  try {
+    const body = await req.json();
+    const { email, purchaseType, metadata } = body;
+
+    if (!email || !purchaseType) {
+      return NextResponse.json(
+        { error: 'Email and purchase type are required' },
+        { status: 400 }
+      );
+    }
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      return NextResponse.json(
+        { error: 'Invalid email format' },
+        { status: 400 }
+      );
+    }
+
+    if (!GUEST_PURCHASE_TYPES[purchaseType as GuestPurchaseType]) {
+      return NextResponse.json(
+        { error: 'Invalid purchase type' },
+        { status: 400 }
+      );
+    }
+
+    const purchaseInfo = GUEST_PURCHASE_TYPES[purchaseType as GuestPurchaseType];
+
+    const existingPurchase = await sql`
+      SELECT id FROM guest_purchases 
+      WHERE email = ${email} 
+      AND purchase_type = ${purchaseType}
+      AND created_at > NOW() - INTERVAL '1 year'
+      LIMIT 1
+    `;
+
+    if (existingPurchase.length > 0) {
+      return NextResponse.json(
+        { 
+          error: 'You already have access to this service',
+          existingPurchase: true,
+        },
+        { status: 400 }
+      );
+    }
+
+    // FIX: Only use customer_email, not both customer and customer_email
+    const session = await stripe.checkout.sessions.create({
+      line_items: [
+        {
+          price: purchaseInfo.priceId,
+          quantity: 1,
+        },
+      ],
+      mode: 'payment',
+      success_url: `${process.env.NEXT_PUBLIC_URL}/payment/success?session_id={CHECKOUT_SESSION_ID}&guest=true`,
+      cancel_url: `${process.env.NEXT_PUBLIC_URL}/payment/canceled`,
+      customer_email: email,
+      metadata: {
+        email: email,
+        purchase_type: purchaseType,
+        user_type: 'guest',
+        ...metadata,
+      },
+      payment_intent_data: {
+        metadata: {
+          email: email,
+          purchase_type: purchaseType,
+          user_type: 'guest',
+        },
+      },
+    });
+
+    return NextResponse.json({
+      sessionId: session.id,
+      url: session.url,
+    });
+
+  } catch (error: any) {
+    console.error('Error creating guest checkout session:', error);
+    return NextResponse.json(
+      { error: 'Failed to create checkout session', details: error.message },
+      { status: 500 }
+    );
+  }
+}
+
+===============================================================================
+SECTION 16: LIB/STRIPE.TS
+===============================================================================
+
+import Stripe from "stripe"
+
+// Stripe client for STAR Workforce Solutions
+// Handles: ATS Optimizer unlocks, subscription payments, job posting fees
+
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || "", {
+  apiVersion: "2024-11-20.acacia",
+})
+
+export default stripe
+
+// Product configurations
+export const STRIPE_PRODUCTS = {
+  ATS_OPTIMIZER: {
+    name: "ATS Optimizer Unlock",
+    price: 500, // $5.00 in cents
+    currency: "usd",
+    description: "Unlock full ATS analysis with unlimited resume scans",
+  },
+  PROFESSIONAL_PLAN: {
+    name: "Professional Plan",
+    price: 4900, // $49.00 in cents
+    currency: "usd",
+    description: "Monthly subscription for job seekers",
+  },
+  ENTERPRISE_PLAN: {
+    name: "Enterprise Plan",
+    price: 14900, // $149.00 in cents
+    currency: "usd",
+    description: "Monthly subscription for enterprise job seekers",
+  },
+}
+
+// Create Stripe checkout session
+export async function createCheckoutSession(params: {
+  userId: string
+  productKey: keyof typeof STRIPE_PRODUCTS
+  successUrl: string
+  cancelUrl: string
+}): Promise<Stripe.Checkout.Session> {
+  const product = STRIPE_PRODUCTS[params.productKey]
+
+  const session = await stripe.checkout.sessions.create({
+    payment_method_types: ["card"],
+    line_items: [
+      {
+        price_data: {
+          currency: product.currency,
+          product_data: {
+            name: product.name,
+            description: product.description,
+          },
+          unit_amount: product.price,
+        },
+        quantity: 1,
+      },
+    ],
+    mode: "payment",
+    success_url: params.successUrl,
+    cancel_url: params.cancelUrl,
+    client_reference_id: params.userId,
+    metadata: {
+      userId: params.userId,
+      product: params.productKey,
+    },
+  })
+
+  return session
+}
+
+// Verify Stripe webhook signature
+export function verifyWebhookSignature(payload: string | Buffer, signature: string): Stripe.Event {
+  const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET!
+
+  return stripe.webhooks.constructEvent(payload, signature, webhookSecret)
+}
+
+===============================================================================
+SECTION 17: LIB/SESSION.TS
+===============================================================================
+
+import { getServerSession } from "next-auth/next"
+import { authOptions } from "./auth"
+
+// Server-side session utilities
+
+export async function getCurrentUser() {
+  const session = await getServerSession(authOptions)
+  return session?.user
+}
+
+export async function requireAuth() {
+  const user = await getCurrentUser()
+  if (!user) {
+    throw new Error("Unauthorized")
+  }
+  return user
+}
+
+export async function requireRole(role: "jobseeker" | "employer" | "admin") {
+  const user = await requireAuth()
+  if (user.role !== role && user.role !== "admin") {
+    throw new Error("Forbidden")
+  }
+  return user
+}
+
+===============================================================================
+SECTION 18: LIB/AUTH.TS
+===============================================================================
+
+import type { NextAuthOptions } from "next-auth"
+import GoogleProvider from "next-auth/providers/google"
+import LinkedInProvider from "next-auth/providers/linkedin"
+import CredentialsProvider from "next-auth/providers/credentials"
+
+// Helper to safely check if database is available
+function isDatabaseConfigured(): boolean {
+  return Boolean(process.env.DATABASE_URL)
+}
+
+// Helper to safely get user data from database
+async function safeGetUserByEmail(email: string) {
+  if (!isDatabaseConfigured()) return null
+
+  try {
+    const { getUserByEmail } = await import("./db")
+    return await getUserByEmail(email)
+  } catch (error) {
+    console.error("[NextAuth] Database query failed:", error)
+    return null
+  }
+}
+
+async function safeGetUserById(id: string) {
+  if (!isDatabaseConfigured()) return null
+
+  try {
+    const { getUserById } = await import("./db")
+    return await getUserById(id)
+  } catch (error) {
+    console.error("[NextAuth] Database query failed:", error)
+    return null
+  }
+}
+
+async function safeCreateUser(data: any) {
+  if (!isDatabaseConfigured()) return null
+
+  try {
+    const { createUser } = await import("./db")
+    return await createUser(data)
+  } catch (error) {
+    console.error("[NextAuth] Database insert failed:", error)
+    return null
+  }
+}
+
+console.log("[v0] NextAuth config loading - checking environment variables")
+console.log("[v0] GOOGLE_CLIENT_ID exists:", !!process.env.GOOGLE_CLIENT_ID)
+console.log("[v0] LINKEDIN_CLIENT_ID exists:", !!process.env.LINKEDIN_CLIENT_ID)
+console.log("[v0] NEXTAUTH_SECRET exists:", !!process.env.NEXTAUTH_SECRET)
+console.log("[v0] DATABASE_URL exists:", !!process.env.DATABASE_URL)
+
+export const authOptions: NextAuthOptions = {
+  providers: [
+    CredentialsProvider({
+      id: "credentials",
+      name: "Email and Password",
+      credentials: {
+        email: { label: "Email", type: "email" },
+        password: { label: "Password", type: "password" },
+      },
+      async authorize(credentials) {
+        // TODO: Implement actual authentication logic
+        // For now, this is a placeholder that won't crash NextAuth
+        return null
+      },
+    }),
+    GoogleProvider({
+      clientId: process.env.GOOGLE_CLIENT_ID || "dummy-client-id",
+      clientSecret: process.env.GOOGLE_CLIENT_SECRET || "dummy-secret",
+    }),
+    LinkedInProvider({
+      clientId: process.env.LINKEDIN_CLIENT_ID || "dummy-client-id",
+      clientSecret: process.env.LINKEDIN_CLIENT_SECRET || "dummy-secret",
+    }),
+  ],
+
+  callbacks: {
+    async signIn({ user }) {
+      console.log("[v0] SignIn callback triggered")
+      if (!user.email) return false
+
+      try {
+        const existingUser = await safeGetUserByEmail(user.email)
+
+        if (!existingUser && isDatabaseConfigured()) {
+          await safeCreateUser({
+            name: user.name || undefined,
+            email: user.email,
+            emailVerified: new Date(),
+            role: "jobseeker",
+          })
+        }
+      } catch (error) {
+        console.error("[NextAuth] signIn callback error:", error)
+      }
+
+      // Always return true - JWT-only mode works without database
+      return true
+    },
+
+    async session({ session, token }) {
+      console.log("[v0] Session callback triggered")
+      try {
+        if (session.user && token.sub) {
+          const dbUser = await safeGetUserById(token.sub)
+
+          if (dbUser) {
+            session.user.id = dbUser.id
+            session.user.role = dbUser.role
+            session.user.atsPremium = dbUser.atsPremium
+          } else {
+            // Fallback to JWT data
+            session.user.id = token.sub
+            session.user.role = (token.role as string) || "jobseeker"
+            session.user.atsPremium = (token.atsPremium as boolean) || false
+          }
+        }
+      } catch (error) {
+        console.error("[NextAuth] session callback error:", error)
+        // Ensure user data exists even on error
+        if (session.user && token.sub) {
+          session.user.id = token.sub
+          session.user.role = "jobseeker"
+          session.user.atsPremium = false
+        }
+      }
+
+      return session
+    },
+
+    async jwt({ token, user }) {
+      console.log("[v0] JWT callback triggered")
+      try {
+        if (user) {
+          token.sub = user.id
+
+          if (user.email) {
+            const dbUser = await safeGetUserByEmail(user.email)
+            if (dbUser) {
+              token.role = dbUser.role
+              token.atsPremium = dbUser.atsPremium
+            } else {
+              token.role = "jobseeker"
+              token.atsPremium = false
+            }
+          } else {
+            token.role = "jobseeker"
+            token.atsPremium = false
+          }
+        }
+      } catch (error) {
+        console.error("[NextAuth] JWT callback error:", error)
+        // Set safe defaults
+        if (user && !token.role) {
+          token.role = "jobseeker"
+          token.atsPremium = false
+        }
+      }
+
+      return token
+    },
+  },
+
+  pages: {
+    signIn: "/auth/login",
+    signOut: "/auth/logout",
+    error: "/auth/error",
+    verifyRequest: "/auth/verify",
+    newUser: "/dashboard",
+  },
+
+  session: {
+    strategy: "jwt",
+    maxAge: 30 * 24 * 60 * 60, // 30 days
+  },
+
+  secret: process.env.NEXTAUTH_SECRET || "fallback-secret-for-development",
+
+  trustHost: true, // Trust the host header from Vercel
+
+  debug: true, // Enable debug mode to see what's crashing
+}
+
+console.log("[v0] NextAuth config successfully created")
+
+===============================================================================
+SECTION 19: MIDDLEWARE.TS
+===============================================================================
+
+import { NextResponse } from "next/server"
+import type { NextRequest } from "next/server"
+
+const BAD_BOTS = [
+  "GPTBot",
+  "ClaudeBot",
+  "Bytespider",
+  "OmnaiBot",
+  "SemrushBot",
+  "AhrefsBot",
+  "Dotbot",
+  "MJ12bot",
+  "PetalBot",
+]
+
+const GOOD_BOTS = [
+  "Googlebot",
+  "Bingbot",
+  "Slurp",
+  "DuckDuckBot",
+  "Baiduspider",
+  "facebookexternalhit",
+  "LinkedInBot",
+  "TwitterBot",
+  "WhatsApp",
+]
+
+function isBot(userAgent: string): boolean {
+  const ua = userAgent.toLowerCase()
+
+  // Allow good bots
+  if (GOOD_BOTS.some((bot) => ua.includes(bot.toLowerCase()))) {
+    return false
+  }
+
+  // Block bad bots - exact match from robots.txt
+  if (BAD_BOTS.some((bot) => ua.includes(bot.toLowerCase()))) {
+    return true
+  }
+
+  return false
+}
+
+function isSuspiciousTraffic(request: NextRequest): boolean {
+  const userAgent = request.headers.get("user-agent") || ""
+
+  // No user agent or very short
+  if (!userAgent || userAgent.length < 10) {
+    return true
+  }
+
+  // Check for bot
+  if (isBot(userAgent)) {
+    return true
+  }
+
+  const hasAcceptLanguage = request.headers.has("accept-language")
+  const hasAccept = request.headers.has("accept")
+  const hasReferer = request.headers.has("referer")
+
+  // Block only if missing ALL common headers
+  if (!hasAcceptLanguage && !hasAccept && !hasReferer) {
+    return true
+  }
+
+  return false
+}
+
+export function middleware(request: NextRequest) {
+  const startTime = Date.now()
+
+  const hostname = request.headers.get("host") || ""
+  const url = request.nextUrl.clone()
+
+  // Redirect starworkforcesolutions.com → www.starworkforcesolutions.com
+  if (hostname === "starworkforcesolutions.com") {
+    url.host = "www.starworkforcesolutions.com"
+    console.log("[WWW REDIRECT]", {
+      from: hostname,
+      to: "www.starworkforcesolutions.com",
+      path: url.pathname,
+      timestamp: new Date().toISOString(),
+    })
+    return NextResponse.redirect(url, 301) // Permanent redirect
+  }
+
+  // Rate limiting for API routes
+  if (request.nextUrl.pathname.startsWith("/api/")) {
+    const ip = request.ip || request.headers.get("x-forwarded-for") || request.headers.get("x-real-ip") || "anonymous"
+
+    // Simple rate limit check (60 requests per minute per IP)
+    // For production, consider using Vercel KV or Upstash Redis
+    const rateLimitKey = `ratelimit:${ip}`
+
+    // Note: This is a basic implementation. For production scale,
+    // use a distributed rate limiter like Vercel KV
+  }
+
+  if (isSuspiciousTraffic(request)) {
+    console.log("[BOT BLOCKED]", {
+      userAgent: request.headers.get("user-agent"),
+      url: request.url,
+      timestamp: new Date().toISOString(),
+    })
+
+    // Return 403 Forbidden for bots
+    return new NextResponse("Forbidden", { status: 403 })
+  }
+
+  // Log request (Vercel will capture this)
+  console.log("[REQUEST]", {
+    method: request.method,
+    url: request.url,
+    timestamp: new Date().toISOString(),
+  })
+
+  // Add security headers
+  const response = NextResponse.next()
+
+  response.headers.set("X-Content-Type-Options", "nosniff")
+  response.headers.set("X-Frame-Options", "DENY")
+  response.headers.set("X-XSS-Protection", "1; mode=block")
+  response.headers.set("Referrer-Policy", "strict-origin-when-cross-origin")
+
+  // Log response time
+  const duration = Date.now() - startTime
+  console.log("[RESPONSE]", {
+    method: request.method,
+    url: request.url,
+    duration,
+    status: response.status,
+    timestamp: new Date().toISOString(),
+  })
+
+  return response
+}
+
+export const config = {
+  matcher: [
+    /*
+     * Match all request paths except for the ones starting with:
+     * - _next/static (static files)
+     * - _next/image (image optimization files)
+     * - favicon.ico (favicon file)
+     * - public files (public directory)
+     */
+    "/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
+  ],
+}
+
+===============================================================================
+SECTION 20: NEXTAUTH ROUTE - app/api/auth/[...nextauth]/route.ts
+===============================================================================
+
+import NextAuth from "next-auth"
+import GoogleProvider from "next-auth/providers/google"
+import LinkedInProvider from "next-auth/providers/linkedin"
+
+const handler = NextAuth({
+  providers: [
+    GoogleProvider({
+      clientId: process.env.GOOGLE_CLIENT_ID ?? "",
+      clientSecret: process.env.GOOGLE_CLIENT_SECRET ?? "",
+    }),
+    LinkedInProvider({
+      clientId: process.env.LINKEDIN_CLIENT_ID ?? "",
+      clientSecret: process.env.LINKEDIN_CLIENT_SECRET ?? "",
+    }),
+  ],
+  secret: process.env.NEXTAUTH_SECRET,
+  trustHost: true,
+  useSecureCookies: process.env.NODE_ENV === "production",
+  pages: {
+    signIn: "/auth/login",
+    error: "/auth/error",
+  },
+  debug: process.env.NODE_ENV === "development",
+})
+
+export { handler as GET, handler as POST }
+
+===============================================================================
+SECTION 21: PAYMENT SUCCESS PAGE
+===============================================================================
+
+"use client"
+
+import { useEffect, useState } from "react"
+import { useSearchParams, useRouter } from "next/navigation"
+import Navigation from "@/components/navigation"
+import Footer from "@/components/footer"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Button } from "@/components/ui/button"
+import { CheckCircle2 } from "lucide-react"
+
+export default function PaymentSuccessPage() {
+  const searchParams = useSearchParams()
+  const router = useRouter()
+  const [isVerifying, setIsVerifying] = useState(true)
+  const sessionId = searchParams.get("session_id")
+
+  useEffect(() => {
+    // Set cookie for client-side ATS premium access
+    if (sessionId) {
+      document.cookie = `atsPremium=true; path=/; max-age=${365 * 24 * 60 * 60}; secure; samesite=strict`
+      setTimeout(() => setIsVerifying(false), 1500)
+    }
+  }, [sessionId])
+
+  if (isVerifying) {
+    return (
+      <div className="min-h-screen flex flex-col">
+        <Navigation />
+        <div className="flex-grow flex items-center justify-center">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#E8C547] mx-auto"></div>
+            <p className="mt-4 text-gray-600">Verifying your payment...</p>
+          </div>
+        </div>
+        <Footer />
+      </div>
+    )
+  }
+
+  return (
+    <div className="min-h-screen flex flex-col">
+      <Navigation />
+
+      <div className="flex-grow bg-slate-50 py-16 flex items-center justify-center">
+        <div className="container mx-auto px-4 max-w-md">
+          <Card>
+            <CardHeader className="text-center">
+              <div className="flex justify-center mb-4">
+                <CheckCircle2 className="h-16 w-16 text-green-500" />
+              </div>
+              <CardTitle className="font-heading text-2xl">Payment Successful!</CardTitle>
+              <CardDescription>Your purchase has been completed</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4 text-center">
+              <p className="text-gray-600">
+                Thank you for your purchase. You now have full access to premium features.
+              </p>
+              <div className="pt-4 space-y-2">
+                <Button
+                  onClick={() => router.push("/tools/ats-optimizer")}
+                  className="w-full bg-[#E8C547] hover:bg-[#d4b540] text-[#0A1A2F]"
+                >
+                  Go to ATS Optimizer
+                </Button>
+                <Button onClick={() => router.push("/dashboard")} variant="outline" className="w-full">
+                  View Dashboard
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+
+      <Footer />
+    </div>
+  )
+}
+
+===============================================================================
+SECTION 21B: PAYMENT CANCEL PAGE
+===============================================================================
+
+import Navigation from "@/components/navigation"
+import Footer from "@/components/footer"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Button } from "@/components/ui/button"
+import { XCircle } from "lucide-react"
+import Link from "next/link"
+
+export const metadata = {
+  title: "Payment Cancelled - STAR Workforce Solutions",
+  description: "Your payment was cancelled",
+}
+
+export default function PaymentCancelPage() {
+  return (
+    <div className="min-h-screen flex flex-col">
+      <Navigation />
+
+      <div className="flex-grow bg-slate-50 py-16 flex items-center justify-center">
+        <div className="container mx-auto px-4 max-w-md">
+          <Card>
+            <CardHeader className="text-center">
+              <div className="flex justify-center mb-4">
+                <XCircle className="h-16 w-16 text-gray-400" />
+              </div>
+              <CardTitle className="font-heading text-2xl">Payment Cancelled</CardTitle>
+              <CardDescription>Your payment was not completed</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4 text-center">
+              <p className="text-gray-600">No charges were made to your account. You can try again anytime.</p>
+              <div className="pt-4 space-y-2">
+                <Link href="/tools/ats-optimizer">
+                  <Button className="w-full bg-[#E8C547] hover:bg-[#d4b540] text-[#0A1A2F]">
+                    Back to ATS Optimizer
+                  </Button>
+                </Link>
+                <Link href="/pricing">
+                  <Button variant="outline" className="w-full bg-transparent">
+                    View Pricing
+                  </Button>
+                </Link>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+
+      <Footer />
+    </div>
+  )
+}
+
+===============================================================================
+SECTION 22: TOOLS/ATS OPTIMIZER PAGE
+===============================================================================
+
+import type { Metadata } from "next"
+import ATSOptimizerClient from "@/components/ats-optimizer-client"
+
+export const metadata: Metadata = {
+  title: "Free ATS Resume Optimizer | STAR Workforce Solutions",
+  description:
+    "Free AI-powered ATS resume checker and optimizer. Analyze your resume for ATS compatibility, discover missing keywords, and get optimization tips to pass ATS systems and land interviews.",
+  keywords: [
+    "ATS optimizer",
+    "resume checker",
+    "ATS score",
+    "resume keywords",
+    "applicant tracking system",
+    "free resume analysis",
+  ],
+  openGraph: {
+    title: "Free ATS Resume Optimizer | STAR Workforce Solutions",
+    description: "Free AI-powered ATS resume checker. Get instant analysis and optimization tips.",
+    type: "website",
+  },
+}
+
+export default function ATSOptimizerPage() {
+  return <ATSOptimizerClient />
+}
+
+===============================================================================
+SECTION 23: SERVICES PAGE
+===============================================================================
+
+import type { Metadata } from "next"
+import ServicesClient from "./ServicesClient"
+
+export const metadata: Metadata = {
+  title: "Career Services | Resume Distribution & Offshore Recruiters | STAR Workforce Solutions",
+  description:
+    "Professional career acceleration services for consulting & contract jobs. Resume submission to 500+ recruiters, DIY job search, offshore recruiters, and AI tools for Software, AI, Cloud, Cybersecurity professionals.",
+  keywords: [
+    "resume distribution",
+    "offshore recruiter",
+    "job search services",
+    "consulting jobs",
+    "contract jobs",
+    "ATS optimizer",
+    "career services",
+  ],
+  openGraph: {
+    title: "Career Acceleration Services | STAR Workforce Solutions",
+    description: "Resume distribution, offshore recruiters, DIY job search, and AI career tools.",
+    type: "website",
+  },
+}
+
+export default function ServicesPage() {
+  return <ServicesClient />
+}
+
+===============================================================================
+SECTION 24: HOMEPAGE - app/page.tsx
+===============================================================================
+
+"use client"
+
+import Link from "next/link"
+import { Button } from "@/components/ui/button"
+import { Card } from "@/components/ui/card"
+import Navigation from "@/components/navigation"
+import Footer from "@/components/footer"
+import {
+  FileText,
+  Users,
+  Briefcase,
+  Sparkles,
+  MessageSquare,
+  Users2,
+  Award,
+  TrendingUp,
+  Shield,
+  CheckCircle,
+} from "lucide-react"
+
+export default function Home() {
+  return (
+    <div className="min-h-screen bg-background">
+      <Navigation />
+
+      <section
+        className="text-primary-foreground py-24 px-4 sm:px-6 lg:px-8 relative overflow-hidden"
+        style={{
+          background:
+            "linear-gradient(to bottom right, rgba(0, 0, 0, 0.85) 0%, rgba(0, 0, 0, 0.70) 50%, rgba(0, 0, 0, 0.30) 100%), url(/images/professional-deep-blue-and-gold-abstract-corporate-background-with-subtle-network-connections-920ce753.png)",
+          backgroundSize: "auto, cover",
+          backgroundPosition: "center, center",
+          backgroundAttachment: "scroll, fixed",
+        }}
+      >
+        <div className="max-w-6xl mx-auto relative z-10">
+          <div className="text-center space-y-8">
+            <div className="inline-flex items-center gap-2 bg-white/10 px-4 py-2 rounded-full border border-white/20 backdrop-blur-sm">
+              <Award className="w-4 h-4 text-accent" />
+              <span className="text-sm font-medium text-white/95 premium-body">
+                Since 2013 — 12+ Years Excellence in Workforce Solutions
+              </span>
+            </div>
+
+            <h1 className="text-5xl sm:text-6xl lg:text-7xl font-bold tracking-tight premium-heading">
+              <span className="text-white">Accelerate Your Career with</span>
+              <br />
+              <span className="text-secondary">Strategic Resume Distribution</span>
+            </h1>
+            <p className="text-lg sm:text-xl text-white/90 max-w-3xl mx-auto leading-relaxed font-light premium-body">
+              Get instant visibility to top recruiters across USA & Canada. Distributed to leading companies in
+              Software, AI, ML, Cloud, Cybersecurity, DevOps, and Data Engineering. Our AI-powered ATS optimization
+              ensures your resume bypasses filters and reaches the right hands faster.
+            </p>
+            <div className="inline-flex items-center gap-3 bg-white/10 px-6 py-3 rounded-full border border-white/20 backdrop-blur-sm mx-auto">
+              <CheckCircle className="w-5 h-5 text-secondary flex-shrink-0" />
+              <span className="text-sm font-medium text-white/95 premium-body">
+                Not a staffing agency. Services paid upfront. No placement guarantees.
+              </span>
+            </div>
+            <div className="flex flex-col sm:flex-row gap-4 justify-center pt-6">
+              <Link href="/contact?subject=Start Distribution">
+                <Button className="bg-secondary hover:bg-secondary/90 text-primary px-8 py-6 text-lg h-auto font-semibold premium-heading shadow-lg hover:shadow-xl transition-all">
+                  Start Distribution
+                </Button>
+              </Link>
+              <Link href="/contact?subject=Hire a Dedicated Recruiter">
+                <Button
+                  variant="outline"
+                  className="border-white text-white hover:text-[#FFD700] hover:bg-white/10 px-8 py-6 text-lg h-auto font-semibold premium-body bg-transparent transition-colors"
+                >
+                  Hire a Dedicated Recruiter
+                </Button>
+              </Link>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section className="py-24 px-4 sm:px-6 lg:px-8 bg-background">
+        <div className="max-w-6xl mx-auto">
+          <div className="text-center mb-20">
+            <h2 className="text-4xl sm:text-5xl font-bold text-foreground mb-4 premium-heading">
+              Comprehensive Career Services
+            </h2>
+            <div className="accent-line"></div>
+            <p className="text-lg text-muted-foreground mt-6 max-w-2xl mx-auto premium-body">
+              Everything you need to accelerate your consulting and contract career in one premium platform.
+            </p>
+          </div>
+
+          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6 justify-center">
+            {/* Resume Submission */}
+            <Card className="p-6 premium-card-hover border border-border bg-card group">
+              <div className="mb-4 p-3 bg-accent/10 rounded-lg w-fit group-hover:bg-accent/20 transition-colors">
+                <FileText className="w-8 h-8 text-accent" />
+              </div>
+              <h3 className="text-lg font-bold mb-2 text-foreground premium-heading">Resume Submission</h3>
+              <p className="text-sm text-muted-foreground leading-relaxed premium-body">
+                Submit to verified recruiters across top companies nationwide for consulting and contract roles.
+              </p>
+            </Card>
+
+            {/* Offshore Recruiter */}
+            <Card className="p-6 premium-card-hover border border-border bg-card group">
+              <div className="mb-4 p-3 bg-accent/10 rounded-lg w-fit group-hover:bg-accent/20 transition-colors">
+                <Users className="w-8 h-8 text-accent" />
+              </div>
+              <h3 className="text-lg font-bold mb-2 text-foreground premium-heading">Dedicated Recruiter</h3>
+              <p className="text-sm text-muted-foreground leading-relaxed premium-body">
+                Hire a dedicated recruiter to apply on your behalf daily to consulting and contract opportunities.
+              </p>
+            </Card>
+
+            {/* DIY Job Search */}
+            <Card className="p-6 premium-card-hover border border-border bg-card group">
+              <div className="mb-4 p-3 bg-accent/10 rounded-lg w-fit group-hover:bg-accent/20 transition-colors">
+                <Briefcase className="w-8 h-8 text-accent" />
+              </div>
+              <h3 className="text-lg font-bold mb-2 text-foreground premium-heading">Job Distribution</h3>
+              <p className="text-sm text-muted-foreground leading-relaxed premium-body">
+                Multi-board distribution wizard with one-click application to consulting and contract boards.
+              </p>
+            </Card>
+
+            {/* ATS Optimization */}
+            <Card className="p-6 premium-card-hover border border-border bg-card group">
+              <div className="mb-4 p-3 bg-accent/10 rounded-lg w-fit group-hover:bg-accent/20 transition-colors">
+                <Sparkles className="w-8 h-8 text-accent" />
+              </div>
+              <h3 className="text-lg font-bold mb-2 text-foreground premium-heading">ATS Optimizer</h3>
+              <p className="text-sm text-muted-foreground leading-relaxed premium-body">
+                AI-powered resume scanning with keyword analysis & scoring. AI may make mistakes—review all results.
+              </p>
+            </Card>
+
+            {/* Cover Letter */}
+            <Card className="p-6 premium-card-hover border border-border bg-card group">
+              <div className="mb-4 p-3 bg-accent/10 rounded-lg w-fit group-hover:bg-accent/20 transition-colors">
+                <MessageSquare className="w-8 h-8 text-accent" />
+              </div>
+              <h3 className="text-lg font-bold mb-2 text-foreground premium-heading">AI Cover Letters</h3>
+              <p className="text-sm text-muted-foreground leading-relaxed premium-body">
+                Generate tailored cover letters for any consulting or contract job instantly.
+              </p>
+            </Card>
+
+            {/* Interview Prep */}
+            <Link href="/tools/interview-prep" className="block">
+              <Card className="p-6 premium-card-hover border border-border bg-card group h-full transition-all hover:border-accent/50">
+                <div className="mb-4 p-3 bg-accent/10 rounded-lg w-fit group-hover:bg-accent/20 transition-colors">
+                  <Users2 className="w-8 h-8 text-accent" />
+                </div>
+                <h3 className="text-lg font-bold mb-2 text-foreground premium-heading">Interview Prep</h3>
+                <p className="text-sm text-muted-foreground leading-relaxed premium-body">
+                  Practice unlimited interview questions tailored to job descriptions with instant scoring.
+                </p>
+                <div className="mt-4 inline-flex items-center gap-2 text-accent text-sm font-semibold">
+                  <span>100% FREE</span>
+                  <span className="text-xs px-2 py-1 bg-accent/20 rounded">NEW</span>
+                </div>
+              </Card>
+            </Link>
+
+            {/* Admin Dashboard */}
+            <Card className="p-6 premium-card-hover border border-border bg-card group">
+              <div className="mb-4 p-3 bg-accent/10 rounded-lg w-fit group-hover:bg-accent/20 transition-colors">
+                <TrendingUp className="w-8 h-8 text-accent" />
+              </div>
+              <h3 className="text-lg font-bold mb-2 text-foreground premium-heading">Analytics Dashboard</h3>
+              <p className="text-sm text-muted-foreground leading-relaxed premium-body">
+                Track applications, response rates, and career progress metrics on your consulting journey.
+              </p>
+            </Card>
+
+            {/* Employer Portal */}
+            <Card className="p-6 premium-card-hover border border-border bg-card group">
+              <div className="mb-4 p-3 bg-accent/10 rounded-lg w-fit group-hover:bg-accent/20 transition-colors">
+                <Shield className="w-8 h-8 text-accent" />
+              </div>
+              <h3 className="text-lg font-bold mb-2 text-foreground premium-heading">Employer Portal</h3>
+              <p className="text-sm text-muted-foreground leading-relaxed premium-body">
+                Post consulting and contract roles, manage candidates, configure work visa sponsorship.
+              </p>
+            </Card>
+          </div>
+        </div>
+      </section>
+
+      {/* Trust & Social Proof Section */}
+      <section className="py-20 px-4 sm:px-6 lg:px-8 bg-muted/50 border-y border-border">
+        <div className="max-w-6xl mx-auto">
+          {typeof window !== "undefined" && window.location.hostname !== "localhost" && (
+            <div className="w-full max-w-md mx-auto my-8 mb-12">
+              <h2 className="text-3xl sm:text-4xl font-bold text-center text-foreground mb-8 premium-heading">
+                Fresh off Product Hunt! 🚀
+              </h2>
+              <div className="relative w-full" style={{ paddingBottom: "81%" }}>
+                <iframe
+                  className="absolute top-0 left-0 w-full h-full"
+                  style={{ border: "none" }}
+                  src="https://cards.producthunt.com/cards/products/1129502"
+                  frameBorder="0"
+                  scrolling="no"
+                  allowFullScreen
+                  title="STAR Workforce Solutions on Product Hunt"
+                />
+              </div>
+            </div>
+          )}
+
+          <div className="grid md:grid-cols-3 gap-12 text-center">
+            <div>
+              <div className="text-4xl font-bold text-primary mb-2 premium-heading">12+</div>
+              <p className="text-muted-foreground premium-body">Years of Excellence</p>
+            </div>
+            <div>
+              <div className="text-4xl font-bold text-primary mb-2 premium-heading">10,000+</div>
+              <p className="text-muted-foreground premium-body">Professionals Served</p>
+            </div>
+            <div>
+              <div className="text-4xl font-bold text-primary mb-2 premium-heading">95%</div>
+              <p className="text-muted-foreground premium-body">Customer Satisfaction</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* CTA Section */}
+      <section className="bg-primary text-primary-foreground py-20 px-4 sm:px-6 lg:px-8">
+        <div className="max-w-4xl mx-auto text-center space-y-8">
+          <h2 className="text-4xl sm:text-5xl font-bold premium-heading">
+            Ready to Accelerate Your Consulting Career?
+          </h2>
+          <p className="text-lg opacity-90 leading-relaxed font-light premium-body">
+            Join thousands of professionals who have transformed their careers with STAR Workforce Solutions in
+            consulting and contract roles.
+          </p>
+          <div className="flex flex-col sm:flex-row gap-4 justify-center">
+            <Link href="/auth/signup">
+              <Button className="bg-accent hover:bg-accent/90 text-primary px-8 py-6 text-lg h-auto font-semibold premium-heading shadow-lg hover:shadow-xl transition-all">
+                Create Free Account
+              </Button>
+            </Link>
+            <Link href="/services">
+              <Button
+                variant="outline"
+                className="border-white text-white hover:text-[#FFD700] hover:bg-white/10 px-8 py-6 text-lg h-auto font-semibold premium-body bg-transparent transition-colors"
+              >
+                Explore Services
+              </Button>
+            </Link>
+          </div>
+        </div>
+      </section>
+
+      <Footer />
+    </div>
+  )
+}
+
+===============================================================================
+SECTION 25: PACKAGE.JSON
+===============================================================================
+
+{
+  "name": "my-v0-project",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "build": "next build",
+    "dev": "next dev",
+    "lint": "eslint .",
+    "start": "next start",
+    "postinstall": "npx prisma generate || echo 'Prisma generation skipped - no schema found'"
+  },
+  "dependencies": {
+    "@auth/core": "latest",
+    "@hookform/resolvers": "^3.10.0",
+    "@neondatabase/serverless": "1.0.2",
+    "@playwright/test": "1.56.1",
+    "@prisma/client": "^6.19.2",
+    "@radix-ui/react-accordion": "1.2.2",
+    "@radix-ui/react-alert-dialog": "1.1.4",
+    "@radix-ui/react-aspect-ratio": "1.1.1",
+    "@radix-ui/react-avatar": "1.1.2",
+    "@radix-ui/react-checkbox": "1.1.3",
+    "@radix-ui/react-collapsible": "1.1.2",
+    "@radix-ui/react-context-menu": "2.2.4",
+    "@radix-ui/react-dialog": "1.1.4",
+    "@radix-ui/react-dropdown-menu": "2.1.4",
+    "@radix-ui/react-hover-card": "1.1.4",
+    "@radix-ui/react-label": "2.1.1",
+    "@radix-ui/react-menubar": "1.1.4",
+    "@radix-ui/react-navigation-menu": "1.2.3",
+    "@radix-ui/react-popover": "1.1.4",
+    "@radix-ui/react-progress": "1.1.1",
+    "@radix-ui/react-radio-group": "1.2.2",
+    "@radix-ui/react-scroll-area": "1.2.2",
+    "@radix-ui/react-select": "2.1.4",
+    "@radix-ui/react-separator": "1.1.1",
+    "@radix-ui/react-slider": "1.2.2",
+    "@radix-ui/react-slot": "1.1.1",
+    "@radix-ui/react-switch": "1.1.2",
+    "@radix-ui/react-tabs": "1.1.2",
+    "@radix-ui/react-toast": "1.2.4",
+    "@radix-ui/react-toggle": "1.1.1",
+    "@radix-ui/react-toggle-group": "1.1.1",
+    "@radix-ui/react-tooltip": "1.1.6",
+    "@vercel/analytics": "1.3.1",
+    "@vercel/blob": "2.0.0",
+    "@vercel/postgres": "0.10.0",
+    "autoprefixer": "^10.4.20",
+    "bcryptjs": "^3.0.3",
+    "class-variance-authority": "^0.7.1",
+    "clsx": "^2.1.1",
+    "cmdk": "1.0.4",
+    "date-fns": "4.1.0",
+    "embla-carousel-react": "8.5.1",
+    "input-otp": "1.4.1",
+    "jspdf": "3.0.4",
+    "lucide-react": "^0.454.0",
+    "nanoid": "5.0.9",
+    "next": "16.0.10",
+    "next-auth": "4.24.13",
+    "next-themes": "^0.4.6",
+    "nodemailer": "7.0.10",
+    "prisma": "^6.19.2",
+    "process": "0.11.10",
+    "react": "19.2.0",
+    "react-day-picker": "9.8.0",
+    "react-dom": "19.2.0",
+    "react-hook-form": "^7.60.0",
+    "react-resizable-panels": "^2.1.7",
+    "recharts": "2.15.4",
+    "resend": "^6.7.0",
+    "sonner": "^1.7.4",
+    "stripe": "20.0.0",
+    "tailwind-merge": "^3.3.1",
+    "tailwindcss-animate": "^1.0.7",
+    "vaul": "^0.9.9",
+    "zod": "3.25.76"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4.1.9",
+    "@types/bcryptjs": "^2.4.6",
+    "@types/node": "^22",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "postcss": "^8.5",
+    "tailwindcss": "^4.1.9",
+    "tw-animate-css": "1.3.3",
+    "typescript": "^5"
+  }
+}
+
+===============================================================================
+SECTION 26: TSCONFIG.JSON
+===============================================================================
+
+{
+  "compilerOptions": {
+    "lib": [
+      "dom",
+      "dom.iterable",
+      "esnext"
+    ],
+    "allowJs": true,
+    "target": "ES6",
+    "skipLibCheck": true,
+    "strict": true,
+    "noEmit": true,
+    "esModuleInterop": true,
+    "module": "esnext",
+    "moduleResolution": "bundler",
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "jsx": "react-jsx",
+    "incremental": true,
+    "plugins": [
+      {
+        "name": "next"
+      }
+    ],
+    "paths": {
+      "@/*": [
+        "./*"
+      ]
+    }
+  },
+  "include": [
+    "next-env.d.ts",
+    "**/*.ts",
+    "**/*.tsx",
+    ".next/types/**/*.ts",
+    ".next/dev/types/**/*.ts"
+  ],
+  "exclude": [
+    "node_modules"
+  ]
+}
+
+===============================================================================
+SECTION 27: NEXT.CONFIG.MJS
+===============================================================================
+
+/** @type {import('next').NextConfig} */
+const nextConfig = {
+  typescript: {
+    ignoreBuildErrors: true,
+  },
+  images: {
+    unoptimized: true,
+  },
+}
+
+export default nextConfig
+
+===============================================================================
+SECTION 28: VERCEL.JSON
+===============================================================================
+
+{
+  "crons": [
+    {
+      "path": "/api/cron/expire-jobs",
+      "schedule": "0 0 * * *"
+    }
+  ]
+}
+
+===============================================================================
+SECTION 29: TAILWIND CONFIG
+===============================================================================
+
+FILE NOT FOUND - searching...
+./node_modules/tailwind-merge
+./node_modules/tailwindcss
+./node_modules/tailwindcss-animate
+
+===============================================================================
+SECTION 30: TYPES DIRECTORY
+===============================================================================
+
+Files in types/:
+total 36
+drwxr-xr-x 1 STAR Workforce 197121   0 Jan 13 18:01 .
+drwxr-xr-x 1 STAR Workforce 197121   0 Jan 21 12:06 ..
+-rw-r--r-- 1 STAR Workforce 197121 534 Jan 13 18:01 next-auth.d.ts
+
+--- types/next-auth.d.ts ---
+import "next-auth"
+import type { DefaultSession } from "next-auth"
+
+// Extend NextAuth types to include custom user fields
+
+declare module "next-auth" {
+  interface Session {
+    user: {
+      id: string
+      role: "jobseeker" | "employer" | "employer-pending" | "admin"
+      atsPremium: boolean
+    } & DefaultSession["user"]
+  }
+
+  interface User {
+    id: string
+    role?: string
+    atsPremium?: boolean
+  }
+}
+
+declare module "next-auth/jwt" {
+  interface JWT {
+    sub: string
+    role?: string
+    atsPremium?: boolean
+  }
+}
+
+--- types/next-auth.d.ts ---
+import "next-auth"
+import type { DefaultSession } from "next-auth"
+
+// Extend NextAuth types to include custom user fields
+
+declare module "next-auth" {
+  interface Session {
+    user: {
+      id: string
+      role: "jobseeker" | "employer" | "employer-pending" | "admin"
+      atsPremium: boolean
+    } & DefaultSession["user"]
+  }
+
+  interface User {
+    id: string
+    role?: string
+    atsPremium?: boolean
+  }
+}
+
+declare module "next-auth/jwt" {
+  interface JWT {
+    sub: string
+    role?: string
+    atsPremium?: boolean
+  }
+}
+
+
+===============================================================================
+SECTION 31: PRISMA SCHEMA
+===============================================================================
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model application_limits {
+  id     String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId String   @db.Uuid
+  date   DateTime @default(dbgenerated("CURRENT_DATE")) @db.Date
+  count  Int      @default(0)
+
+  @@unique([userId, date])
+  @@index([userId, date], map: "idx_application_limits_user_date")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model application_tracking {
+  id                String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  assignment_id     String    @db.Uuid
+  client_id         String    @db.Uuid
+  recruiter_id      String    @db.Uuid
+  job_title         String    @db.VarChar(255)
+  company_name      String    @db.VarChar(255)
+  job_url           String?
+  job_description   String?
+  application_date  DateTime? @default(dbgenerated("CURRENT_DATE")) @db.Date
+  submitted_at      DateTime? @default(now()) @db.Timestamp(6)
+  status            String?   @default("submitted") @db.VarChar(50)
+  feedback_received Boolean?  @default(false)
+  feedback_date     DateTime? @db.Timestamp(6)
+  feedback_notes    String?
+  notes             String?
+  created_at        DateTime? @default(now()) @db.Timestamp(6)
+  updated_at        DateTime? @default(now()) @db.Timestamp(6)
+
+  @@index([application_date(sort: Desc)], map: "idx_application_tracking_application_date")
+  @@index([assignment_id], map: "idx_application_tracking_assignment_id")
+  @@index([client_id], map: "idx_application_tracking_client_id")
+  @@index([feedback_received], map: "idx_application_tracking_feedback_received")
+  @@index([recruiter_id], map: "idx_application_tracking_recruiter_id")
+  @@index([status], map: "idx_application_tracking_status")
+}
+
+model applications {
+  id        String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId    String    @db.Uuid
+  jobId     String    @db.Uuid
+  status    String    @default("applied")
+  appliedAt DateTime? @default(now()) @db.Timestamp(6)
+  updatedAt DateTime? @default(now()) @db.Timestamp(6)
+  notes     String?
+
+  @@unique([userId, jobId])
+  @@index([jobId], map: "idx_applications_job")
+  @@index([jobId], map: "idx_applications_job_id")
+  @@index([status], map: "idx_applications_status")
+  @@index([userId, appliedAt(sort: Desc)], map: "idx_applications_user")
+  @@index([userId, appliedAt(sort: Desc)], map: "idx_applications_user_date")
+  @@index([userId], map: "idx_applications_user_id")
+}
+
+model cover_letter_uploads {
+  id                     String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  email                  String?   @db.VarChar(255)
+  resume_url             String
+  resume_filename        String    @db.VarChar(500)
+  job_description        String
+  uploaded_at            DateTime? @default(now()) @db.Timestamp(6)
+  generated_cover_letter String?
+  tone_score             Int?
+
+  @@index([email], map: "idx_cover_letter_email")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model guest_purchases {
+  id                 String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  email              String    @db.VarChar(255)
+  purchase_type      String    @db.VarChar(50)
+  stripe_payment_id  String    @db.VarChar(255)
+  stripe_customer_id String?   @db.VarChar(255)
+  amount_paid        Int
+  currency           String?   @default("usd") @db.VarChar(10)
+  access_token       String?   @unique @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  expires_at         DateTime? @db.Timestamp(6)
+  metadata           Json?     @default("{}")
+  created_at         DateTime? @default(now()) @db.Timestamp(6)
+  updated_at         DateTime? @default(now()) @db.Timestamp(6)
+
+  @@index([access_token], map: "idx_guest_purchases_access_token")
+  @@index([created_at(sort: Desc)], map: "idx_guest_purchases_created_at")
+  @@index([email], map: "idx_guest_purchases_email")
+  @@index([stripe_payment_id], map: "idx_guest_purchases_stripe_payment_id")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model interview_answers {
+  id          String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  sessionId   String    @db.Uuid
+  questionId  String    @db.Uuid
+  user_answer String
+  is_correct  Boolean
+  answeredAt  DateTime? @default(now()) @db.Timestamptz(6)
+
+  @@index([sessionId], map: "idx_interview_answers_session")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model interview_questions {
+  id             String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  skill          String
+  topic          String
+  difficulty     String
+  question       String
+  option_a       String
+  option_b       String
+  option_c       String
+  option_d       String
+  correct_option String
+  explanation    String?
+  createdAt      DateTime? @default(now()) @db.Timestamptz(6)
+
+  @@unique([skill, topic, question])
+  @@index([skill], map: "idx_interview_questions_skill")
+  @@index([topic], map: "idx_interview_questions_topic")
+}
+
+model interview_sessions {
+  id              String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  email           String
+  jobDescription  String
+  skills          Json
+  score           Int       @default(0)
+  total_questions Int       @default(0)
+  percentage      Decimal?  @db.Decimal(5, 2)
+  completed       Boolean?  @default(false)
+  createdAt       DateTime? @default(now()) @db.Timestamptz(6)
+  completedAt     DateTime? @db.Timestamptz(6)
+
+  @@index([email], map: "idx_interview_sessions_email")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+/// This model contains an expression index which requires additional setup for migrations. Visit https://pris.ly/d/expression-indexes for more info.
+model jobs {
+  id             String    @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  employerId     String    @db.Uuid
+  title          String
+  description    String
+  location       String
+  industry       String
+  employmentType String    @default("contract")
+  visa           String?
+  salaryMin      Int?
+  salaryMax      Int?
+  expiresAt      DateTime? @default(dbgenerated("(now() + '30 days'::interval)")) @db.Timestamp(6)
+  createdAt      DateTime? @default(now()) @db.Timestamp(6)
+  isActive       Boolean?  @default(true)
+
+  @@index([createdAt(sort: Desc)], map: "idx_jobs_created_date")
+  @@index([employerId], map: "idx_jobs_employer")
+  @@index([employmentType], map: "idx_jobs_employment_type")
+  @@index([expiresAt], map: "idx_jobs_expires")
+  @@index([industry], map: "idx_jobs_industry")
+  @@index([location], map: "idx_jobs_location")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model payment_methods {
+  id                       String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  user_id                  String    @db.Uuid
+  stripe_payment_method_id String    @unique @db.VarChar(255)
+  type                     String    @db.VarChar(50)
+  card_brand               String?   @db.VarChar(50)
+  card_last4               String?   @db.VarChar(4)
+  card_exp_month           Int?
+  card_exp_year            Int?
+  is_default               Boolean?  @default(false)
+  created_at               DateTime? @default(now()) @db.Timestamp(6)
+  updated_at               DateTime? @default(now()) @db.Timestamp(6)
+
+  @@index([stripe_payment_method_id], map: "idx_payment_methods_stripe_id")
+  @@index([user_id], map: "idx_payment_methods_user_id")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model payments {
+  id              String    @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  userId          String    @db.Uuid
+  stripeSessionId String    @unique
+  amount          Int
+  product         String
+  createdAt       DateTime? @default(now()) @db.Timestamp(6)
+
+  @@index([stripeSessionId], map: "idx_payments_stripe_session")
+  @@index([userId], map: "idx_payments_user")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model premium_access {
+  id               String    @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  email            String
+  stripeCustomerId String?
+  stripeSessionId  String?
+  paidAt           DateTime? @default(now()) @db.Timestamp(6)
+  expiresAt        DateTime? @db.Timestamp(6)
+  resumeId         String?   @db.Uuid
+  product          String?   @default("ATS_OPTIMIZER") @db.VarChar(50)
+  priceId          String?
+  user_id          String?   @db.Uuid
+  access_token     String?   @unique @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+
+  @@unique([email, product])
+  @@index([access_token], map: "idx_premium_access_access_token")
+  @@index([email], map: "idx_premium_access_email")
+  @@index([product], map: "idx_premium_access_product")
+  @@index([user_id], map: "idx_premium_access_user_id")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model recruiter_assignments {
+  id                   String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  recruiter_id         String    @db.Uuid
+  client_id            String    @db.Uuid
+  subscription_id      String?   @db.Uuid
+  plan_type            String    @db.VarChar(50)
+  applications_per_day Int
+  assigned_at          DateTime? @default(now()) @db.Timestamp(6)
+  status               String?   @default("active") @db.VarChar(50)
+  paused_at            DateTime? @db.Timestamp(6)
+  completed_at         DateTime? @db.Timestamp(6)
+  notes                String?
+
+  @@index([client_id], map: "idx_recruiter_assignments_client_id")
+  @@index([recruiter_id], map: "idx_recruiter_assignments_recruiter_id")
+  @@index([status], map: "idx_recruiter_assignments_status")
+  @@index([subscription_id], map: "idx_recruiter_assignments_subscription_id")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model resume_uploads {
+  id            String    @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  userId        String?   @db.Uuid
+  email         String?
+  fileName      String
+  fileContent   String
+  fileType      String
+  uploadedAt    DateTime? @default(now()) @db.Timestamp(6)
+  expiresAt     DateTime? @default(dbgenerated("(now() + '30 days'::interval)")) @db.Timestamp(6)
+  analysisCache Json?
+
+  @@index([email], map: "idx_resume_uploads_email")
+  @@index([expiresAt], map: "idx_resume_uploads_expires")
+  @@index([id], map: "idx_resume_uploads_id")
+  @@index([userId], map: "idx_resume_uploads_user")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model resumes {
+  id        String    @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  userId    String    @db.Uuid
+  fileUrl   String
+  createdAt DateTime? @default(now()) @db.Timestamp(6)
+
+  @@index([userId], map: "idx_resumes_user")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model saved_jobs {
+  id      String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId  String    @db.Uuid
+  jobId   String    @db.Uuid
+  savedAt DateTime? @default(now()) @db.Timestamp(6)
+
+  @@unique([userId, jobId])
+  @@index([jobId], map: "idx_saved_jobs_job")
+  @@index([userId], map: "idx_saved_jobs_user")
+  @@index([userId, savedAt(sort: Desc)], map: "idx_saved_jobs_user_date")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model subscription_history {
+  id              String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  subscription_id String    @db.Uuid
+  user_id         String    @db.Uuid
+  event_type      String    @db.VarChar(50)
+  old_status      String?   @db.VarChar(50)
+  new_status      String?   @db.VarChar(50)
+  old_type        String?   @db.VarChar(50)
+  new_type        String?   @db.VarChar(50)
+  metadata        Json?     @default("{}")
+  created_at      DateTime? @default(now()) @db.Timestamp(6)
+
+  @@index([created_at(sort: Desc)], map: "idx_subscription_history_created_at")
+  @@index([subscription_id], map: "idx_subscription_history_subscription_id")
+  @@index([user_id], map: "idx_subscription_history_user_id")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model subscriptions {
+  id                     String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  user_id                String    @db.Uuid
+  subscription_type      String    @db.VarChar(50)
+  stripe_customer_id     String    @db.VarChar(255)
+  stripe_subscription_id String    @unique @db.VarChar(255)
+  stripe_price_id        String    @db.VarChar(255)
+  status                 String    @default("active") @db.VarChar(50)
+  current_period_start   DateTime  @db.Timestamp(6)
+  current_period_end     DateTime  @db.Timestamp(6)
+  cancel_at_period_end   Boolean?  @default(false)
+  canceled_at            DateTime? @db.Timestamp(6)
+  trial_start            DateTime? @db.Timestamp(6)
+  trial_end              DateTime? @db.Timestamp(6)
+  created_at             DateTime? @default(now()) @db.Timestamp(6)
+  updated_at             DateTime? @default(now()) @db.Timestamp(6)
+
+  @@index([current_period_end], map: "idx_subscriptions_period_end")
+  @@index([status], map: "idx_subscriptions_status")
+  @@index([stripe_subscription_id], map: "idx_subscriptions_stripe_subscription_id")
+  @@index([subscription_type], map: "idx_subscriptions_type")
+  @@index([user_id], map: "idx_subscriptions_user_id")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model users {
+  id                 String    @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  name               String?
+  email              String    @unique
+  emailVerified      DateTime? @db.Timestamp(6)
+  role               String    @default("jobseeker")
+  atsPremium         Boolean?  @default(false)
+  createdAt          DateTime? @default(now()) @db.Timestamp(6)
+  user_type          String?   @default("jobseeker") @db.VarChar(50)
+  email_verified     Boolean?  @default(false)
+  verification_token String?   @db.VarChar(255)
+  phone              String?   @db.VarChar(20)
+  stripe_customer_id String?   @db.VarChar(255)
+  last_login         DateTime? @db.Timestamp(6)
+  updated_at         DateTime? @default(now()) @db.Timestamp(6)
+}
+
+===============================================================================
+SECTION 32: ENV EXAMPLE FILE
+===============================================================================
+
+# Database (Neon/Vercel Postgres)
+POSTGRES_URL=
+POSTGRES_URL_NON_POOLING=
+POSTGRES_PRISMA_URL=
+DATABASE_URL=
+DATABASE_URL_UNPOOLED=
+
+# NextAuth
+NEXTAUTH_SECRET=
+NEXTAUTH_URL=https://www.starworkforcesolutions.com
+
+# OAuth Providers
+GOOGLE_CLIENT_ID=
+GOOGLE_CLIENT_SECRET=
+LINKEDIN_CLIENT_ID=
+LINKEDIN_CLIENT_SECRET=
+
+# Email (SMTP)
+EMAIL_SERVER_HOST=smtp.gmail.com
+EMAIL_SERVER_PORT=465
+EMAIL_SERVER_USER=
+EMAIL_SERVER_PASSWORD=
+EMAIL_FROM=info@starworkforcesolutions.com
+
+# Stripe
+STRIPE_SECRET_KEY=
+STRIPE_PUBLISHABLE_KEY=
+NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=
+STRIPE_WEBHOOK_SECRET=
+STRIPE_MCP_KEY=
+
+# Vercel Blob Storage
+BLOB_READ_WRITE_TOKEN=
+
+# Site Configuration
+NEXT_PUBLIC_URL=https://www.starworkforcesolutions.com
+NEXT_PUBLIC_GA_ID=
+
+# Cron Jobs
+CRON_SECRET=
+
+# Neon Database (additional)
+NEON_PROJECT_ID=
+PGHOST=
+PGHOST_UNPOOLED=
+PGUSER=
+PGPASSWORD=
+PGDATABASE=
+
+===============================================================================
+SECTION 33: GIT STATUS
+===============================================================================
+
+Branch:
+main
+
+Status:
+ D src/app/hire-recruiter/HireRecruiterClient.tsx
+ D src/app/hire-recruiter/page.tsx
+ D test-results-20260116-210130.log
+ D test-results-20260116-215707.log
+?? PROJECT_STATE_REPORT_20260121_112417.txt
+?? SITE_STRUCTURE_REPORT_20260121_120650.txt
+?? prisma/schema.prisma.backup.20260117-221450
+?? prisma/schema.prisma.fixed.20260117-223559
+?? prisma/schema.prisma.introspected.20260117-223559
+?? prisma/schema.prisma.original.20260117-223559
+
+Last 10 commits:
+d9e17b5 Fix schema: Sync with database structure via introspection
+6ca01fd fix: Downgrade to Prisma 6 & add schema
+5df1092 fix: Add all missing dependencies for Vercel deployment
+3e66c95 fix: Add missing dependencies and Prisma client
+24b0023 feat: Phase 1 - Critical Auth Fixes & Dashboards
+fcdd2fc fix: Add Suspense boundary for useSearchParams in login page
+e1e4822 feat: Professional authentication pages with working OAuth buttons
+4bc6313 fix: Complete authentication routing overhaul
+5d3decb fix: Add SessionProvider wrapper for hire-recruiter page
+fb98ff2 fix: Add layout.tsx with dynamic export for hire-recruiter
+
+===============================================================================
+SECTION 34: DIRECTORY TREE (2 LEVELS, EXCLUDING NODE_MODULES)
+===============================================================================
+
+.
+./.vercel
+./app
+./app/admin
+./app/api
+./app/auth
+./app/contact
+./app/dashboard
+./app/distribution-wizard
+./app/employer
+./app/faq
+./app/guest-dashboard
+./app/hire-recruiter
+./app/jobs
+./app/legal
+./app/payment
+./app/pricing
+./app/recruiter
+./app/services
+./app/tools
+./components
+./components/providers
+./components/ui
+./docs
+./hooks
+./lib
+./lib/email-templates
+./lib/stripe
+./prisma
+./public
+./public/images
+./scripts
+./src
+./src/app
+./src/components
+./styles
+./tests
+./types
+
+===============================================================================
+SECTION 35: ALL FILES IN LIB DIRECTORY
+===============================================================================
+
+===============================================================================
+FILE: lib/analytics.ts
+===============================================================================
+declare global {
+  interface Window {
+    gtag: (...args: any[]) => void
+    dataLayer: any[]
+  }
+}
+
+export const trackEvent = (action: string, category: string, label?: string, value?: number) => {
+  if (typeof window !== "undefined" && window.gtag) {
+    window.gtag("event", action, {
+      event_category: category,
+      event_label: label,
+      value: value,
+    })
+  }
+}
+
+export const trackPageView = (url: string) => {
+  if (typeof window !== "undefined" && window.gtag) {
+    window.gtag("config", "G-2KEG2N039D", {
+      page_path: url,
+    })
+  }
+}
+
+// Helper function to track button clicks
+export const trackButtonClick = (buttonLabel: string) => {
+  trackEvent("click", "Button", buttonLabel)
+}
+
+// Helper function to track link clicks
+export const trackLinkClick = (linkLabel: string) => {
+  trackEvent("click", "Link", linkLabel)
+}
+
+// Helper function to track form submissions
+export const trackFormSubmit = (formName: string) => {
+  trackEvent("submit", "Form", formName)
+}
+
+===============================================================================
+FILE: lib/auth-config.ts
+===============================================================================
+import { NextAuthOptions } from 'next-auth';
+import GoogleProvider from 'next-auth/providers/google';
+import LinkedInProvider from 'next-auth/providers/linkedin';
+import CredentialsProvider from 'next-auth/providers/credentials';
+import { PrismaAdapter } from '@next-auth/prisma-adapter';
+import { prisma } from '@/lib/prisma';
+import bcrypt from 'bcryptjs';
+
+console.log('[v0] NextAuth config loading - checking environment variables');
+console.log('[v0] GOOGLE_CLIENT_ID exists:', !!process.env.GOOGLE_CLIENT_ID);
+console.log('[v0] LINKEDIN_CLIENT_ID exists:', !!process.env.LINKEDIN_CLIENT_ID);
+console.log('[v0] NEXTAUTH_SECRET exists:', !!process.env.NEXTAUTH_SECRET);
+console.log('[v0] DATABASE_URL exists:', !!process.env.DATABASE_URL);
+
+export const authOptions: NextAuthOptions = {
+  adapter: PrismaAdapter(prisma),
+  providers: [
+    GoogleProvider({
+      clientId: process.env.GOOGLE_CLIENT_ID!,
+      clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
+      authorization: {
+        params: {
+          prompt: 'consent',
+          access_type: 'offline',
+          response_type: 'code',
+        },
+      },
+    }),
+    LinkedInProvider({
+      clientId: process.env.LINKEDIN_CLIENT_ID!,
+      clientSecret: process.env.LINKEDIN_CLIENT_SECRET!,
+      authorization: {
+        params: {
+          scope: 'openid profile email',
+        },
+      },
+      issuer: 'https://www.linkedin.com',
+      jwks_endpoint: 'https://www.linkedin.com/oauth/openid/jwks',
+      profile(profile) {
+        return {
+          id: profile.sub,
+          name: profile.name,
+          email: profile.email,
+          image: profile.picture,
+        };
+      },
+    }),
+    CredentialsProvider({
+      name: 'Credentials',
+      credentials: {
+        email: { label: 'Email', type: 'email' },
+        password: { label: 'Password', type: 'password' },
+      },
+      async authorize(credentials) {
+        if (!credentials?.email || !credentials?.password) {
+          throw new Error('Email and password are required');
+        }
+
+        const user = await prisma.user.findUnique({
+          where: { email: credentials.email.toLowerCase() },
+        });
+
+        if (!user || !user.password) {
+          throw new Error('Invalid email or password');
+        }
+
+        const passwordMatch = await bcrypt.compare(credentials.password, user.password);
+
+        if (!passwordMatch) {
+          throw new Error('Invalid email or password');
+        }
+
+        return {
+          id: user.id,
+          email: user.email,
+          name: user.name,
+          role: user.role,
+          image: user.image,
+        };
+      },
+    }),
+  ],
+  callbacks: {
+    async signIn({ user, account, profile }) {
+      // For OAuth providers, ensure user has a role
+      if (account?.provider !== 'credentials') {
+        const dbUser = await prisma.user.findUnique({
+          where: { email: user.email! },
+        });
+
+        // If user was created via OAuth and doesn't have a role, set default
+        if (dbUser && !dbUser.role) {
+          await prisma.user.update({
+            where: { id: dbUser.id },
+            data: { role: 'job_seeker' },
+          });
+        }
+      }
+
+      return true;
+    },
+    async session({ session, token }) {
+      if (session.user) {
+        session.user.id = token.sub!;
+        session.user.role = token.role as string;
+      }
+      return session;
+    },
+    async jwt({ token, user }) {
+      if (user) {
+        token.role = user.role;
+      } else if (token.sub) {
+        // Refresh role from database on each request
+        const dbUser = await prisma.user.findUnique({
+          where: { id: token.sub },
+          select: { role: true },
+        });
+        if (dbUser) {
+          token.role = dbUser.role;
+        }
+      }
+      return token;
+    },
+    async redirect({ url, baseUrl }) {
+      // Handle post-login redirects
+      
+      // If there's a callbackUrl parameter, use it
+      const callbackUrl = new URL(url).searchParams.get('callbackUrl');
+      if (callbackUrl) {
+        // Ensure it's a relative URL or same origin
+        if (callbackUrl.startsWith('/')) {
+          return `${baseUrl}${callbackUrl}`;
+        }
+        if (callbackUrl.startsWith(baseUrl)) {
+          return callbackUrl;
+        }
+      }
+
+      // After signin, redirect based on role
+      if (url.includes('/api/auth/signin') || url === baseUrl) {
+        // Get user role to determine redirect
+        // This will be set by the signIn callback
+        return `${baseUrl}/dashboard`;
+      }
+
+      // Default: allow the redirect
+      if (url.startsWith('/')) return `${baseUrl}${url}`;
+      if (url.startsWith(baseUrl)) return url;
+      
+      return baseUrl;
+    },
+  },
+  pages: {
+    signIn: '/auth/login',
+    error: '/auth/error',
+  },
+  session: {
+    strategy: 'jwt',
+  },
+  secret: process.env.NEXTAUTH_SECRET,
+};
+
+console.log('[v0] NextAuth config successfully created');
+
+===============================================================================
+FILE: lib/auth.ts
+===============================================================================
+import type { NextAuthOptions } from "next-auth"
+import GoogleProvider from "next-auth/providers/google"
+import LinkedInProvider from "next-auth/providers/linkedin"
+import CredentialsProvider from "next-auth/providers/credentials"
+
+// Helper to safely check if database is available
+function isDatabaseConfigured(): boolean {
+  return Boolean(process.env.DATABASE_URL)
+}
+
+// Helper to safely get user data from database
+async function safeGetUserByEmail(email: string) {
+  if (!isDatabaseConfigured()) return null
+
+  try {
+    const { getUserByEmail } = await import("./db")
+    return await getUserByEmail(email)
+  } catch (error) {
+    console.error("[NextAuth] Database query failed:", error)
+    return null
+  }
+}
+
+async function safeGetUserById(id: string) {
+  if (!isDatabaseConfigured()) return null
+
+  try {
+    const { getUserById } = await import("./db")
+    return await getUserById(id)
+  } catch (error) {
+    console.error("[NextAuth] Database query failed:", error)
+    return null
+  }
+}
+
+async function safeCreateUser(data: any) {
+  if (!isDatabaseConfigured()) return null
+
+  try {
+    const { createUser } = await import("./db")
+    return await createUser(data)
+  } catch (error) {
+    console.error("[NextAuth] Database insert failed:", error)
+    return null
+  }
+}
+
+console.log("[v0] NextAuth config loading - checking environment variables")
+console.log("[v0] GOOGLE_CLIENT_ID exists:", !!process.env.GOOGLE_CLIENT_ID)
+console.log("[v0] LINKEDIN_CLIENT_ID exists:", !!process.env.LINKEDIN_CLIENT_ID)
+console.log("[v0] NEXTAUTH_SECRET exists:", !!process.env.NEXTAUTH_SECRET)
+console.log("[v0] DATABASE_URL exists:", !!process.env.DATABASE_URL)
+
+export const authOptions: NextAuthOptions = {
+  providers: [
+    CredentialsProvider({
+      id: "credentials",
+      name: "Email and Password",
+      credentials: {
+        email: { label: "Email", type: "email" },
+        password: { label: "Password", type: "password" },
+      },
+      async authorize(credentials) {
+        // TODO: Implement actual authentication logic
+        // For now, this is a placeholder that won't crash NextAuth
+        return null
+      },
+    }),
+    GoogleProvider({
+      clientId: process.env.GOOGLE_CLIENT_ID || "dummy-client-id",
+      clientSecret: process.env.GOOGLE_CLIENT_SECRET || "dummy-secret",
+    }),
+    LinkedInProvider({
+      clientId: process.env.LINKEDIN_CLIENT_ID || "dummy-client-id",
+      clientSecret: process.env.LINKEDIN_CLIENT_SECRET || "dummy-secret",
+    }),
+  ],
+
+  callbacks: {
+    async signIn({ user }) {
+      console.log("[v0] SignIn callback triggered")
+      if (!user.email) return false
+
+      try {
+        const existingUser = await safeGetUserByEmail(user.email)
+
+        if (!existingUser && isDatabaseConfigured()) {
+          await safeCreateUser({
+            name: user.name || undefined,
+            email: user.email,
+            emailVerified: new Date(),
+            role: "jobseeker",
+          })
+        }
+      } catch (error) {
+        console.error("[NextAuth] signIn callback error:", error)
+      }
+
+      // Always return true - JWT-only mode works without database
+      return true
+    },
+
+    async session({ session, token }) {
+      console.log("[v0] Session callback triggered")
+      try {
+        if (session.user && token.sub) {
+          const dbUser = await safeGetUserById(token.sub)
+
+          if (dbUser) {
+            session.user.id = dbUser.id
+            session.user.role = dbUser.role
+            session.user.atsPremium = dbUser.atsPremium
+          } else {
+            // Fallback to JWT data
+            session.user.id = token.sub
+            session.user.role = (token.role as string) || "jobseeker"
+            session.user.atsPremium = (token.atsPremium as boolean) || false
+          }
+        }
+      } catch (error) {
+        console.error("[NextAuth] session callback error:", error)
+        // Ensure user data exists even on error
+        if (session.user && token.sub) {
+          session.user.id = token.sub
+          session.user.role = "jobseeker"
+          session.user.atsPremium = false
+        }
+      }
+
+      return session
+    },
+
+    async jwt({ token, user }) {
+      console.log("[v0] JWT callback triggered")
+      try {
+        if (user) {
+          token.sub = user.id
+
+          if (user.email) {
+            const dbUser = await safeGetUserByEmail(user.email)
+            if (dbUser) {
+              token.role = dbUser.role
+              token.atsPremium = dbUser.atsPremium
+            } else {
+              token.role = "jobseeker"
+              token.atsPremium = false
+            }
+          } else {
+            token.role = "jobseeker"
+            token.atsPremium = false
+          }
+        }
+      } catch (error) {
+        console.error("[NextAuth] JWT callback error:", error)
+        // Set safe defaults
+        if (user && !token.role) {
+          token.role = "jobseeker"
+          token.atsPremium = false
+        }
+      }
+
+      return token
+    },
+  },
+
+  pages: {
+    signIn: "/auth/login",
+    signOut: "/auth/logout",
+    error: "/auth/error",
+    verifyRequest: "/auth/verify",
+    newUser: "/dashboard",
+  },
+
+  session: {
+    strategy: "jwt",
+    maxAge: 30 * 24 * 60 * 60, // 30 days
+  },
+
+  secret: process.env.NEXTAUTH_SECRET || "fallback-secret-for-development",
+
+  trustHost: true, // Trust the host header from Vercel
+
+  debug: true, // Enable debug mode to see what's crashing
+}
+
+console.log("[v0] NextAuth config successfully created")
+
+===============================================================================
+FILE: lib/db.ts
+===============================================================================
+import { sql } from "@vercel/postgres"
+import process from "process"
+
+// Database utility functions for STAR Workforce Solutions
+// Uses Vercel Postgres with connection pooling
+
+export interface User {
+  id: string
+  name: string | null
+  email: string
+  emailVerified: Date | null
+  role: "jobseeker" | "employer" | "employer-pending" | "admin"
+  atsPremium: boolean
+  createdAt: Date
+}
+
+export interface Job {
+  id: string
+  employerId: string
+  title: string
+  description: string
+  location: string
+  industry: string
+  employmentType: "consulting" | "contract"
+  visa: string | null
+  salaryMin: number | null
+  salaryMax: number | null
+  expiresAt: Date
+  createdAt: Date
+  isActive: boolean
+}
+
+export interface Payment {
+  id: string
+  userId: string
+  stripeSessionId: string
+  amount: number
+  product: string
+  createdAt: Date
+}
+
+export interface Resume {
+  id: string
+  userId: string
+  fileUrl: string
+  createdAt: Date
+}
+
+// User queries
+export async function getUserByEmail(email: string): Promise<User | null> {
+  try {
+    if (!process.env.DATABASE_URL && !process.env.POSTGRES_URL) {
+      console.warn("[v0] Database not configured - getUserByEmail skipped")
+      return null
+    }
+
+    const result = await sql<User>`
+      SELECT * FROM users WHERE email = ${email} LIMIT 1
+    `
+    return result.rows[0] || null
+  } catch (error) {
+    console.error("[v0] Error fetching user by email:", error)
+    return null
+  }
+}
+
+export async function getUserById(id: string): Promise<User | null> {
+  try {
+    if (!process.env.DATABASE_URL && !process.env.POSTGRES_URL) {
+      console.warn("[v0] Database not configured - getUserById skipped")
+      return null
+    }
+
+    const result = await sql<User>`
+      SELECT * FROM users WHERE id = ${id} LIMIT 1
+    `
+    return result.rows[0] || null
+  } catch (error) {
+    console.error("[v0] Error fetching user by ID:", error)
+    return null
+  }
+}
+
+export async function createUser(data: {
+  name?: string
+  email: string
+  emailVerified?: Date
+  role?: string
+}): Promise<User | null> {
+  try {
+    if (!process.env.DATABASE_URL && !process.env.POSTGRES_URL) {
+      console.warn("[v0] Database not configured - createUser skipped")
+      return null
+    }
+
+    const result = await sql<User>`
+      INSERT INTO users (name, email, "emailVerified", role)
+      VALUES (${data.name || null}, ${data.email}, ${data.emailVerified || null}, ${data.role || "jobseeker"})
+      RETURNING *
+    `
+    return result.rows[0] || null
+  } catch (error) {
+    console.error("[v0] Error creating user:", error)
+    return null
+  }
+}
+
+export async function updateUserAtsPremium(userId: string, isPremium: boolean): Promise<boolean> {
+  try {
+    await sql`
+      UPDATE users SET "atsPremium" = ${isPremium} WHERE id = ${userId}
+    `
+    return true
+  } catch (error) {
+    console.error("[v0] Error updating ATS premium status:", error)
+    return false
+  }
+}
+
+// Job queries
+export async function getActiveJobs(filters?: {
+  industry?: string
+  location?: string
+  employmentType?: string
+}): Promise<Job[]> {
+  try {
+    let query = sql<Job>`
+      SELECT * FROM jobs WHERE "isActive" = TRUE AND "expiresAt" > NOW()
+    `
+
+    if (filters?.industry) {
+      query = sql<Job>`${query} AND industry = ${filters.industry}`
+    }
+
+    if (filters?.location) {
+      query = sql<Job>`${query} AND location ILIKE ${`%${filters.location}%`}`
+    }
+
+    if (filters?.employmentType) {
+      query = sql<Job>`${query} AND "employmentType" = ${filters.employmentType}`
+    }
+
+    query = sql<Job>`${query} ORDER BY "createdAt" DESC LIMIT 50`
+
+    const result = await query
+    return result.rows
+  } catch (error) {
+    console.error("[v0] Error fetching active jobs:", error)
+    return []
+  }
+}
+
+export async function getEmployerActiveJobCount(employerId: string): Promise<number> {
+  try {
+    const result = await sql`
+      SELECT COUNT(*) as count FROM jobs WHERE "employerId" = ${employerId} AND "isActive" = TRUE
+    `
+    return Number.parseInt(result.rows[0]?.count || "0")
+  } catch (error) {
+    console.error("[v0] Error counting employer jobs:", error)
+    return 0
+  }
+}
+
+export async function createJob(data: {
+  employerId: string
+  title: string
+  description: string
+  location: string
+  industry: string
+  employmentType: "consulting" | "contract"
+  visa?: string
+  salaryMin?: number
+  salaryMax?: number
+}): Promise<Job | null> {
+  try {
+    const result = await sql<Job>`
+      INSERT INTO jobs ("employerId", title, description, location, industry, "employmentType", visa, "salaryMin", "salaryMax")
+      VALUES (${data.employerId}, ${data.title}, ${data.description}, ${data.location}, ${data.industry}, ${data.employmentType}, ${data.visa || null}, ${data.salaryMin || null}, ${data.salaryMax || null})
+      RETURNING *
+    `
+    return result.rows[0] || null
+  } catch (error) {
+    console.error("[v0] Error creating job:", error)
+    return null
+  }
+}
+
+// Payment queries
+export async function createPayment(data: {
+  userId: string
+  stripeSessionId: string
+  amount: number
+  product: string
+}): Promise<Payment | null> {
+  try {
+    const result = await sql<Payment>`
+      INSERT INTO payments ("userId", "stripeSessionId", amount, product)
+      VALUES (${data.userId}, ${data.stripeSessionId}, ${data.amount}, ${data.product})
+      RETURNING *
+    `
+    return result.rows[0] || null
+  } catch (error) {
+    console.error("[v0] Error creating payment:", error)
+    return null
+  }
+}
+
+export async function getPaymentBySessionId(sessionId: string): Promise<Payment | null> {
+  try {
+    const result = await sql<Payment>`
+      SELECT * FROM payments WHERE "stripeSessionId" = ${sessionId} LIMIT 1
+    `
+    return result.rows[0] || null
+  } catch (error) {
+    console.error("[v0] Error fetching payment:", error)
+    return null
+  }
+}
+
+// Resume queries
+export async function createResume(data: {
+  userId: string
+  fileUrl: string
+}): Promise<Resume | null> {
+  try {
+    const result = await sql<Resume>`
+      INSERT INTO resumes ("userId", "fileUrl")
+      VALUES (${data.userId}, ${data.fileUrl})
+      RETURNING *
+    `
+    return result.rows[0] || null
+  } catch (error) {
+    console.error("[v0] Error creating resume record:", error)
+    return null
+  }
+}
+
+// Utility: Run job expiration
+export async function expireOldJobs(): Promise<void> {
+  try {
+    await sql`SELECT expire_old_jobs()`
+  } catch (error) {
+    console.error("[v0] Error expiring old jobs:", error)
+  }
+}
+
+===============================================================================
+FILE: lib/monitoring.ts
+===============================================================================
+// Vercel Monitoring & Error Reporting Utilities for STAR Workforce Solutions
+
+export interface ErrorReport {
+  message: string
+  stack?: string
+  context?: Record<string, any>
+  userId?: string
+  timestamp: string
+  severity: "low" | "medium" | "high" | "critical"
+}
+
+export function reportError(
+  error: Error,
+  context?: Record<string, any>,
+  severity: "low" | "medium" | "high" | "critical" = "medium",
+) {
+  const errorReport: ErrorReport = {
+    message: error.message,
+    stack: error.stack,
+    context,
+    timestamp: new Date().toISOString(),
+    severity,
+  }
+
+  // Log to console (Vercel automatically captures console.error)
+  console.error("[ERROR REPORT]", JSON.stringify(errorReport, null, 2))
+
+  // Vercel automatically captures errors via console.error in all environments
+
+  return errorReport
+}
+
+export function trackPerformance(metricName: string, duration: number, metadata?: Record<string, any>) {
+  console.log("[PERFORMANCE]", {
+    metric: metricName,
+    duration,
+    metadata,
+    timestamp: new Date().toISOString(),
+  })
+}
+
+export function trackEvent(eventName: string, properties?: Record<string, any>) {
+  console.log("[EVENT]", {
+    event: eventName,
+    properties,
+    timestamp: new Date().toISOString(),
+  })
+
+  // Send to analytics if configured
+  if (typeof window !== "undefined" && window.gtag) {
+    window.gtag("event", eventName, properties)
+  }
+}
+
+===============================================================================
+FILE: lib/prisma.ts
+===============================================================================
+import { PrismaClient } from '@prisma/client';
+
+const globalForPrisma = global as unknown as { prisma: PrismaClient };
+
+export const prisma =
+  globalForPrisma.prisma ||
+  new PrismaClient({
+    log: process.env.NODE_ENV === 'development' ? ['query', 'error', 'warn'] : ['error'],
+  });
+
+if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = prisma;
+
+===============================================================================
+FILE: lib/rate-limit.ts
+===============================================================================
+// Simple in-memory rate limiter (for serverless)
+// For production scale, use Vercel KV or Upstash Redis
+
+interface RateLimitConfig {
+  interval: number // Time window in milliseconds
+  uniqueTokenPerInterval: number // Max requests per IP in window
+}
+
+const rateLimiters = new Map<string, { count: number; resetTime: number }>()
+
+export function rateLimit(config: RateLimitConfig) {
+  return {
+    check: async (identifier: string): Promise<{ success: boolean; remaining: number }> => {
+      const now = Date.now()
+      const windowStart = now - config.interval
+
+      // Clean up old entries
+      for (const [key, value] of rateLimiters.entries()) {
+        if (value.resetTime < now) {
+          rateLimiters.delete(key)
+        }
+      }
+
+      const limit = rateLimiters.get(identifier)
+
+      if (!limit) {
+        rateLimiters.set(identifier, {
+          count: 1,
+          resetTime: now + config.interval,
+        })
+        return { success: true, remaining: config.uniqueTokenPerInterval - 1 }
+      }
+
+      if (limit.resetTime < now) {
+        // Window expired, reset
+        limit.count = 1
+        limit.resetTime = now + config.interval
+        return { success: true, remaining: config.uniqueTokenPerInterval - 1 }
+      }
+
+      if (limit.count >= config.uniqueTokenPerInterval) {
+        return { success: false, remaining: 0 }
+      }
+
+      limit.count++
+      return { success: true, remaining: config.uniqueTokenPerInterval - limit.count }
+    },
+  }
+}
+
+// Preset rate limiters
+export const apiRateLimit = rateLimit({
+  interval: 60 * 1000, // 1 minute
+  uniqueTokenPerInterval: 60, // 60 requests per minute per IP
+})
+
+export const authRateLimit = rateLimit({
+  interval: 15 * 60 * 1000, // 15 minutes
+  uniqueTokenPerInterval: 5, // 5 login attempts per 15 minutes
+})
+
+export const contactRateLimit = rateLimit({
+  interval: 60 * 60 * 1000, // 1 hour
+  uniqueTokenPerInterval: 3, // 3 contact form submissions per hour
+})
+
+===============================================================================
+FILE: lib/send-email.ts
+===============================================================================
+import { Resend } from 'resend';
+
+const resend = new Resend(process.env.RESEND_API_KEY);
+
+export async function sendEmail({
+  to,
+  subject,
+  html,
+  text,
+}: {
+  to: string;
+  subject: string;
+  html: string;
+  text: string;
+}) {
+  try {
+    const { data, error } = await resend.emails.send({
+      from: 'STAR Workforce <info@starworkforcesolutions.com>',
+      to: [to],
+      subject,
+      html,
+      text,
+    });
+
+    if (error) {
+      console.error('Resend error:', error);
+      return { success: false, error };
+    }
+
+    return { success: true, data };
+  } catch (error: any) {
+    console.error('Email send error:', error);
+    return { success: false, error: error.message };
+  }
+}
+
+===============================================================================
+FILE: lib/session.ts
+===============================================================================
+import { getServerSession } from "next-auth/next"
+import { authOptions } from "./auth"
+
+// Server-side session utilities
+
+export async function getCurrentUser() {
+  const session = await getServerSession(authOptions)
+  return session?.user
+}
+
+export async function requireAuth() {
+  const user = await getCurrentUser()
+  if (!user) {
+    throw new Error("Unauthorized")
+  }
+  return user
+}
+
+export async function requireRole(role: "jobseeker" | "employer" | "admin") {
+  const user = await requireAuth()
+  if (user.role !== role && user.role !== "admin") {
+    throw new Error("Forbidden")
+  }
+  return user
+}
+
+===============================================================================
+FILE: lib/stripe.ts
+===============================================================================
+import Stripe from "stripe"
+
+// Stripe client for STAR Workforce Solutions
+// Handles: ATS Optimizer unlocks, subscription payments, job posting fees
+
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || "", {
+  apiVersion: "2024-11-20.acacia",
+})
+
+export default stripe
+
+// Product configurations
+export const STRIPE_PRODUCTS = {
+  ATS_OPTIMIZER: {
+    name: "ATS Optimizer Unlock",
+    price: 500, // $5.00 in cents
+    currency: "usd",
+    description: "Unlock full ATS analysis with unlimited resume scans",
+  },
+  PROFESSIONAL_PLAN: {
+    name: "Professional Plan",
+    price: 4900, // $49.00 in cents
+    currency: "usd",
+    description: "Monthly subscription for job seekers",
+  },
+  ENTERPRISE_PLAN: {
+    name: "Enterprise Plan",
+    price: 14900, // $149.00 in cents
+    currency: "usd",
+    description: "Monthly subscription for enterprise job seekers",
+  },
+}
+
+// Create Stripe checkout session
+export async function createCheckoutSession(params: {
+  userId: string
+  productKey: keyof typeof STRIPE_PRODUCTS
+  successUrl: string
+  cancelUrl: string
+}): Promise<Stripe.Checkout.Session> {
+  const product = STRIPE_PRODUCTS[params.productKey]
+
+  const session = await stripe.checkout.sessions.create({
+    payment_method_types: ["card"],
+    line_items: [
+      {
+        price_data: {
+          currency: product.currency,
+          product_data: {
+            name: product.name,
+            description: product.description,
+          },
+          unit_amount: product.price,
+        },
+        quantity: 1,
+      },
+    ],
+    mode: "payment",
+    success_url: params.successUrl,
+    cancel_url: params.cancelUrl,
+    client_reference_id: params.userId,
+    metadata: {
+      userId: params.userId,
+      product: params.productKey,
+    },
+  })
+
+  return session
+}
+
+// Verify Stripe webhook signature
+export function verifyWebhookSignature(payload: string | Buffer, signature: string): Stripe.Event {
+  const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET!
+
+  return stripe.webhooks.constructEvent(payload, signature, webhookSecret)
+}
+
+===============================================================================
+FILE: lib/utils.ts
+===============================================================================
+import { clsx, type ClassValue } from 'clsx'
+import { twMerge } from 'tailwind-merge'
+
+export function cn(...inputs: ClassValue[]) {
+  return twMerge(clsx(inputs))
+}
+
+
+===============================================================================
+END OF SITE STRUCTURE REPORT
+===============================================================================
+Generated: Wed Jan 21 12:06:53 CST 2026
