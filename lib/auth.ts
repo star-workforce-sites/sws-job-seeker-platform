@@ -45,12 +45,6 @@ async function safeCreateUser(data: any) {
   }
 }
 
-console.log("[v0] NextAuth config loading - checking environment variables")
-console.log("[v0] GOOGLE_CLIENT_ID exists:", !!process.env.GOOGLE_CLIENT_ID)
-console.log("[v0] LINKEDIN_CLIENT_ID exists:", !!process.env.LINKEDIN_CLIENT_ID)
-console.log("[v0] NEXTAUTH_SECRET exists:", !!process.env.NEXTAUTH_SECRET)
-console.log("[v0] DATABASE_URL exists:", !!process.env.DATABASE_URL)
-
 export const authOptions: NextAuthOptions = {
   providers: [
     CredentialsProvider({
@@ -61,8 +55,6 @@ export const authOptions: NextAuthOptions = {
         password: { label: "Password", type: "password" },
       },
       async authorize(credentials) {
-        // TODO: Implement actual authentication logic
-        // For now, this is a placeholder that won't crash NextAuth
         return null
       },
     }),
@@ -78,7 +70,6 @@ export const authOptions: NextAuthOptions = {
 
   callbacks: {
     async signIn({ user }) {
-      console.log("[v0] SignIn callback triggered")
       if (!user.email) return false
 
       try {
@@ -96,12 +87,30 @@ export const authOptions: NextAuthOptions = {
         console.error("[NextAuth] signIn callback error:", error)
       }
 
-      // Always return true - JWT-only mode works without database
       return true
     },
 
+    async redirect({ url, baseUrl }) {
+      // Always redirect to dashboard after sign in
+      if (url.startsWith(baseUrl)) {
+        // If there's a callbackUrl, use it
+        if (url.includes('callbackUrl=')) {
+          const callbackUrl = new URL(url).searchParams.get('callbackUrl')
+          if (callbackUrl && callbackUrl.startsWith('/')) {
+            return `${baseUrl}${callbackUrl}`
+          }
+        }
+        // Default to dashboard
+        return `${baseUrl}/dashboard`
+      }
+      // If the URL is just a path, redirect to dashboard
+      if (url.startsWith('/')) {
+        return `${baseUrl}/dashboard`
+      }
+      return `${baseUrl}/dashboard`
+    },
+
     async session({ session, token }) {
-      console.log("[v0] Session callback triggered")
       try {
         if (session.user && token.sub) {
           const dbUser = await safeGetUserById(token.sub)
@@ -111,7 +120,6 @@ export const authOptions: NextAuthOptions = {
             session.user.role = dbUser.role
             session.user.atsPremium = dbUser.atsPremium
           } else {
-            // Fallback to JWT data
             session.user.id = token.sub
             session.user.role = (token.role as string) || "jobseeker"
             session.user.atsPremium = (token.atsPremium as boolean) || false
@@ -119,7 +127,6 @@ export const authOptions: NextAuthOptions = {
         }
       } catch (error) {
         console.error("[NextAuth] session callback error:", error)
-        // Ensure user data exists even on error
         if (session.user && token.sub) {
           session.user.id = token.sub
           session.user.role = "jobseeker"
@@ -131,7 +138,6 @@ export const authOptions: NextAuthOptions = {
     },
 
     async jwt({ token, user }) {
-      console.log("[v0] JWT callback triggered")
       try {
         if (user) {
           token.sub = user.id
@@ -152,7 +158,6 @@ export const authOptions: NextAuthOptions = {
         }
       } catch (error) {
         console.error("[NextAuth] JWT callback error:", error)
-        // Set safe defaults
         if (user && !token.role) {
           token.role = "jobseeker"
           token.atsPremium = false
@@ -173,14 +178,10 @@ export const authOptions: NextAuthOptions = {
 
   session: {
     strategy: "jwt",
-    maxAge: 30 * 24 * 60 * 60, // 30 days
+    maxAge: 30 * 24 * 60 * 60,
   },
 
   secret: process.env.NEXTAUTH_SECRET || "fallback-secret-for-development",
-
-  trustHost: true, // Trust the host header from Vercel
-
-  debug: true, // Enable debug mode to see what's crashing
+  trustHost: true,
+  debug: process.env.NODE_ENV === 'development',
 }
-
-console.log("[v0] NextAuth config successfully created")
