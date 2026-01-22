@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input"
 import Navigation from "@/components/navigation"
 import Footer from "@/components/footer"
 import { MapPin, DollarSign, Briefcase, BookmarkIcon } from "lucide-react"
+import Link from "next/link"
 
 type Job = {
   id: string
@@ -181,7 +182,7 @@ export default function Jobs() {
         </div>
       </section>
 
-      {/* Main Content - FIXED: Added padding-top */}
+      {/* Main Content */}
       <main className="flex-1 max-w-6xl mx-auto px-4 py-8 w-full">
         {/* Search & Filters */}
         <div className="mb-8 space-y-4">
@@ -297,7 +298,9 @@ export default function Jobs() {
                   >
                     {!session ? "Login to Apply" : "Apply Now"}
                   </Button>
-                  <Button variant="outline">View Details</Button>
+                  <Link href={`/jobs/${job.id}`}>
+                    <Button variant="outline">View Details</Button>
+                  </Link>
                 </div>
               </Card>
             ))}
