@@ -1,6 +1,10 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { sql } from "@vercel/postgres"
 
+// Force Node.js runtime for database connections
+export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
+
 // GET /api/jobs/[id]
 // Returns single job details with same format as /api/jobs/list
 // Matches frontend Job type exactly
