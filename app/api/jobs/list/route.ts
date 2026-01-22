@@ -11,38 +11,13 @@ import { sql } from "@vercel/postgres"
 export async function GET(request: NextRequest) {
   try {
     const searchParams = request.nextUrl.searchParams
-    const industry = searchParams.get("industry") || undefined
-    const location = searchParams.get("location") || undefined
-    const employmentType = searchParams.get("employmentType") || undefined
+    const industry = searchParams.get("industry")
+    const location = searchParams.get("location")
+    const employmentType = searchParams.get("employmentType")
 
-    // Build query with user join to get company name
-    let conditions = [`j."isActive" = TRUE`, `j."expiresAt" > NOW()`];
-    const params: any[] = [];
-    let paramIndex = 1;
-
-    if (industry) {
-      conditions.push(`j.industry = $${paramIndex}`);
-      params.push(industry);
-      paramIndex++;
-    }
-
-    if (location) {
-      conditions.push(`j.location ILIKE $${paramIndex}`);
-      params.push(`%${location}%`);
-      paramIndex++;
-    }
-
-    if (employmentType) {
-      conditions.push(`j."employmentType" = $${paramIndex}`);
-      params.push(employmentType);
-      paramIndex++;
-    }
-
-    const whereClause = conditions.join(' AND ');
-
-    // Query with HOURLY RATE calculation
-    // Formula: Annual Salary / 2080 hours (52 weeks * 40 hours)
-    const result = await sql.query(`
+    // Base query with JOIN to users table
+    // Using sql template literals (required by @vercel/postgres)
+    let query = sql`
       SELECT 
         j.id,
         j.title,
@@ -65,10 +40,26 @@ export async function GET(request: NextRequest) {
         END as "remoteType"
       FROM jobs j
       LEFT JOIN users u ON j."employerId" = u.id
-      WHERE ${whereClause}
-      ORDER BY j."createdAt" DESC
-      LIMIT 50
-    `, params);
+      WHERE j."isActive" = TRUE AND j."expiresAt" > NOW()
+    `;
+
+    // Apply filters using template literal chaining
+    if (industry) {
+      query = sql`${query} AND j.industry = ${industry}`;
+    }
+
+    if (location) {
+      query = sql`${query} AND j.location ILIKE ${'%' + location + '%'}`;
+    }
+
+    if (employmentType) {
+      query = sql`${query} AND j."employmentType" = ${employmentType}`;
+    }
+
+    // Add ordering and limit
+    query = sql`${query} ORDER BY j."createdAt" DESC LIMIT 50`;
+
+    const result = await query;
 
     // Transform to match frontend interface
     const jobs = result.rows.map(job => ({
@@ -86,6 +77,9 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ jobs });
   } catch (error) {
     console.error("[Jobs API] Error fetching jobs:", error);
-    return NextResponse.json({ error: "Failed to fetch jobs" }, { status: 500 });
+    return NextResponse.json({ 
+      error: "Failed to fetch jobs",
+      details: error instanceof Error ? error.message : 'Unknown error'
+    }, { status: 500 });
   }
 }
