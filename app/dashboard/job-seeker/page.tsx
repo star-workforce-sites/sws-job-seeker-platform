@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import Navigation from '@/components/navigation';
 import Footer from '@/components/footer';
+import Link from 'next/link';
 
 interface SubscriptionData {
   hasSubscription: boolean;
@@ -58,8 +59,6 @@ export default function JobSeekerDashboard() {
       return;
     }
 
-    // Database stores 'jobseeker' (no underscore)
-    // Also allow if role is undefined (default to jobseeker)
     const role = session.user?.role;
     if (role && role !== 'jobseeker' && role !== 'admin') {
       console.log('[JobSeekerDashboard] Wrong role:', role, '- redirecting to /dashboard');
@@ -96,6 +95,40 @@ export default function JobSeekerDashboard() {
             Here's what's happening with your job search
           </p>
         </div>
+
+        {/* Hire Recruiter Card - Priority 3 */}
+        {!subscription?.hasSubscription && (
+          <div className="mb-8 bg-gradient-to-r from-[#0A1A2F] to-[#132A47] rounded-lg p-8 text-white">
+            <h3 className="text-2xl font-bold mb-2">Want a Dedicated Recruiter?</h3>
+            <p className="text-gray-300 mb-6">
+              Let our offshore recruiters handle your job search. Choose the plan that fits your needs.
+            </p>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <Link href="/hire-recruiter#basic" className="block">
+                <div className="bg-white/10 hover:bg-white/20 p-6 rounded-lg transition cursor-pointer border border-white/20">
+                  <h4 className="text-xl font-bold text-[#E8C547] mb-2">Basic</h4>
+                  <p className="text-2xl font-bold mb-2">$199/mo</p>
+                  <p className="text-sm text-gray-300">5 applications/day</p>
+                </div>
+              </Link>
+              <Link href="/hire-recruiter#standard" className="block">
+                <div className="bg-[#E8C547]/20 hover:bg-[#E8C547]/30 p-6 rounded-lg transition cursor-pointer border-2 border-[#E8C547]">
+                  <div className="text-xs font-bold text-[#E8C547] mb-2">MOST POPULAR</div>
+                  <h4 className="text-xl font-bold text-[#E8C547] mb-2">Standard</h4>
+                  <p className="text-2xl font-bold mb-2">$399/mo</p>
+                  <p className="text-sm text-gray-300">15 applications/day</p>
+                </div>
+              </Link>
+              <Link href="/hire-recruiter#pro" className="block">
+                <div className="bg-white/10 hover:bg-white/20 p-6 rounded-lg transition cursor-pointer border border-white/20">
+                  <h4 className="text-xl font-bold text-[#E8C547] mb-2">Pro</h4>
+                  <p className="text-2xl font-bold mb-2">$599/mo</p>
+                  <p className="text-sm text-gray-300">30 applications/day</p>
+                </div>
+              </Link>
+            </div>
+          </div>
+        )}
 
         {/* Quick Actions */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">

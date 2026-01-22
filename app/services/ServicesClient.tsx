@@ -9,53 +9,6 @@ import Footer from "@/components/footer"
 import { FileText, Users, Briefcase, Sparkles, MessageSquare, Users2, Check } from "lucide-react"
 
 export default function ServicesClient() {
-  const [recruiterTier, setRecruiterTier] = useState("standard")
-
-  const recruiterTiers = [
-    {
-      id: "basic",
-      name: "Basic",
-      price: "$199/month",
-      applications: "5 applications/day",
-      features: [
-        "Daily consulting & contract job applications",
-        "Basic activity dashboard",
-        "Email support",
-        "Job title targeting",
-      ],
-    },
-    {
-      id: "standard",
-      name: "Standard",
-      price: "$399/month",
-      applications: "15 applications/day",
-      features: [
-        "Daily consulting & contract job applications",
-        "Advanced dashboard",
-        "Priority support",
-        "Job title + location targeting",
-        "Salary range filtering",
-        "Weekly reports",
-      ],
-      highlighted: true,
-    },
-    {
-      id: "pro",
-      name: "Pro",
-      price: "$599/month",
-      applications: "30 applications/day",
-      features: [
-        "Daily consulting & contract job applications",
-        "Full analytics dashboard",
-        "24/7 support",
-        "Custom job criteria",
-        "Advanced filtering",
-        "Daily reports",
-        "Personal recruiter consultation",
-      ],
-    },
-  ]
-
   return (
     <div className="min-h-screen bg-background flex flex-col">
       <Navigation />
@@ -102,7 +55,7 @@ export default function ServicesClient() {
                       Resume visibility for 12 months
                     </li>
                   </ul>
-                  <Link href="/contact?subject=Resume Distribution Service">
+                  <Link href="/distribution-wizard">
                     <Button className="bg-primary hover:bg-primary/90 text-primary-foreground premium-heading">
                       Submit Resume Now
                     </Button>
@@ -189,48 +142,24 @@ export default function ServicesClient() {
             </Card>
           </div>
 
-          {/* Service 3: Offshore Recruiter */}
+          {/* Service 3: Offshore Recruiter - COMPACT CTA */}
           <div className="mb-16">
-            <h2 className="text-2xl font-bold text-foreground mb-8 premium-heading">Hire an Offshore Recruiter</h2>
-            <div className="grid md:grid-cols-3 gap-6">
-              {recruiterTiers.map((tier) => (
-                <Card
-                  key={tier.id}
-                  className={`p-6 border-2 transition-all hover:shadow-lg ${
-                    tier.highlighted ? "border-primary bg-primary/5" : "border-border"
-                  }`}
-                >
-                  {tier.highlighted && (
-                    <div className="bg-primary text-primary-foreground px-3 py-1 rounded text-sm font-medium inline-block mb-4 premium-heading">
-                      Most Popular
-                    </div>
-                  )}
-                  <h3 className="text-xl font-bold text-foreground mb-2 premium-heading">{tier.name}</h3>
-                  <p className="text-3xl font-bold text-foreground mb-1 premium-heading">{tier.price}</p>
-                  <p className="text-sm text-muted-foreground mb-6 premium-body">{tier.applications}</p>
-
-                  <ul className="space-y-3 mb-6">
-                    {tier.features.map((feature, idx) => (
-                      <li key={idx} className="flex items-center gap-2 text-foreground premium-body">
-                        <Check className="w-5 h-5 text-primary flex-shrink-0" />
-                        <span className="text-sm">{feature}</span>
-                      </li>
-                    ))}
-                  </ul>
-
-                  <Link href="/contact?subject=Hire Recruiter Inquiry">
-                    <Button
-                      className={`w-full premium-heading ${
-                        tier.highlighted ? "bg-primary hover:bg-primary/90 text-primary-foreground" : ""
-                      }`}
-                      variant={tier.highlighted ? "default" : "outline"}
-                    >
-                      Choose {tier.name}
-                    </Button>
-                  </Link>
-                </Card>
-              ))}
-            </div>
+            <Card className="p-8 border-2 border-primary bg-gradient-to-r from-primary/5 to-primary/10">
+              <div className="text-center max-w-2xl mx-auto">
+                <Users className="w-16 h-16 text-primary mx-auto mb-4" />
+                <h2 className="text-3xl font-bold text-foreground mb-4 premium-heading">
+                  Hire an Offshore Recruiter
+                </h2>
+                <p className="text-lg text-muted-foreground mb-6 premium-body">
+                  Let our dedicated recruiters handle your job search. Starting at $199/month with plans up to 30 applications per day.
+                </p>
+                <Link href="/hire-recruiter">
+                  <Button size="lg" className="bg-primary hover:bg-primary/90 text-primary-foreground px-8 py-6 text-lg premium-heading">
+                    View Recruiter Plans
+                  </Button>
+                </Link>
+              </div>
+            </Card>
           </div>
 
           {/* Service 4: Career Tools */}

@@ -59,12 +59,12 @@ export default function Home() {
               </span>
             </div>
             <div className="flex flex-col sm:flex-row gap-4 justify-center pt-6">
-              <Link href="/contact?subject=Start Distribution">
+              <Link href="/distribution-wizard">
                 <Button className="bg-secondary hover:bg-secondary/90 text-primary px-8 py-6 text-lg h-auto font-semibold premium-heading shadow-lg hover:shadow-xl transition-all">
                   Start Distribution
                 </Button>
               </Link>
-              <Link href="/contact?subject=Hire a Dedicated Recruiter">
+              <Link href="/hire-recruiter">
                 <Button
                   variant="outline"
                   className="border-white text-white hover:text-[#FFD700] hover:bg-white/10 px-8 py-6 text-lg h-auto font-semibold premium-body bg-transparent transition-colors"
