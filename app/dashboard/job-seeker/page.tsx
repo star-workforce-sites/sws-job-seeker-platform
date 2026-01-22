@@ -6,10 +6,49 @@ import { useEffect, useState } from 'react';
 import Navigation from '@/components/navigation';
 import Footer from '@/components/footer';
 
+interface SubscriptionData {
+  hasSubscription: boolean;
+  subscriptionType: string | null;
+  status: string | null;
+  currentPeriodEnd?: string;
+}
+
 export default function JobSeekerDashboard() {
   const { data: session, status } = useSession();
   const router = useRouter();
   const [isAuthorized, setIsAuthorized] = useState(false);
+  const [subscription, setSubscription] = useState<SubscriptionData | null>(null);
+  const [loadingSubscription, setLoadingSubscription] = useState(true);
+
+  // Format subscription type for display
+  const formatPlanName = (type: string | null): string => {
+    if (!type) return 'Free';
+    
+    const planNames: Record<string, string> = {
+      'recruiter_basic': 'Recruiter Basic',
+      'recruiter_standard': 'Recruiter Standard',
+      'recruiter_pro': 'Recruiter Pro',
+      'diy_premium': 'DIY Premium'
+    };
+    
+    return planNames[type] || type.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+  };
+
+  // Fetch subscription data
+  useEffect(() => {
+    if (status === 'authenticated' && session?.user?.id) {
+      fetch('/api/user/subscription')
+        .then(res => res.json())
+        .then(data => {
+          setSubscription(data);
+          setLoadingSubscription(false);
+        })
+        .catch(error => {
+          console.error('Error fetching subscription:', error);
+          setLoadingSubscription(false);
+        });
+    }
+  }, [status, session?.user?.id]);
 
   useEffect(() => {
     if (status === 'loading') return;
@@ -38,6 +77,10 @@ export default function JobSeekerDashboard() {
       </div>
     );
   }
+
+  const currentPlan = subscription?.hasSubscription 
+    ? formatPlanName(subscription.subscriptionType)
+    : 'Free';
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
@@ -151,9 +194,15 @@ export default function JobSeekerDashboard() {
           </div>
           <div className="bg-white p-6 rounded-lg shadow">
             <p className="text-gray-600 text-sm">Current Plan</p>
-            <p className="text-xl font-bold text-[#E8C547] mt-2">
-              {session?.user?.atsPremium ? 'Premium' : 'Free'}
-            </p>
+            {loadingSubscription ? (
+              <p className="text-xl font-bold text-gray-400 mt-2">Loading...</p>
+            ) : (
+              <p className={`text-xl font-bold mt-2 ${
+                currentPlan === 'Free' ? 'text-gray-600' : 'text-[#E8C547]'
+              }`}>
+                {currentPlan}
+              </p>
+            )}
           </div>
         </div>
       </main>
