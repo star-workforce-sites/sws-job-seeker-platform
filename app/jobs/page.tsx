@@ -1,7 +1,8 @@
 "use client"
 
 import { useState, useCallback, useEffect } from "react"
-// import { useSession } from "next-auth/react"
+import { useSession } from "next-auth/react"
+import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -9,9 +10,8 @@ import Navigation from "@/components/navigation"
 import Footer from "@/components/footer"
 import { MapPin, DollarSign, Briefcase, BookmarkIcon } from "lucide-react"
 
-// Mock job data
 type Job = {
-  id: number
+  id: string
   title: string
   company: string
   location: string
@@ -23,8 +23,8 @@ type Job = {
 }
 
 export default function Jobs() {
-  // const { data: session } = useSession()
-  const session = null // Temporary: no authentication
+  const { data: session } = useSession()
+  const router = useRouter()
 
   const [searchTerm, setSearchTerm] = useState("")
   const [filters, setFilters] = useState({
@@ -34,8 +34,7 @@ export default function Jobs() {
   })
   const [jobs, setJobs] = useState<Job[]>([])
   const [loading, setLoading] = useState(true)
-  const [currentPage, setCurrentPage] = useState(1)
-  const [savedJobs, setSavedJobs] = useState<number[]>([])
+  const [savedJobs, setSavedJobs] = useState<string[]>([])
   const [applicationsToday, setApplicationsToday] = useState(0)
 
   const MAX_FREE_APPLICATIONS = 5
@@ -58,7 +57,7 @@ export default function Jobs() {
 
   useEffect(() => {
     async function fetchUserData() {
-      // if (!session?.user?.id) return
+      if (!session?.user?.id) return
 
       try {
         const [statsRes, savedRes] = await Promise.all([
@@ -96,11 +95,11 @@ export default function Jobs() {
   })
 
   const handleSaveJob = useCallback(
-    async (jobId: number) => {
-      // if (!session?.user?.id) {
-      //   alert("Please log in to save jobs")
-      //   return
-      // }
+    async (jobId: string) => {
+      if (!session?.user?.id) {
+        router.push("/auth/login?callbackUrl=/jobs")
+        return
+      }
 
       try {
         const method = savedJobs.includes(jobId) ? "DELETE" : "POST"
@@ -117,15 +116,15 @@ export default function Jobs() {
         console.error("Failed to save job:", error)
       }
     },
-    [savedJobs, session],
+    [savedJobs, session, router],
   )
 
   const handleApply = useCallback(
-    async (jobId: number) => {
-      // if (!session?.user?.id) {
-      //   alert("Please log in to apply for jobs")
-      //   return
-      // }
+    async (jobId: string) => {
+      if (!session?.user?.id) {
+        router.push("/auth/login?callbackUrl=/jobs")
+        return
+      }
 
       if (applicationsToday >= MAX_FREE_APPLICATIONS) {
         alert("You have reached your daily application limit (5). Upgrade to Premium for unlimited applications.")
@@ -148,10 +147,10 @@ export default function Jobs() {
         }
       } catch (error) {
         console.error("Failed to apply:", error)
-        alert("Failed to submit application")
+        alert("Failed to submit application. Please try again.")
       }
     },
-    [applicationsToday, session],
+    [applicationsToday, session, router],
   )
 
   if (loading) {
@@ -159,7 +158,7 @@ export default function Jobs() {
       <div className="min-h-screen bg-background flex flex-col">
         <Navigation />
         <div className="flex-1 flex items-center justify-center">
-          <p className="text-muted-foreground">Loading jobs...</p>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
         </div>
         <Footer />
       </div>
@@ -170,141 +169,141 @@ export default function Jobs() {
     <div className="min-h-screen bg-background flex flex-col">
       <Navigation />
 
-      <section className="abstract-gradient text-primary-foreground py-12 px-4 sm:px-6 lg:px-8 relative">
-        <div className="max-w-6xl mx-auto text-center relative z-10">
-          <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold mb-4 text-white premium-heading">
+      {/* Hero Section */}
+      <section className="abstract-gradient text-primary-foreground py-16 px-4 sm:px-6 lg:px-8">
+        <div className="max-w-6xl mx-auto text-center">
+          <h1 className="text-4xl sm:text-5xl font-bold mb-4 text-white premium-heading">
             Consulting & Contract Jobs
           </h1>
-          <p className="text-lg text-white/90 max-w-2xl mx-auto premium-body">
+          <p className="text-lg text-white/90 premium-body">
             Browse thousands of premium opportunities in Software, AI, Cloud, and more
           </p>
         </div>
       </section>
 
-      <section className="bg-gradient-to-br from-primary/5 to-accent/5 py-8 px-4 sm:px-6 lg:px-8 sticky top-16 z-40 border-b border-border">
-        <div className="max-w-6xl mx-auto">
-          <div className="space-y-4">
+      {/* Main Content - FIXED: Added padding-top */}
+      <main className="flex-1 max-w-6xl mx-auto px-4 py-8 w-full">
+        {/* Search & Filters */}
+        <div className="mb-8 space-y-4">
+          <Input
+            type="text"
+            placeholder="Search by job title or company..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="w-full"
+          />
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
-              <Input
-                type="text"
-                placeholder="Search by job title or company..."
-                value={searchTerm}
-                onChange={(e) => {
-                  setSearchTerm(e.target.value)
-                  setCurrentPage(1)
-                }}
-                className="w-full"
-              />
+              <label className="text-sm font-medium mb-2 block">Work Type</label>
+              <select
+                value={filters.remote}
+                onChange={(e) => setFilters({ ...filters, remote: e.target.value })}
+                className="w-full p-2 border rounded-md bg-background"
+              >
+                <option value="all">All</option>
+                <option value="remote">Remote</option>
+                <option value="hybrid">Hybrid</option>
+                <option value="onsite">Onsite</option>
+              </select>
             </div>
 
-            <div className="grid grid-cols-3 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-foreground mb-2">Work Type</label>
-                <select
-                  value={filters.remote}
-                  onChange={(e) => {
-                    setFilters((prev) => ({ ...prev, remote: e.target.value }))
-                    setCurrentPage(1)
-                  }}
-                  className="w-full px-3 py-2 border border-border rounded-md bg-background text-foreground"
-                >
-                  <option value="all">All</option>
-                  <option value="Remote">Remote</option>
-                  <option value="Hybrid">Hybrid</option>
-                  <option value="On-site">On-site</option>
-                </select>
-              </div>
+            <div>
+              <label className="text-sm font-medium mb-2 block">Job Type</label>
+              <select
+                value={filters.salary}
+                onChange={(e) => setFilters({ ...filters, salary: e.target.value })}
+                className="w-full p-2 border rounded-md bg-background"
+              >
+                <option value="all">All</option>
+                <option value="contract">Contract</option>
+                <option value="consulting">Consulting</option>
+              </select>
+            </div>
 
-              <div>
-                <label className="block text-sm font-medium text-foreground mb-2">Job Type</label>
-                <select
-                  value={filters.level}
-                  onChange={(e) => setFilters((prev) => ({ ...prev, level: e.target.value }))}
-                  className="w-full px-3 py-2 border border-border rounded-md bg-background text-foreground"
-                >
-                  <option value="all">All</option>
-                  <option value="Entry">Entry Level</option>
-                  <option value="Mid">Mid-Level</option>
-                  <option value="Senior">Senior</option>
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-foreground mb-2">Applications</label>
-                <div className="px-3 py-2 border border-border rounded-md bg-background text-foreground">
-                  {applicationsToday}/{MAX_FREE_APPLICATIONS}
-                </div>
+            <div className="flex items-end">
+              <div className="text-sm text-muted-foreground">
+                Applications: {applicationsToday}/{MAX_FREE_APPLICATIONS}
               </div>
             </div>
           </div>
         </div>
-      </section>
 
-      <section className="py-8 px-4 sm:px-6 lg:px-8 flex-1">
-        <div className="max-w-6xl mx-auto">
-          <p className="text-muted-foreground mb-6">
-            {filteredJobs.length} {filteredJobs.length === 1 ? "job" : "jobs"} found
+        {/* Results Count */}
+        <div className="mb-4">
+          <p className="text-muted-foreground">
+            {filteredJobs.length} jobs found
           </p>
+        </div>
 
+        {/* Jobs List */}
+        {filteredJobs.length === 0 ? (
+          <div className="text-center py-12">
+            <p className="text-muted-foreground">No jobs found. Try adjusting your filters.</p>
+          </div>
+        ) : (
           <div className="space-y-4">
             {filteredJobs.map((job) => (
-              <Card key={job.id} className="p-6 border border-border hover:shadow-md transition-shadow">
-                <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+              <Card key={job.id} className="p-6 hover:shadow-lg transition">
+                <div className="flex justify-between items-start mb-4">
                   <div className="flex-1">
-                    <h3 className="text-xl font-bold text-foreground mb-2">{job.title}</h3>
-                    <p className="text-primary font-medium mb-3">{job.company}</p>
-
-                    <div className="flex flex-wrap gap-4 text-sm text-muted-foreground mb-4">
-                      <div className="flex items-center gap-1">
-                        <MapPin className="w-4 h-4" />
-                        {job.location}
-                      </div>
-                      <div className="flex items-center gap-1">
-                        <Briefcase className="w-4 h-4" />
-                        {job.employmentType}
-                      </div>
-                      <div className="flex items-center gap-1">
-                        <DollarSign className="w-4 h-4" />
-                        {job.salary}
-                      </div>
-                    </div>
-
-                    <p className="text-foreground mb-3 line-clamp-2">{job.description}</p>
-                    <p className="text-xs text-muted-foreground">
-                      Posted {new Date(job.postedDate).toLocaleDateString()}
-                    </p>
+                    <h3 className="text-xl font-bold text-foreground mb-2 premium-heading">
+                      {job.title}
+                    </h3>
+                    <p className="text-muted-foreground premium-body">{job.company}</p>
                   </div>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => handleSaveJob(job.id)}
+                    className="text-muted-foreground hover:text-primary"
+                  >
+                    <BookmarkIcon
+                      className={`h-5 w-5 ${savedJobs.includes(job.id) ? "fill-current text-primary" : ""}`}
+                    />
+                  </Button>
+                </div>
 
-                  <div className="flex flex-col gap-2 md:ml-4">
-                    <Button
-                      onClick={() => handleApply(job.id)}
-                      disabled={applicationsToday >= MAX_FREE_APPLICATIONS || !session}
-                      className="bg-primary hover:bg-primary/90 text-primary-foreground disabled:opacity-50"
-                    >
-                      {!session ? "Login to Apply" : "Apply Now"}
-                    </Button>
-                    <Button
-                      onClick={() => handleSaveJob(job.id)}
-                      variant="outline"
-                      disabled={!session}
-                      className={`${savedJobs.includes(job.id) ? "bg-secondary text-secondary-foreground" : ""}`}
-                    >
-                      <BookmarkIcon className="w-4 h-4 mr-2" />
-                      {savedJobs.includes(job.id) ? "Saved" : "Save"}
-                    </Button>
+                <div className="flex flex-wrap gap-4 mb-4 text-sm text-muted-foreground">
+                  <div className="flex items-center gap-1">
+                    <MapPin className="h-4 w-4" />
+                    <span>{job.location}</span>
                   </div>
+                  <div className="flex items-center gap-1">
+                    <Briefcase className="h-4 w-4" />
+                    <span className="capitalize">{job.employmentType}</span>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <DollarSign className="h-4 w-4" />
+                    <span>{job.salary}</span>
+                  </div>
+                  <div>
+                    <span className="capitalize">{job.remoteType}</span>
+                  </div>
+                  <div>
+                    <span>Posted {job.postedDate}</span>
+                  </div>
+                </div>
+
+                <p className="text-foreground mb-4 line-clamp-3 premium-body">
+                  {job.description}
+                </p>
+
+                <div className="flex gap-2">
+                  <Button
+                    onClick={() => handleApply(job.id)}
+                    disabled={session && applicationsToday >= MAX_FREE_APPLICATIONS}
+                    className="bg-primary hover:bg-primary/90 text-primary-foreground disabled:opacity-50"
+                  >
+                    {!session ? "Login to Apply" : "Apply Now"}
+                  </Button>
+                  <Button variant="outline">View Details</Button>
                 </div>
               </Card>
             ))}
           </div>
-
-          {filteredJobs.length === 0 && (
-            <div className="text-center py-12">
-              <p className="text-muted-foreground">No jobs found. Try adjusting your filters.</p>
-            </div>
-          )}
-        </div>
-      </section>
+        )}
+      </main>
 
       <Footer />
     </div>
