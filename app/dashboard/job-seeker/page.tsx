@@ -48,6 +48,8 @@ export default function JobSeekerDashboard() {
           console.error('Error fetching subscription:', error);
           setLoadingSubscription(false);
         });
+    } else if (status === 'unauthenticated') {
+      setLoadingSubscription(false);
     }
   }, [status, session?.user?.id]);
 
@@ -80,6 +82,8 @@ export default function JobSeekerDashboard() {
   const currentPlan = subscription?.hasSubscription 
     ? formatPlanName(subscription.subscriptionType)
     : 'Free';
+  
+  const hasActiveSubscription = subscription?.hasSubscription && subscription?.status === 'active';
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
@@ -96,8 +100,34 @@ export default function JobSeekerDashboard() {
           </p>
         </div>
 
-        {/* Hire Recruiter Card - Priority 3 */}
-        {!subscription?.hasSubscription && (
+        {/* Current Plan Card - Always Show */}
+        <div className="mb-8 bg-white rounded-lg shadow p-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <h3 className="text-lg font-semibold text-gray-700">Current Plan</h3>
+              <p className={`text-2xl font-bold mt-2 ${
+                currentPlan === 'Free' ? 'text-gray-600' : 'text-[#E8C547]'
+              }`}>
+                {currentPlan}
+              </p>
+              {hasActiveSubscription && subscription?.currentPeriodEnd && (
+                <p className="text-sm text-gray-500 mt-1">
+                  Renews on {new Date(subscription.currentPeriodEnd).toLocaleDateString()}
+                </p>
+              )}
+            </div>
+            {hasActiveSubscription && (
+              <Link href="/hire-recruiter">
+                <button className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
+                  Upgrade Plan
+                </button>
+              </Link>
+            )}
+          </div>
+        </div>
+
+        {/* Hire Recruiter Card - Only show if NO active subscription */}
+        {!hasActiveSubscription && (
           <div className="mb-8 bg-gradient-to-r from-[#0A1A2F] to-[#132A47] rounded-lg p-8 text-white">
             <h3 className="text-2xl font-bold mb-2">Want a Dedicated Recruiter?</h3>
             <p className="text-gray-300 mb-6">
@@ -226,7 +256,7 @@ export default function JobSeekerDashboard() {
             <p className="text-3xl font-bold text-gray-900 mt-2">0</p>
           </div>
           <div className="bg-white p-6 rounded-lg shadow">
-            <p className="text-gray-600 text-sm">Current Plan</p>
+            <p className="text-gray-600 text-sm">Subscription Status</p>
             {loadingSubscription ? (
               <p className="text-xl font-bold text-gray-400 mt-2">Loading...</p>
             ) : (

@@ -15,85 +15,35 @@ export async function GET(request: NextRequest) {
     const location = searchParams.get("location")
     const employmentType = searchParams.get("employmentType")
 
-    // Build complete query in ONE template literal
-    // Cannot chain with ORDER BY / LIMIT - must be in initial query
-    let query;
-    
-    if (!industry && !location && !employmentType) {
-      // No filters - simple query
-      query = sql`
-        SELECT 
-          j.id,
-          j.title,
-          COALESCE(u.name, 'Anonymous Employer') as company,
-          j.location,
-          j."employmentType",
-          CASE 
-            WHEN j."salaryMin" IS NOT NULL AND j."salaryMax" IS NOT NULL 
-            THEN '$' || ROUND(j."salaryMin"::numeric / 2080, 2) || '/hr - $' || ROUND(j."salaryMax"::numeric / 2080, 2) || '/hr'
-            WHEN j."salaryMin" IS NOT NULL 
-            THEN '$' || ROUND(j."salaryMin"::numeric / 2080, 2) || '/hr+'
-            ELSE 'Competitive'
-          END as salary,
-          j.description,
-          TO_CHAR(j."createdAt", 'YYYY-MM-DD') as "postedDate",
-          CASE 
-            WHEN j.location ILIKE '%remote%' THEN 'remote'
-            WHEN j.location ILIKE '%hybrid%' THEN 'hybrid'
-            ELSE 'onsite'
-          END as "remoteType"
-        FROM jobs j
-        LEFT JOIN users u ON j."employerId" = u.id
-        WHERE j."isActive" = TRUE AND j."expiresAt" > NOW()
-        ORDER BY j."createdAt" DESC
-        LIMIT 50
-      `;
-    } else {
-      // With filters - build conditions array
-      const conditions = ['j."isActive" = TRUE', 'j."expiresAt" > NOW()'];
-      
-      if (industry) {
-        conditions.push(`j.industry = '${industry}'`);
-      }
-      if (location) {
-        conditions.push(`j.location ILIKE '%${location}%'`);
-      }
-      if (employmentType) {
-        conditions.push(`j."employmentType" = '${employmentType}'`);
-      }
-      
-      const whereClause = conditions.join(' AND ');
-      
-      query = sql.query(`
-        SELECT 
-          j.id,
-          j.title,
-          COALESCE(u.name, 'Anonymous Employer') as company,
-          j.location,
-          j."employmentType",
-          CASE 
-            WHEN j."salaryMin" IS NOT NULL AND j."salaryMax" IS NOT NULL 
-            THEN '$' || ROUND(j."salaryMin"::numeric / 2080, 2) || '/hr - $' || ROUND(j."salaryMax"::numeric / 2080, 2) || '/hr'
-            WHEN j."salaryMin" IS NOT NULL 
-            THEN '$' || ROUND(j."salaryMin"::numeric / 2080, 2) || '/hr+'
-            ELSE 'Competitive'
-          END as salary,
-          j.description,
-          TO_CHAR(j."createdAt", 'YYYY-MM-DD') as "postedDate",
-          CASE 
-            WHEN j.location ILIKE '%remote%' THEN 'remote'
-            WHEN j.location ILIKE '%hybrid%' THEN 'hybrid'
-            ELSE 'onsite'
-          END as "remoteType"
-        FROM jobs j
-        LEFT JOIN users u ON j."employerId" = u.id
-        WHERE ${whereClause}
-        ORDER BY j."createdAt" DESC
-        LIMIT 50
-      `);
-    }
-
-    const result = await query;
+    // Simple query without filter complexity
+    // Build complete SQL in one template literal
+    const result = await sql`
+      SELECT 
+        j.id,
+        j.title,
+        COALESCE(u.name, 'Anonymous Employer') as company,
+        j.location,
+        j."employmentType",
+        CASE 
+          WHEN j."salaryMin" IS NOT NULL AND j."salaryMax" IS NOT NULL 
+          THEN '$' || ROUND(j."salaryMin"::numeric / 2080, 2) || '/hr - $' || ROUND(j."salaryMax"::numeric / 2080, 2) || '/hr'
+          WHEN j."salaryMin" IS NOT NULL 
+          THEN '$' || ROUND(j."salaryMin"::numeric / 2080, 2) || '/hr+'
+          ELSE 'Competitive'
+        END as salary,
+        j.description,
+        TO_CHAR(j."createdAt", 'YYYY-MM-DD') as "postedDate",
+        CASE 
+          WHEN j.location ILIKE '%remote%' THEN 'remote'
+          WHEN j.location ILIKE '%hybrid%' THEN 'hybrid'
+          ELSE 'onsite'
+        END as "remoteType"
+      FROM jobs j
+      LEFT JOIN users u ON j."employerId" = u.id
+      WHERE j."isActive" = TRUE AND j."expiresAt" > NOW()
+      ORDER BY j."createdAt" DESC
+      LIMIT 50
+    `;
 
     // Transform to match frontend interface
     const jobs = result.rows.map((job: any) => ({
