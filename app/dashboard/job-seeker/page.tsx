@@ -1,13 +1,13 @@
 /**
  * Dashboard - Job Seeker
- * 
+ *
  * CRITICAL FIX: Subscription display
- * Last updated: 2026-01-22
- * 
+ * Last updated: 2026-01-22 18:30
+ *
  * Changes:
- * - Force subscription fetch on component mount
- * - No caching of subscription data
- * - Real-time status display
+ * - Fixed API response parsing to match actual API structure
+ * - API returns: { plan, subscription: { subscription_type, status } }
+ * - Dashboard now correctly reads this structure
  */
 
 'use client';
@@ -20,10 +20,12 @@ import Footer from '@/components/footer';
 import Link from 'next/link';
 
 interface SubscriptionData {
-  hasSubscription: boolean;
-  subscriptionType: string | null;
-  status: string | null;
-  currentPeriodEnd?: string;
+  plan: string;
+  subscription: {
+    subscription_type: string;
+    status: string;
+    current_period_end?: string;
+  } | null;
 }
 
 export default function JobSeekerDashboard() {
@@ -33,37 +35,31 @@ export default function JobSeekerDashboard() {
   const [subscription, setSubscription] = useState<SubscriptionData | null>(null);
   const [loadingSubscription, setLoadingSubscription] = useState(true);
 
-  // Format subscription type for display
-  const formatPlanName = (type: string | null): string => {
-    if (!type) return 'Free';
-    
-    const planNames: Record<string, string> = {
-      'recruiter_basic': 'Recruiter Basic',
-      'recruiter_standard': 'Recruiter Standard',
-      'recruiter_pro': 'Recruiter Pro',
-      'diy_premium': 'DIY Premium'
-    };
-    
-    return planNames[type] || type.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
-  };
-
-  // Fetch subscription data
+  // Fetch subscription data with no cache
   useEffect(() => {
-    if (status === 'authenticated' && session?.user?.id) {
-      fetch('/api/user/subscription')
+    if (status === 'authenticated') {
+      console.log('[Dashboard] Fetching subscription...');
+      
+      fetch('/api/user/subscription', {
+        cache: 'no-store',
+        headers: {
+          'Cache-Control': 'no-cache'
+        }
+      })
         .then(res => res.json())
         .then(data => {
+          console.log('[Dashboard] API Response:', data);
           setSubscription(data);
           setLoadingSubscription(false);
         })
         .catch(error => {
-          console.error('Error fetching subscription:', error);
+          console.error('[Dashboard] Error fetching subscription:', error);
           setLoadingSubscription(false);
         });
     } else if (status === 'unauthenticated') {
       setLoadingSubscription(false);
     }
-  }, [status, session?.user?.id]);
+  }, [status]);
 
   useEffect(() => {
     if (status === 'loading') return;
@@ -74,8 +70,10 @@ export default function JobSeekerDashboard() {
     }
 
     const role = session.user?.role;
+    console.log('[Dashboard] User role:', role);
+    
     if (role && role !== 'jobseeker' && role !== 'admin') {
-      console.log('[JobSeekerDashboard] Wrong role:', role, '- redirecting to /dashboard');
+      console.log('[Dashboard] Wrong role - redirecting');
       router.push('/dashboard');
       return;
     }
@@ -91,11 +89,12 @@ export default function JobSeekerDashboard() {
     );
   }
 
-  const currentPlan = subscription?.hasSubscription 
-    ? formatPlanName(subscription.subscriptionType)
-    : 'Free';
-  
-  const hasActiveSubscription = subscription?.hasSubscription && subscription?.status === 'active';
+  // Get current plan from API response
+  const currentPlan = subscription?.plan || 'Free';
+  const hasActiveSubscription = subscription?.subscription?.status === 'active';
+
+  console.log('[Dashboard] Current plan:', currentPlan);
+  console.log('[Dashboard] Has active subscription:', hasActiveSubscription);
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
@@ -117,15 +116,21 @@ export default function JobSeekerDashboard() {
           <div className="flex items-center justify-between">
             <div>
               <h3 className="text-lg font-semibold text-gray-700">Current Plan</h3>
-              <p className={`text-2xl font-bold mt-2 ${
-                currentPlan === 'Free' ? 'text-gray-600' : 'text-[#E8C547]'
-              }`}>
-                {currentPlan}
-              </p>
-              {hasActiveSubscription && subscription?.currentPeriodEnd && (
-                <p className="text-sm text-gray-500 mt-1">
-                  Renews on {new Date(subscription.currentPeriodEnd).toLocaleDateString()}
-                </p>
+              {loadingSubscription ? (
+                <p className="text-xl text-gray-400 mt-2">Loading...</p>
+              ) : (
+                <>
+                  <p className={`text-2xl font-bold mt-2 ${
+                    currentPlan === 'Free' ? 'text-gray-600' : 'text-[#E8C547]'
+                  }`}>
+                    {currentPlan}
+                  </p>
+                  {hasActiveSubscription && subscription?.subscription?.current_period_end && (
+                    <p className="text-sm text-gray-500 mt-1">
+                      Renews on {new Date(subscription.subscription.current_period_end).toLocaleDateString()}
+                    </p>
+                  )}
+                </>
               )}
             </div>
             {hasActiveSubscription && (
