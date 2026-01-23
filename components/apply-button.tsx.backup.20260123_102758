@@ -20,7 +20,7 @@ export function ApplyButton({ jobId, hasApplied = false }: ApplyButtonProps) {
   const handleApply = async () => {
     if (status === 'unauthenticated') {
       showToast('Please sign in to apply for jobs', 'warning');
-      router.push(`/auth/signin?callbackUrl=/jobs/${jobId}`);
+      router.push(`/auth/login?callbackUrl=/jobs/${jobId}`);
       return;
     }
 
@@ -45,7 +45,6 @@ export function ApplyButton({ jobId, hasApplied = false }: ApplyButtonProps) {
         showToast(data.error || 'Failed to submit application', 'error');
       }
     } catch (error) {
-      console.error('Apply error:', error);
       showToast('Network error. Please try again.', 'error');
     } finally {
       setApplying(false);
