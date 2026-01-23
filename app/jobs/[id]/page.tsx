@@ -1,310 +1,214 @@
-"use client"
+'use client';
 
-import { useEffect, useState, useCallback } from "react"
-import { useSession } from "next-auth/react"
-import { useRouter, useParams } from "next/navigation"
-import { Button } from "@/components/ui/button"
-import { Card } from "@/components/ui/card"
-import Navigation from "@/components/navigation"
-import Footer from "@/components/footer"
-import { MapPin, DollarSign, Briefcase, BookmarkIcon, ArrowLeft, FileText, GraduationCap, ExternalLink } from "lucide-react"
-import Link from "next/link"
+import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { useSession } from 'next-auth/react';
+import Navigation from '@/components/navigation';
+import Footer from '@/components/footer';
+import { LoadingPage } from '@/components/loading';
+import { ApplyButton } from '@/components/apply-button';
+import { useToast } from '@/components/toast-provider';
 
-type Job = {
-  id: string
-  title: string
-  company: string
-  location: string
-  employmentType: string
-  salary: string
-  description: string
-  postedDate: string
-  remoteType: string
+interface Job {
+  id: string;
+  title: string;
+  company: string;
+  location: string;
+  type: string;
+  description: string;
+  requirements: string[];
+  responsibilities: string[];
+  benefits: string[];
+  salary_min: number;
+  salary_max: number;
+  posted_at: string;
+  expires_at: string;
 }
 
-export default function JobDetailPage() {
-  const { data: session } = useSession()
-  const router = useRouter()
-  const params = useParams()
-  const jobId = params.id as string
-
-  const [job, setJob] = useState<Job | null>(null)
-  const [loading, setLoading] = useState(true)
-  const [saved, setSaved] = useState(false)
-  const [applying, setApplying] = useState(false)
+export default function JobDetailPage({ params }: { params: Promise<{ id: string }> }) {
+  const router = useRouter();
+  const { data: session, status } = useSession();
+  const { showToast } = useToast();
+  const [job, setJob] = useState<Job | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [jobId, setJobId] = useState<string>('');
+  const [hasApplied, setHasApplied] = useState(false);
 
   useEffect(() => {
-    async function fetchJob() {
-      try {
-        const response = await fetch(`/api/jobs/${jobId}`)
-        const data = await response.json()
-        
-        if (response.ok && data.job) {
-          setJob(data.job)
-        } else {
-          router.push('/jobs')
-        }
-      } catch (error) {
-        console.error("Failed to fetch job:", error)
-        router.push('/jobs')
-      } finally {
-        setLoading(false)
+    params.then(({ id }) => {
+      setJobId(id);
+      fetchJob(id);
+      if (session?.user) {
+        checkIfApplied(id);
       }
-    }
+    });
+  }, [params, session]);
 
-    if (jobId) {
-      fetchJob()
-    }
-  }, [jobId, router])
-
-  const handleSave = useCallback(async () => {
-    if (!session?.user?.id) {
-      router.push(`/auth/login?callbackUrl=/jobs/${jobId}`)
-      return
-    }
-
+  const fetchJob = async (id: string) => {
     try {
-      const method = saved ? "DELETE" : "POST"
-      const response = await fetch("/api/jobs/save", {
-        method,
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ jobId }),
-      })
-
-      if (response.ok) {
-        setSaved(!saved)
+      const response = await fetch(`/api/jobs/${id}`);
+      if (!response.ok) {
+        throw new Error('Job not found');
       }
+      const data = await response.json();
+      setJob(data.job);
     } catch (error) {
-      console.error("Failed to save job:", error)
-    }
-  }, [saved, session, router, jobId])
-
-  const handleApply = useCallback(async () => {
-    if (!session?.user?.id) {
-      router.push(`/auth/login?callbackUrl=/jobs/${jobId}`)
-      return
-    }
-
-    setApplying(true)
-    
-    try {
-      const response = await fetch("/api/jobs/apply", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ jobId }),
-      })
-
-      if (response.ok) {
-        alert("Application submitted! Check your dashboard for status updates.")
-      } else {
-        const error = await response.json()
-        alert(error.error || "Failed to submit application")
-      }
-    } catch (error) {
-      console.error("Failed to apply:", error)
-      alert("Failed to submit application. Please try again.")
+      console.error('Error fetching job:', error);
+      showToast('Failed to load job details', 'error');
     } finally {
-      setApplying(false)
+      setLoading(false);
     }
-  }, [session, router, jobId])
+  };
+
+  const checkIfApplied = async (id: string) => {
+    try {
+      const response = await fetch(`/api/jobs/apply?jobId=${id}`);
+      if (response.ok) {
+        const data = await response.json();
+        setHasApplied(data.applied || false);
+      }
+    } catch (error) {
+      console.error('Error checking application status:', error);
+    }
+  };
 
   if (loading) {
-    return (
-      <div className="min-h-screen bg-background flex flex-col">
-        <Navigation />
-        <div className="flex-1 flex items-center justify-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
-        </div>
-        <Footer />
-      </div>
-    )
+    return <LoadingPage text="Loading job details..." />;
   }
 
   if (!job) {
-    return null
+    return (
+      <div className="min-h-screen bg-gray-50 flex flex-col">
+        <Navigation />
+        <main className="flex-1 flex items-center justify-center">
+          <div className="text-center">
+            <h1 className="text-2xl font-bold text-gray-900 mb-4">Job Not Found</h1>
+            <button
+              onClick={() => router.push('/jobs')}
+              className="text-blue-600 hover:text-blue-700"
+            >
+              ← Back to Jobs
+            </button>
+          </div>
+        </main>
+        <Footer />
+      </div>
+    );
   }
 
   return (
-    <div className="min-h-screen bg-background flex flex-col">
+    <div className="min-h-screen bg-gray-50 flex flex-col">
       <Navigation />
 
-      {/* Hero Section */}
-      <section className="abstract-gradient text-primary-foreground py-12 px-4 sm:px-6 lg:px-8">
-        <div className="max-w-7xl mx-auto">
-          <Link href="/jobs" className="inline-flex items-center gap-2 text-white/90 hover:text-white mb-4">
-            <ArrowLeft className="h-4 w-4" />
-            Back to Jobs
-          </Link>
-          <h1 className="text-3xl sm:text-4xl font-bold text-white premium-heading mb-2">
-            {job.title}
-          </h1>
-          <p className="text-lg text-white/90 premium-body">{job.company}</p>
-        </div>
-      </section>
+      <main className="flex-1 max-w-5xl mx-auto px-4 py-8 w-full">
+        {/* Back Button */}
+        <button
+          onClick={() => router.push('/jobs')}
+          className="text-blue-600 hover:text-blue-700 mb-6 flex items-center gap-2"
+        >
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+          </svg>
+          Back to Jobs
+        </button>
 
-      {/* Main Content with Sidebar */}
-      <main className="flex-1 max-w-7xl mx-auto px-4 py-8 w-full">
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-          
-          {/* Left Sidebar - InstantResumeAI CTA */}
-          <aside className="lg:col-span-3 space-y-6">
-            <Card className="p-6 bg-gradient-to-br from-blue-50 to-indigo-50 border-blue-200">
-              <div className="flex items-center gap-2 mb-3">
-                <FileText className="h-5 w-5 text-blue-600" />
-                <h3 className="font-bold text-foreground">Pro Tip</h3>
-              </div>
-              <p className="text-sm text-muted-foreground mb-4">
-                Tailor your resume for this role in minutes. Edit and update your existing resume with AI.
-              </p>
-              <a 
-                href="https://instantresumeai.com" 
-                target="_blank" 
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-2 text-sm font-medium text-blue-600 hover:text-blue-700"
-              >
-                Try InstantResumeAI
-                <ExternalLink className="h-4 w-4" />
-              </a>
-              <p className="text-xs text-muted-foreground mt-2">Free to start</p>
-            </Card>
-
-            {/* Quick Actions */}
-            <Card className="p-6">
-              <h3 className="font-bold text-foreground mb-4">Quick Actions</h3>
-              <div className="space-y-3">
-                <Button 
-                  onClick={handleApply}
-                  disabled={applying}
-                  className="w-full bg-primary hover:bg-primary/90"
-                >
-                  {applying ? "Applying..." : !session ? "Login to Apply" : "Apply Now"}
-                </Button>
-                <Button 
-                  onClick={handleSave}
-                  variant="outline"
-                  className="w-full"
-                >
-                  <BookmarkIcon className={`h-4 w-4 mr-2 ${saved ? "fill-current" : ""}`} />
-                  {saved ? "Saved" : "Save Job"}
-                </Button>
-                <Link href="/jobs">
-                  <Button variant="ghost" className="w-full">
-                    Browse More Jobs
-                  </Button>
-                </Link>
-              </div>
-            </Card>
-          </aside>
-
-          {/* Center - Job Details */}
-          <div className="lg:col-span-6">
-            <Card className="p-8">
-              {/* Job Meta */}
-              <div className="flex flex-wrap gap-4 mb-6 text-sm text-muted-foreground pb-6 border-b">
-                <div className="flex items-center gap-1">
-                  <MapPin className="h-4 w-4" />
-                  <span>{job.location}</span>
-                </div>
-                <div className="flex items-center gap-1">
-                  <Briefcase className="h-4 w-4" />
-                  <span className="capitalize">{job.employmentType}</span>
-                </div>
-                <div className="flex items-center gap-1">
-                  <DollarSign className="h-4 w-4" />
-                  <span>{job.salary}</span>
-                </div>
-                <div>
-                  <span className="capitalize">{job.remoteType}</span>
-                </div>
-                <div>
-                  <span>Posted {job.postedDate}</span>
-                </div>
-              </div>
-
-              {/* Job Description */}
-              <div className="prose max-w-none">
-                <h2 className="text-xl font-bold text-foreground mb-4 premium-heading">Job Description</h2>
-                <div className="text-foreground whitespace-pre-line premium-body">
-                  {job.description}
-                </div>
-
-                <div className="mt-8 p-6 bg-muted rounded-lg">
-                  <h3 className="font-bold text-foreground mb-3">About This Role</h3>
-                  <p className="text-sm text-muted-foreground">
-                    This is a <strong className="text-foreground">{job.employmentType}</strong> position 
-                    offering <strong className="text-foreground">{job.remoteType}</strong> work. 
-                    The role is based in <strong className="text-foreground">{job.location}</strong>.
-                  </p>
-                </div>
-              </div>
-
-              {/* Action Buttons */}
-              <div className="mt-8 flex gap-4 pt-6 border-t">
-                <Button 
-                  onClick={handleApply}
-                  disabled={applying}
-                  size="lg"
-                  className="bg-primary hover:bg-primary/90 flex-1"
-                >
-                  {applying ? "Applying..." : !session ? "Login to Apply" : "Apply Now"}
-                </Button>
-                <Button 
-                  onClick={handleSave}
-                  variant="outline"
-                  size="lg"
-                >
-                  <BookmarkIcon className={`h-5 w-5 ${saved ? "fill-current" : ""}`} />
-                </Button>
-              </div>
-            </Card>
+        <div className="bg-white rounded-lg shadow-lg overflow-hidden">
+          {/* Header */}
+          <div className="bg-gradient-to-r from-blue-600 to-blue-700 text-white p-8">
+            <h1 className="text-3xl font-bold mb-2">{job.title}</h1>
+            <div className="flex flex-wrap gap-4 text-blue-100">
+              <span className="flex items-center gap-2">
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                </svg>
+                {job.company}
+              </span>
+              <span className="flex items-center gap-2">
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                </svg>
+                {job.location}
+              </span>
+              <span className="flex items-center gap-2">
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                {job.type}
+              </span>
+            </div>
           </div>
 
-          {/* Right Sidebar - OptPlanet CTA */}
-          <aside className="lg:col-span-3 space-y-6">
-            <Card className="p-6 bg-gradient-to-br from-green-50 to-emerald-50 border-green-200">
-              <div className="flex items-center gap-2 mb-3">
-                <GraduationCap className="h-5 w-5 text-green-600" />
-                <h3 className="font-bold text-foreground">For STEM Students</h3>
-              </div>
-              <p className="text-sm text-muted-foreground mb-4">
-                Find STEM-approved opportunities and stay OPT compliant. Resources for international students.
+          <div className="p-8">
+            {/* Salary */}
+            <div className="mb-8">
+              <h2 className="text-2xl font-bold text-gray-900 mb-4">Compensation</h2>
+              <p className="text-3xl font-bold text-green-600">
+                ${job.salary_min.toLocaleString()} - ${job.salary_max.toLocaleString()}
+                <span className="text-lg text-gray-600 font-normal"> per year</span>
               </p>
-              <a 
-                href="https://optplanet.net" 
-                target="_blank" 
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-2 text-sm font-medium text-green-600 hover:text-green-700"
-              >
-                Visit OptPlanet
-                <ExternalLink className="h-4 w-4" />
-              </a>
-              <p className="text-xs text-muted-foreground mt-2">Free resources</p>
-            </Card>
+            </div>
 
-            {/* Similar Jobs */}
-            <Card className="p-6">
-              <h3 className="font-bold text-foreground mb-4">More Opportunities</h3>
-              <div className="space-y-3 text-sm">
-                <Link href="/services" className="block text-primary hover:underline">
-                  Resume Distribution Service
-                </Link>
-                <Link href="/hire-recruiter" className="block text-primary hover:underline">
-                  Hire a Dedicated Recruiter
-                </Link>
-                <Link href="/tools/ats-optimizer" className="block text-primary hover:underline">
-                  ATS Resume Optimizer
-                </Link>
-                <Link href="/tools/cover-letter" className="block text-primary hover:underline">
-                  AI Cover Letter Generator
-                </Link>
+            {/* Apply Button */}
+            <div className="mb-8">
+              <ApplyButton jobId={jobId} hasApplied={hasApplied} />
+            </div>
+
+            {/* Description */}
+            <div className="mb-8">
+              <h2 className="text-2xl font-bold text-gray-900 mb-4">Job Description</h2>
+              <p className="text-gray-700 whitespace-pre-line">{job.description}</p>
+            </div>
+
+            {/* Responsibilities */}
+            {job.responsibilities && job.responsibilities.length > 0 && (
+              <div className="mb-8">
+                <h2 className="text-2xl font-bold text-gray-900 mb-4">Responsibilities</h2>
+                <ul className="list-disc list-inside space-y-2 text-gray-700">
+                  {job.responsibilities.map((item, index) => (
+                    <li key={index}>{item}</li>
+                  ))}
+                </ul>
               </div>
-            </Card>
-          </aside>
+            )}
 
+            {/* Requirements */}
+            {job.requirements && job.requirements.length > 0 && (
+              <div className="mb-8">
+                <h2 className="text-2xl font-bold text-gray-900 mb-4">Requirements</h2>
+                <ul className="list-disc list-inside space-y-2 text-gray-700">
+                  {job.requirements.map((item, index) => (
+                    <li key={index}>{item}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
+
+            {/* Benefits */}
+            {job.benefits && job.benefits.length > 0 && (
+              <div className="mb-8">
+                <h2 className="text-2xl font-bold text-gray-900 mb-4">Benefits</h2>
+                <ul className="list-disc list-inside space-y-2 text-gray-700">
+                  {job.benefits.map((item, index) => (
+                    <li key={index}>{item}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
+
+            {/* Posted Date */}
+            <div className="text-sm text-gray-500 border-t pt-4">
+              Posted: {new Date(job.posted_at).toLocaleDateString('en-US', {
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric'
+              })}
+            </div>
+          </div>
         </div>
       </main>
 
       <Footer />
     </div>
-  )
+  );
 }
