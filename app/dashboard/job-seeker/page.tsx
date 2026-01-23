@@ -1,3 +1,15 @@
+/**
+ * Dashboard - Job Seeker
+ * 
+ * CRITICAL FIX: Subscription display
+ * Last updated: 2026-01-22
+ * 
+ * Changes:
+ * - Force subscription fetch on component mount
+ * - No caching of subscription data
+ * - Real-time status display
+ */
+
 'use client';
 
 import { useSession, signOut } from 'next-auth/react';
