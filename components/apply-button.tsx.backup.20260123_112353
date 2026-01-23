@@ -18,10 +18,9 @@ export function ApplyButton({ jobId, hasApplied = false }: ApplyButtonProps) {
   const [applied, setApplied] = useState(hasApplied);
 
   const handleApply = async () => {
-    // Check authentication FIRST
-    if (status === 'unauthenticated' || !session) {
+    if (status === 'unauthenticated') {
       showToast('Please sign in to apply for jobs', 'warning');
-      router.push(`/auth/login?callbackUrl=/jobs/${jobId}`);
+      router.push(`/auth/signin?callbackUrl=/jobs/${jobId}`);
       return;
     }
 
@@ -67,14 +66,14 @@ export function ApplyButton({ jobId, hasApplied = false }: ApplyButtonProps) {
   return (
     <button
       onClick={handleApply}
-      disabled={applying || status === 'loading'}
+      disabled={applying}
       className={`w-full py-3 px-6 rounded-lg font-semibold transition ${
-        applying || status === 'loading'
+        applying
           ? 'bg-gray-400 cursor-not-allowed'
           : 'bg-blue-600 hover:bg-blue-700 text-white'
       }`}
     >
-      {applying ? 'Applying...' : status === 'loading' ? 'Loading...' : 'Apply Now'}
+      {applying ? 'Applying...' : 'Apply Now'}
     </button>
   );
 }
