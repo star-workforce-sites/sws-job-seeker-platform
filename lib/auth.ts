@@ -91,22 +91,6 @@ export const authOptions: NextAuthOptions = {
     },
 
     async redirect({ url, baseUrl }) {
-      // Always redirect to dashboard after sign in
-      if (url.startsWith(baseUrl)) {
-        // If there's a callbackUrl, use it
-        if (url.includes('callbackUrl=')) {
-          const callbackUrl = new URL(url).searchParams.get('callbackUrl')
-          if (callbackUrl && callbackUrl.startsWith('/')) {
-            return `${baseUrl}${callbackUrl}`
-          }
-        }
-        // Default to dashboard
-        return `${baseUrl}/dashboard`
-      }
-      // If the URL is just a path, redirect to dashboard
-      if (url.startsWith('/')) {
-
-    async redirect({ url, baseUrl }) {
       console.log('[NextAuth] Redirect called:', { url, baseUrl })
       
       // If url is a full URL and contains callbackUrl parameter
@@ -150,6 +134,19 @@ export const authOptions: NextAuthOptions = {
       console.log('[NextAuth] Fallback to dashboard')
       return `${baseUrl}/dashboard`
     },
+
+    async session({ session, token }) {
+      try {
+        if (session.user && token.sub) {
+          const dbUser = await safeGetUserById(token.sub)
+
+          if (dbUser) {
+            session.user.id = dbUser.id
+            session.user.role = dbUser.role
+            session.user.atsPremium = dbUser.atsPremium
+          } else {
+            session.user.id = token.sub
+            session.user.role = (token.role as string) || "jobseeker"
             session.user.atsPremium = (token.atsPremium as boolean) || false
           }
         }
