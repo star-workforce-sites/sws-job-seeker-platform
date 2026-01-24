@@ -19,8 +19,8 @@ interface Job {
   requirements: string[];
   responsibilities: string[];
   benefits: string[];
-  salary_min: number;
-  salary_max: number;
+  salary_min: number | null;
+  salary_max: number | null;
   posted_at: string;
   expires_at: string;
 }
@@ -46,15 +46,19 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
 
   const fetchJob = async (id: string) => {
     try {
+      console.log('[Job Detail] Fetching job:', id);
       const response = await fetch(`/api/jobs/${id}`);
       if (!response.ok) {
+        console.error('[Job Detail] Failed to fetch job:', response.status);
         throw new Error('Job not found');
       }
       const data = await response.json();
+      console.log('[Job Detail] Job fetched successfully:', data.job?.title);
       setJob(data.job);
     } catch (error) {
-      console.error('Error fetching job:', error);
+      console.error('[Job Detail] Error fetching job:', error);
       showToast('Failed to load job details', 'error');
+      router.push('/jobs');
     } finally {
       setLoading(false);
     }
@@ -62,13 +66,15 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
 
   const checkIfApplied = async (id: string) => {
     try {
+      console.log('[Job Detail] Checking if already applied to job:', id);
       const response = await fetch(`/api/jobs/apply?jobId=${id}`);
       if (response.ok) {
         const data = await response.json();
+        console.log('[Job Detail] Application status:', data.applied);
         setHasApplied(data.applied || false);
       }
     } catch (error) {
-      console.error('Error checking application status:', error);
+      console.error('[Job Detail] Error checking application status:', error);
     }
   };
 
@@ -140,14 +146,30 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
           </div>
 
           <div className="p-8">
-            {/* Salary */}
-            <div className="mb-8">
-              <h2 className="text-2xl font-bold text-gray-900 mb-4">Compensation</h2>
-              <p className="text-3xl font-bold text-green-600">
-                ${job.salary_min.toLocaleString()} - ${job.salary_max.toLocaleString()}
-                <span className="text-lg text-gray-600 font-normal"> per year</span>
-              </p>
-            </div>
+            {/* Salary - FIXED: Safe rendering with null checks */}
+            {(job.salary_min !== null || job.salary_max !== null) && (
+              <div className="mb-8">
+                <h2 className="text-2xl font-bold text-gray-900 mb-4">Compensation</h2>
+                <p className="text-3xl font-bold text-green-600">
+                  {job.salary_min !== null && job.salary_max !== null ? (
+                    <>
+                      ${job.salary_min.toLocaleString()} - ${job.salary_max.toLocaleString()}
+                      <span className="text-lg text-gray-600 font-normal"> per year</span>
+                    </>
+                  ) : job.salary_min !== null ? (
+                    <>
+                      From ${job.salary_min.toLocaleString()}
+                      <span className="text-lg text-gray-600 font-normal"> per year</span>
+                    </>
+                  ) : job.salary_max !== null ? (
+                    <>
+                      Up to ${job.salary_max.toLocaleString()}
+                      <span className="text-lg text-gray-600 font-normal"> per year</span>
+                    </>
+                  ) : null}
+                </p>
+              </div>
+            )}
 
             {/* Apply Button */}
             <div className="mb-8">
