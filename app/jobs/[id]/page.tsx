@@ -19,8 +19,8 @@ interface Job {
   requirements: string[];
   responsibilities: string[];
   benefits: string[];
-  salary_min: number | null;
-  salary_max: number | null;
+  salaryMin: number | null;  // FIXED: Use camelCase to match API
+  salaryMax: number | null;  // FIXED: Use camelCase to match API
   posted_at: string;
   expires_at: string;
 }
@@ -54,6 +54,7 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
       }
       const data = await response.json();
       console.log('[Job Detail] Job fetched successfully:', data.job?.title);
+      console.log('[Job Detail] Salary data:', { salaryMin: data.job?.salaryMin, salaryMax: data.job?.salaryMax });
       setJob(data.job);
     } catch (error) {
       console.error('[Job Detail] Error fetching job:', error);
@@ -146,24 +147,24 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
           </div>
 
           <div className="p-8">
-            {/* Salary - FIXED: Safe rendering with null checks */}
-            {(job.salary_min !== null || job.salary_max !== null) && (
+            {/* Salary - FIXED: Use camelCase property names */}
+            {(job.salaryMin !== null || job.salaryMax !== null) && (
               <div className="mb-8">
                 <h2 className="text-2xl font-bold text-gray-900 mb-4">Compensation</h2>
                 <p className="text-3xl font-bold text-green-600">
-                  {job.salary_min !== null && job.salary_max !== null ? (
+                  {job.salaryMin !== null && job.salaryMax !== null ? (
                     <>
-                      ${job.salary_min.toLocaleString()} - ${job.salary_max.toLocaleString()}
+                      ${job.salaryMin.toLocaleString()} - ${job.salaryMax.toLocaleString()}
                       <span className="text-lg text-gray-600 font-normal"> per year</span>
                     </>
-                  ) : job.salary_min !== null ? (
+                  ) : job.salaryMin !== null ? (
                     <>
-                      From ${job.salary_min.toLocaleString()}
+                      From ${job.salaryMin.toLocaleString()}
                       <span className="text-lg text-gray-600 font-normal"> per year</span>
                     </>
-                  ) : job.salary_max !== null ? (
+                  ) : job.salaryMax !== null ? (
                     <>
-                      Up to ${job.salary_max.toLocaleString()}
+                      Up to ${job.salaryMax.toLocaleString()}
                       <span className="text-lg text-gray-600 font-normal"> per year</span>
                     </>
                   ) : null}
