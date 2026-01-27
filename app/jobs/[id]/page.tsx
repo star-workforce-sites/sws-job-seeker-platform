@@ -1,107 +1,137 @@
-'use client';
-
-import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
-import { useSession } from 'next-auth/react';
+import { notFound } from 'next/navigation';
+import { sql } from '@vercel/postgres';
 import Navigation from '@/components/navigation';
 import Footer from '@/components/footer';
-import { LoadingPage } from '@/components/loading';
 import { ApplyButton } from '@/components/apply-button';
-import { useToast } from '@/components/toast-provider';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/lib/auth';
+
+// Force dynamic rendering for up-to-date data
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
 
 interface Job {
   id: string;
   title: string;
-  company: string;
-  location: string;
-  type: string;
   description: string;
-  requirements: string[];
-  responsibilities: string[];
-  benefits: string[];
-  salaryMin: number | null;  // FIXED: Use camelCase to match API
-  salaryMax: number | null;  // FIXED: Use camelCase to match API
-  posted_at: string;
-  expires_at: string;
+  location: string;
+  industry: string;
+  employmentType: string;
+  visa: string | null;
+  salaryMin: number | null;
+  salaryMax: number | null;
+  createdAt: string;
+  expiresAt: string;
+  isActive: boolean;
+  employerId: string;
+  company: string;
 }
 
-export default function JobDetailPage({ params }: { params: Promise<{ id: string }> }) {
-  const router = useRouter();
-  const { data: session, status } = useSession();
-  const { showToast } = useToast();
-  const [job, setJob] = useState<Job | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [jobId, setJobId] = useState<string>('');
-  const [hasApplied, setHasApplied] = useState(false);
+// Server-side data fetching
+async function getJob(id: string): Promise<Job | null> {
+  try {
+    console.log('[Job Detail SSR] Fetching job:', id);
+    
+    const result = await sql`
+      SELECT 
+        j.id,
+        j.title,
+        j.description,
+        j.location,
+        j.industry,
+        j."employmentType",
+        j.visa,
+        j."salaryMin",
+        j."salaryMax",
+        j."createdAt",
+        j."expiresAt",
+        j."isActive",
+        j."employerId",
+        COALESCE(u.name, 'Anonymous Company') as company
+      FROM jobs j
+      LEFT JOIN users u ON j."employerId" = u.id
+      WHERE j.id = ${id}::uuid
+        AND j."isActive" = TRUE
+        AND j."expiresAt" > NOW()
+      LIMIT 1
+    `;
 
-  useEffect(() => {
-    params.then(({ id }) => {
-      setJobId(id);
-      fetchJob(id);
-      if (session?.user) {
-        checkIfApplied(id);
-      }
-    });
-  }, [params, session]);
-
-  const fetchJob = async (id: string) => {
-    try {
-      console.log('[Job Detail] Fetching job:', id);
-      const response = await fetch(`/api/jobs/${id}`);
-      if (!response.ok) {
-        console.error('[Job Detail] Failed to fetch job:', response.status);
-        throw new Error('Job not found');
-      }
-      const data = await response.json();
-      console.log('[Job Detail] Job fetched successfully:', data.job?.title);
-      console.log('[Job Detail] Salary data:', { salaryMin: data.job?.salaryMin, salaryMax: data.job?.salaryMax });
-      setJob(data.job);
-    } catch (error) {
-      console.error('[Job Detail] Error fetching job:', error);
-      showToast('Failed to load job details', 'error');
-      router.push('/jobs');
-    } finally {
-      setLoading(false);
+    if (result.rowCount === 0) {
+      console.log('[Job Detail SSR] Job not found:', id);
+      return null;
     }
-  };
 
-  const checkIfApplied = async (id: string) => {
-    try {
-      console.log('[Job Detail] Checking if already applied to job:', id);
-      const response = await fetch(`/api/jobs/apply?jobId=${id}`);
-      if (response.ok) {
-        const data = await response.json();
-        console.log('[Job Detail] Application status:', data.applied);
-        setHasApplied(data.applied || false);
-      }
-    } catch (error) {
-      console.error('[Job Detail] Error checking application status:', error);
-    }
-  };
-
-  if (loading) {
-    return <LoadingPage text="Loading job details..." />;
+    const job = result.rows[0];
+    
+    return {
+      id: job.id,
+      title: job.title,
+      description: job.description,
+      location: job.location,
+      industry: job.industry,
+      employmentType: job.employmentType,
+      visa: job.visa,
+      salaryMin: job.salaryMin,
+      salaryMax: job.salaryMax,
+      createdAt: job.createdAt,
+      expiresAt: job.expiresAt,
+      isActive: job.isActive,
+      employerId: job.employerId,
+      company: job.company,
+    };
+  } catch (error) {
+    console.error('[Job Detail SSR] Error fetching job:', error);
+    return null;
   }
+}
 
+async function checkIfApplied(jobId: string, userEmail: string | null | undefined): Promise<boolean> {
+  if (!userEmail) return false;
+
+  try {
+    const userResult = await sql`
+      SELECT id FROM users 
+      WHERE LOWER(email) = LOWER(${userEmail})
+      LIMIT 1
+    `;
+
+    if (userResult.rowCount === 0) return false;
+
+    const userId = userResult.rows[0].id;
+
+    const result = await sql`
+      SELECT id FROM applications 
+      WHERE "userId" = ${userId} AND "jobId" = ${jobId}::uuid
+      LIMIT 1
+    `;
+
+    return result.rowCount > 0;
+  } catch (error) {
+    console.error('[Job Detail SSR] Error checking application:', error);
+    return false;
+  }
+}
+
+export default async function JobDetailPage({ 
+  params 
+}: { 
+  params: Promise<{ id: string }> 
+}) {
+  // Await params for Next.js 15+
+  const { id } = await params;
+  
+  // Get session for auth state
+  const session = await getServerSession(authOptions);
+  
+  // Fetch job data server-side
+  const job = await getJob(id);
+  
   if (!job) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex flex-col">
-        <Navigation />
-        <main className="flex-1 flex items-center justify-center">
-          <div className="text-center">
-            <h1 className="text-2xl font-bold text-gray-900 mb-4">Job Not Found</h1>
-            <button
-              onClick={() => router.push('/jobs')}
-              className="text-blue-600 hover:text-blue-700"
-            >
-              ← Back to Jobs
-            </button>
-          </div>
-        </main>
-        <Footer />
-      </div>
-    );
+    notFound();
   }
+
+  // Check if user already applied
+  const hasApplied = await checkIfApplied(id, session?.user?.email);
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
@@ -109,15 +139,15 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
 
       <main className="flex-1 max-w-5xl mx-auto px-4 py-8 w-full">
         {/* Back Button */}
-        <button
-          onClick={() => router.push('/jobs')}
-          className="text-blue-600 hover:text-blue-700 mb-6 flex items-center gap-2"
+        <a
+          href="/jobs"
+          className="text-blue-600 hover:text-blue-700 mb-6 flex items-center gap-2 inline-block"
         >
           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
           </svg>
           Back to Jobs
-        </button>
+        </a>
 
         <div className="bg-white rounded-lg shadow-lg overflow-hidden">
           {/* Header */}
@@ -141,13 +171,21 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
-                {job.type}
+                {job.employmentType}
               </span>
+              {job.industry && (
+                <span className="flex items-center gap-2">
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                  </svg>
+                  {job.industry}
+                </span>
+              )}
             </div>
           </div>
 
           <div className="p-8">
-            {/* Salary - FIXED: Use camelCase property names */}
+            {/* Salary - Server-side rendered with proper null checks */}
             {(job.salaryMin !== null || job.salaryMax !== null) && (
               <div className="mb-8">
                 <h2 className="text-2xl font-bold text-gray-900 mb-4">Compensation</h2>
@@ -172,9 +210,9 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
               </div>
             )}
 
-            {/* Apply Button */}
+            {/* Apply Button - Client component */}
             <div className="mb-8">
-              <ApplyButton jobId={jobId} hasApplied={hasApplied} />
+              <ApplyButton jobId={id} hasApplied={hasApplied} />
             </div>
 
             {/* Description */}
@@ -183,45 +221,17 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
               <p className="text-gray-700 whitespace-pre-line">{job.description}</p>
             </div>
 
-            {/* Responsibilities */}
-            {job.responsibilities && job.responsibilities.length > 0 && (
+            {/* Visa Sponsorship */}
+            {job.visa && (
               <div className="mb-8">
-                <h2 className="text-2xl font-bold text-gray-900 mb-4">Responsibilities</h2>
-                <ul className="list-disc list-inside space-y-2 text-gray-700">
-                  {job.responsibilities.map((item, index) => (
-                    <li key={index}>{item}</li>
-                  ))}
-                </ul>
-              </div>
-            )}
-
-            {/* Requirements */}
-            {job.requirements && job.requirements.length > 0 && (
-              <div className="mb-8">
-                <h2 className="text-2xl font-bold text-gray-900 mb-4">Requirements</h2>
-                <ul className="list-disc list-inside space-y-2 text-gray-700">
-                  {job.requirements.map((item, index) => (
-                    <li key={index}>{item}</li>
-                  ))}
-                </ul>
-              </div>
-            )}
-
-            {/* Benefits */}
-            {job.benefits && job.benefits.length > 0 && (
-              <div className="mb-8">
-                <h2 className="text-2xl font-bold text-gray-900 mb-4">Benefits</h2>
-                <ul className="list-disc list-inside space-y-2 text-gray-700">
-                  {job.benefits.map((item, index) => (
-                    <li key={index}>{item}</li>
-                  ))}
-                </ul>
+                <h2 className="text-2xl font-bold text-gray-900 mb-4">Visa Sponsorship</h2>
+                <p className="text-gray-700">{job.visa}</p>
               </div>
             )}
 
             {/* Posted Date */}
             <div className="text-sm text-gray-500 border-t pt-4">
-              Posted: {new Date(job.posted_at).toLocaleDateString('en-US', {
+              Posted: {new Date(job.createdAt).toLocaleDateString('en-US', {
                 year: 'numeric',
                 month: 'long',
                 day: 'numeric'
@@ -234,4 +244,26 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
       <Footer />
     </div>
   );
+}
+
+// Generate metadata for SEO
+export async function generateMetadata({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
+  const job = await getJob(id);
+
+  if (!job) {
+    return {
+      title: 'Job Not Found | Star Workforce Solutions',
+    };
+  }
+
+  return {
+    title: `${job.title} - ${job.company} | Star Workforce Solutions`,
+    description: `${job.title} in ${job.location}. ${job.description.substring(0, 150)}...`,
+    openGraph: {
+      title: `${job.title} - ${job.company}`,
+      description: job.description.substring(0, 200),
+      type: 'website',
+    },
+  };
 }
