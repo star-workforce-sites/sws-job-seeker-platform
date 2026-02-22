@@ -1,97 +1,84 @@
-'use client';
+import { getServerSession } from "next-auth"
+import { authOptions } from "@/lib/auth"
+import { redirect } from "next/navigation"
+import { sql } from "@vercel/postgres"
+import AdminDashboardClient from "./AdminDashboardClient"
 
-import { useSession, signOut } from 'next-auth/react';
-import { useRouter } from 'next/navigation';
-import { useEffect } from 'react';
+export const dynamic = "force-dynamic"
 
-export default function AdminDashboard() {
-  const { data: session, status } = useSession();
-  const router = useRouter();
+export default async function AdminDashboardPage() {
+  // ── Auth guard: must be logged in ─────────────────────────
+  const session = await getServerSession(authOptions)
+  if (!session?.user?.email) {
+    redirect("/auth/login")
+  }
 
-  useEffect(() => {
-    if (status === 'loading') return;
+  // ── Auth guard: must be admin role ─────────────────────────
+  const userResult = await sql`
+    SELECT id, name, email, role
+    FROM users
+    WHERE email = ${session.user.email}
+  `
 
-    if (!session) {
-      router.push('/auth/login');
-      return;
-    }
+  if (userResult.rows.length === 0 || userResult.rows[0].role !== "admin") {
+    redirect("/dashboard/job-seeker")
+  }
 
-    if (session.user?.role !== 'admin') {
-      router.push('/dashboard');
-    }
-  }, [session, status, router]);
+  // ── Fetch all active subscribers with assignment status ────
+  let subscribers: any[] = []
+  try {
+    const subResult = await sql`
+      SELECT
+        rs.id          AS subscription_id,
+        rs.plan_name,
+        rs.status      AS subscription_status,
+        rs.created_at  AS subscribed_at,
+        u.id           AS user_id,
+        u.name         AS job_seeker_name,
+        u.email        AS job_seeker_email,
+        ra.id          AS assignment_id,
+        ra.status      AS assignment_status,
+        ra.assigned_at,
+        r.name         AS recruiter_name,
+        r.email        AS recruiter_email
+      FROM recruiter_subscriptions rs
+      JOIN users u ON u.id = rs.user_id
+      LEFT JOIN recruiter_assignments ra
+        ON ra.subscription_id = rs.id AND ra.status = 'active'
+      LEFT JOIN users r ON r.id = ra.recruiter_id
+      WHERE rs.status = 'active'
+      ORDER BY rs.created_at DESC
+    `
+    subscribers = subResult.rows
+  } catch (error) {
+    console.error("[AdminDashboard] Error fetching subscribers:", error)
+    // Render with empty state — do not crash the page
+  }
 
-  if (status === 'loading') {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#E8C547]"></div>
-      </div>
-    );
+  // ── Fetch all recruiters ───────────────────────────────────
+  let recruiters: any[] = []
+  try {
+    const recResult = await sql`
+      SELECT
+        u.id,
+        u.name,
+        u.email,
+        COUNT(ra.id) FILTER (WHERE ra.status = 'active') AS active_assignments
+      FROM users u
+      LEFT JOIN recruiter_assignments ra ON ra.recruiter_id = u.id
+      WHERE u.role = 'recruiter'
+      GROUP BY u.id, u.name, u.email
+      ORDER BY u.name ASC
+    `
+    recruiters = recResult.rows
+  } catch (error) {
+    console.error("[AdminDashboard] Error fetching recruiters:", error)
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <header className="bg-[#0A1A2F] border-b border-[#E8C547]/20">
-        <div className="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-8">
-            <h1 className="text-2xl font-bold text-[#E8C547]">STAR Workforce - Admin</h1>
-            <nav className="hidden md:flex items-center gap-6">
-              <a href="/dashboard" className="text-white hover:text-[#E8C547] transition">
-                Dashboard
-              </a>
-              <a href="/admin/users" className="text-white hover:text-[#E8C547] transition">
-                Users
-              </a>
-              <a href="/admin/analytics" className="text-white hover:text-[#E8C547] transition">
-                Analytics
-              </a>
-            </nav>
-          </div>
-          
-          <div className="flex items-center gap-4">
-            <div className="text-right hidden sm:block">
-              <p className="text-white text-sm font-medium">{session?.user?.name}</p>
-              <p className="text-gray-400 text-xs">Administrator</p>
-            </div>
-            <button
-              onClick={() => signOut({ callbackUrl: '/' })}
-              className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition"
-            >
-              Logout
-            </button>
-          </div>
-        </div>
-      </header>
-
-      <main className="max-w-7xl mx-auto px-4 py-8">
-        <h2 className="text-3xl font-bold text-gray-900 mb-8">
-          Admin Dashboard
-        </h2>
-
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
-          <div className="bg-white p-6 rounded-lg shadow">
-            <p className="text-gray-600 text-sm">Total Users</p>
-            <p className="text-3xl font-bold text-gray-900 mt-2">0</p>
-          </div>
-          <div className="bg-white p-6 rounded-lg shadow">
-            <p className="text-gray-600 text-sm">Active Subscriptions</p>
-            <p className="text-3xl font-bold text-gray-900 mt-2">0</p>
-          </div>
-          <div className="bg-white p-6 rounded-lg shadow">
-            <p className="text-gray-600 text-sm">Revenue (MTD)</p>
-            <p className="text-3xl font-bold text-gray-900 mt-2">$0</p>
-          </div>
-          <div className="bg-white p-6 rounded-lg shadow">
-            <p className="text-gray-600 text-sm">Active Recruiters</p>
-            <p className="text-3xl font-bold text-gray-900 mt-2">0</p>
-          </div>
-        </div>
-
-        <div className="bg-white p-8 rounded-lg shadow text-center">
-          <p className="text-gray-600">Admin panel is being configured.</p>
-          <p className="text-gray-500 text-sm mt-2">Full admin features coming soon.</p>
-        </div>
-      </main>
-    </div>
-  );
+    <AdminDashboardClient
+      initialSubscribers={subscribers}
+      initialRecruiters={recruiters}
+    />
+  )
 }
