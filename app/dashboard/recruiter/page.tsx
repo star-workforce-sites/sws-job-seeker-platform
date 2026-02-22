@@ -1,97 +1,111 @@
-'use client';
+import { getServerSession } from "next-auth"
+import { authOptions } from "@/lib/auth"
+import { redirect } from "next/navigation"
+import { sql } from "@vercel/postgres"
+import RecruiterDashboardClient from "./RecruiterDashboardClient"
 
-import { useSession, signOut } from 'next-auth/react';
-import { useRouter } from 'next/navigation';
-import { useEffect } from 'react';
+export const dynamic = "force-dynamic"
 
-export default function RecruiterDashboard() {
-  const { data: session, status } = useSession();
-  const router = useRouter();
+export default async function RecruiterDashboardPage() {
+  // ── Auth: must be logged in ───────────────────────────────
+  const session = await getServerSession(authOptions)
+  if (!session?.user?.email) {
+    redirect("/auth/login")
+  }
 
-  useEffect(() => {
-    if (status === 'loading') return;
+  // ── Auth: must be recruiter role ──────────────────────────
+  const userResult = await sql`
+    SELECT id, name, email, role
+    FROM users
+    WHERE email = ${session.user.email}
+  `
+  if (userResult.rows.length === 0 || userResult.rows[0].role !== "recruiter") {
+    redirect("/dashboard")
+  }
 
-    if (!session) {
-      router.push('/auth/login');
-      return;
-    }
+  const recruiter = userResult.rows[0]
 
-    if (session.user?.role !== 'recruiter') {
-      router.push('/dashboard');
-    }
-  }, [session, status, router]);
+  // ── Fetch assigned clients with submission stats ──────────
+  let clients: any[] = []
+  try {
+    const clientResult = await sql`
+      SELECT
+        ra.id                        AS assignment_id,
+        ra.client_id,
+        ra.plan_type,
+        ra.applications_per_day,
+        ra.assigned_at,
+        ra.notes                     AS assignment_notes,
+        u.name                       AS client_name,
+        u.email                      AS client_email,
+        s.subscription_type,
+        COUNT(at.id)                 AS total_submissions,
+        COUNT(at.id) FILTER (
+          WHERE at.application_date = CURRENT_DATE
+        )                            AS submissions_today,
+        COUNT(at.id) FILTER (
+          WHERE at.status IN (
+            'interview_scheduled', 'interview_completed',
+            'second_interview_scheduled'
+          )
+        )                            AS interview_count,
+        MAX(at.submitted_at)         AS last_submission_at
+      FROM recruiter_assignments ra
+      JOIN users u ON u.id = ra.client_id
+      LEFT JOIN subscriptions s
+        ON s.user_id = ra.client_id
+        AND s.status = 'active'
+        AND s.subscription_type LIKE 'recruiter_%'
+      LEFT JOIN application_tracking at
+        ON at.assignment_id = ra.id
+      WHERE ra.recruiter_id = ${recruiter.id}
+        AND ra.status = 'active'
+      GROUP BY
+        ra.id, ra.client_id, ra.plan_type, ra.applications_per_day,
+        ra.assigned_at, ra.notes,
+        u.name, u.email, s.subscription_type
+      ORDER BY ra.assigned_at DESC
+    `
+    clients = clientResult.rows
+  } catch (error) {
+    console.error("[RecruiterDashboard] Error fetching clients:", error)
+  }
 
-  if (status === 'loading') {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#E8C547]"></div>
-      </div>
-    );
+  // ── Fetch recent submissions (last 50) ────────────────────
+  let submissions: any[] = []
+  try {
+    const subResult = await sql`
+      SELECT
+        at.id,
+        at.assignment_id,
+        at.job_title,
+        at.company_name,
+        at.job_url,
+        at.status,
+        at.application_date,
+        at.submitted_at,
+        at.feedback_received,
+        at.feedback_notes,
+        at.notes,
+        at.updated_at,
+        u.name  AS client_name,
+        u.email AS client_email
+      FROM application_tracking at
+      JOIN users u ON u.id = at.client_id
+      WHERE at.recruiter_id = ${recruiter.id}
+      ORDER BY at.submitted_at DESC
+      LIMIT 50
+    `
+    submissions = subResult.rows
+  } catch (error) {
+    console.error("[RecruiterDashboard] Error fetching submissions:", error)
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <header className="bg-[#0A1A2F] border-b border-[#E8C547]/20">
-        <div className="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-8">
-            <h1 className="text-2xl font-bold text-[#E8C547]">STAR Workforce</h1>
-            <nav className="hidden md:flex items-center gap-6">
-              <a href="/dashboard" className="text-white hover:text-[#E8C547] transition">
-                Dashboard
-              </a>
-              <a href="/recruiter/clients" className="text-white hover:text-[#E8C547] transition">
-                Clients
-              </a>
-              <a href="/recruiter/jobs" className="text-white hover:text-[#E8C547] transition">
-                Jobs
-              </a>
-            </nav>
-          </div>
-          
-          <div className="flex items-center gap-4">
-            <div className="text-right hidden sm:block">
-              <p className="text-white text-sm font-medium">{session?.user?.name}</p>
-              <p className="text-gray-400 text-xs">Recruiter</p>
-            </div>
-            <button
-              onClick={() => signOut({ callbackUrl: '/' })}
-              className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition"
-            >
-              Logout
-            </button>
-          </div>
-        </div>
-      </header>
-
-      <main className="max-w-7xl mx-auto px-4 py-8">
-        <h2 className="text-3xl font-bold text-gray-900 mb-8">
-          Recruiter Dashboard
-        </h2>
-
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
-          <div className="bg-white p-6 rounded-lg shadow">
-            <p className="text-gray-600 text-sm">Active Clients</p>
-            <p className="text-3xl font-bold text-gray-900 mt-2">0</p>
-          </div>
-          <div className="bg-white p-6 rounded-lg shadow">
-            <p className="text-gray-600 text-sm">Open Positions</p>
-            <p className="text-3xl font-bold text-gray-900 mt-2">0</p>
-          </div>
-          <div className="bg-white p-6 rounded-lg shadow">
-            <p className="text-gray-600 text-sm">Placements</p>
-            <p className="text-3xl font-bold text-gray-900 mt-2">0</p>
-          </div>
-          <div className="bg-white p-6 rounded-lg shadow">
-            <p className="text-gray-600 text-sm">This Month</p>
-            <p className="text-xl font-bold text-gray-900 mt-2">$0</p>
-          </div>
-        </div>
-
-        <div className="bg-white p-8 rounded-lg shadow text-center">
-          <p className="text-gray-600">Your recruiter dashboard is being set up.</p>
-          <p className="text-gray-500 text-sm mt-2">Check back soon for full features.</p>
-        </div>
-      </main>
-    </div>
-  );
+    <RecruiterDashboardClient
+      recruiter={recruiter}
+      initialClients={clients}
+      initialSubmissions={submissions}
+    />
+  )
 }
