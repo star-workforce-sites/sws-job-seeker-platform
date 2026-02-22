@@ -41,3 +41,9 @@ ENV_VARIABLES.md
 *.backup
 *.backup.*
 *.backup-*
+
+# Test logs and HTML reports
+test-logs/
+test-results/
+master-fix-log*.txt
+playwright-report/
