@@ -1,0 +1,56 @@
+GOOGLE SEARCH CONSOLE RE-INDEX INSTRUCTIONS
+============================================
+
+After deploying these fixes, manually request re-indexing:
+
+1. Go to: https://search.google.com/search-console
+
+2. Use "URL Inspection" tool for each of these URLs:
+
+   HIGH PRIORITY (Do these first):
+   ✓ https://www.starworkforcesolutions.com
+   ✓ https://www.starworkforcesolutions.com/jobs
+   ✓ https://www.starworkforcesolutions.com/services
+   ✓ https://www.starworkforcesolutions.com/pricing
+   ✓ https://www.starworkforcesolutions.com/tools/ats-optimizer
+   ✓ https://www.starworkforcesolutions.com/tools/cover-letter
+
+   MEDIUM PRIORITY:
+   ✓ https://www.starworkforcesolutions.com/hire-recruiter
+   ✓ https://www.starworkforcesolutions.com/contact
+   ✓ https://www.starworkforcesolutions.com/tools/interview-prep
+
+   For each URL:
+   - Enter URL in inspection tool
+   - Click "Request Indexing"
+   - Wait for Google to process (may take 1-2 days)
+
+3. Submit updated sitemap:
+   - Go to "Sitemaps" section
+   - Remove old sitemap if present
+   - Add: https://www.starworkforcesolutions.com/sitemap.xml
+   - Click "Submit"
+
+4. Monitor "Coverage" report:
+   - Check daily for 1 week
+   - Watch for "Indexed" count to increase
+   - Address any new errors immediately
+
+5. Request indexing for individual job pages:
+   - Go to /jobs page
+   - Copy each job URL
+   - Submit top 20 jobs for indexing
+
+EXPECTED TIMELINE:
+- Day 1: Submit all URLs
+- Day 2-3: Google recrawls (check "Crawled" status)
+- Day 4-7: Pages start appearing in index
+- Week 2-3: Rankings may start to recover
+- Month 1-2: Full recovery if content is strong
+
+ADDITIONAL ACTIONS:
+- Post new job listings (creates fresh content)
+- Share site on LinkedIn, Twitter
+- Get backlinks from job boards (Indeed, ZipRecruiter)
+- Create blog content about job search tips
+- Email your network asking them to visit
