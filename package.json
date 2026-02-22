@@ -7,7 +7,11 @@
     "dev": "next dev",
     "lint": "eslint .",
     "start": "next start",
-    "postinstall": "npx prisma generate || echo 'Prisma generation skipped - no schema found'"
+    "postinstall": "npx prisma generate || echo 'Prisma generation skipped - no schema found'",
+    "test": "playwright test",
+    "test:prod": "NEXT_PUBLIC_URL=https://www.starworkforcesolutions.com playwright test",
+    "test:prod:admin": "NEXT_PUBLIC_URL=https://www.starworkforcesolutions.com playwright test tests/admin-panel.spec.ts",
+    "test:report": "playwright show-report"
   },
   "dependencies": {
     "@auth/core": "latest",

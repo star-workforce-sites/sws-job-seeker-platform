@@ -1,102 +1,43 @@
-# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
-
-# dependencies
+# ── Dependencies ─────────────────────────────────────────────
 /node_modules
 
-# next.js
+# ── Next.js ──────────────────────────────────────────────────
 /.next/
 /out/
-
-# production
 /build
 
-# debug
+# ── Debug logs ───────────────────────────────────────────────
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
+*.log
 
-# env files
-.env*
+# ── Environment files (NEVER commit secrets) ─────────────────
+.env
+.env.local
+.env*.local
+.env.*
 
-# vercel
+# ── Vercel ───────────────────────────────────────────────────
 .vercel
 
-# typescript
+# ── TypeScript ───────────────────────────────────────────────
 *.tsbuildinfo
-next-env.d.tsSTRIPE_KEYS_REFERENCE.txt
+next-env.d.ts
 
-.env*.local
-
-# Prevent any files with secrets
-*.sh
+# ── Credential and secret files ──────────────────────────────
 STRIPE_*.txt
 YOUR_*.txt
 ENV_VARIABLES.md
-.env.local
-.env*.local
-*.backup-*
-test-*.sh
-fix-*.sh
-verify-*.sh
-diagnose-*.sh
-switch-*.sh
-emergency-*.sh
-save-*.sh
 
-# Prevent any files with secrets
+# ── Shell scripts (block all by default for security) ────────
 *.sh
-STRIPE_*.txt
-YOUR_*.txt
-ENV_VARIABLES.md
-.env.local
-.env*.local
-*.backup-*
-test-*.sh
-fix-*.sh
-verify-*.sh
-diagnose-*.sh
-switch-*.sh
-emergency-*.sh
-save-*.sh
 
-# Prevent test scripts and credential files
-*.sh
-test-*.sh
-fix-*.sh
-verify-*.sh
-switch-*.sh
-diagnose-*.sh
-save-*.sh
-emergency-*.sh
-STRIPE_*.txt
-YOUR_*.txt
-ENV_VARIABLES.md
-.env.local
-.env*.local
-*.backup-*
+# ── Exception: committed operational scripts in scripts/ ─────
+!scripts/promote-recruiters.sh
 
-# Test scripts and logs
-*.sh
-test-*.sh
-fix-*.sh
-verify-*.sh
-switch-*.sh
-diagnose-*.sh
-emergency-*.sh
-save-*.sh
-*.log
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-
-# Credential files
-STRIPE_*.txt
-YOUR_*.txt
-ENV_VARIABLES.md
-.env.local
-.env*.local
-
-# Backup files
+# ── Backup files (never commit these) ────────────────────────
 *.backup
+*.backup.*
 *.backup-*
