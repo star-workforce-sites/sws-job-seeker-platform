@@ -17,8 +17,9 @@ async function requireAdmin() {
   return { session }
 }
 
-// ── GET /api/admin/subscribers ───────────────────────────────
-// Returns active recruiter subscribers with optional unassigned filter
+// ── GET /api/admin/subscribers ────────────────────────────────
+// Uses subscriptions table (recruiter_subscriptions does not exist)
+// Uses client_id on recruiter_assignments
 export async function GET(request: NextRequest) {
   const auth = await requireAdmin()
   if ("error" in auth) {
@@ -31,25 +32,31 @@ export async function GET(request: NextRequest) {
 
     const result = await sql`
       SELECT
-        rs.id          AS subscription_id,
-        rs.plan_name,
-        rs.status      AS subscription_status,
-        rs.created_at  AS subscribed_at,
-        u.id           AS user_id,
-        u.name         AS job_seeker_name,
-        u.email        AS job_seeker_email,
-        ra.id          AS assignment_id,
-        ra.status      AS assignment_status,
+        s.id                  AS subscription_id,
+        s.subscription_type   AS plan_name,
+        s.status              AS subscription_status,
+        s.created_at          AS subscribed_at,
+        u.id                  AS user_id,
+        u.name                AS job_seeker_name,
+        u.email               AS job_seeker_email,
+        ra.id                 AS assignment_id,
+        ra.status             AS assignment_status,
         ra.assigned_at,
-        r.name         AS recruiter_name,
-        r.email        AS recruiter_email
-      FROM recruiter_subscriptions rs
-      JOIN users u ON u.id = rs.user_id
-      LEFT JOIN recruiter_assignments ra ON ra.subscription_id = rs.id AND ra.status = 'active'
+        ra.applications_per_day,
+        r.name                AS recruiter_name,
+        r.email               AS recruiter_email
+      FROM subscriptions s
+      JOIN users u ON u.id = s.user_id
+      LEFT JOIN recruiter_assignments ra
+        ON ra.subscription_id = s.id AND ra.status = 'active'
       LEFT JOIN users r ON r.id = ra.recruiter_id
-      WHERE rs.status = 'active'
-        AND (${unassignedOnly}::boolean = false OR ra.id IS NULL)
-      ORDER BY rs.created_at DESC
+      WHERE s.status = 'active'
+        AND s.subscription_type LIKE 'recruiter_%'
+        AND (
+          ${unassignedOnly}::boolean = false
+          OR ra.id IS NULL
+        )
+      ORDER BY s.created_at DESC
     `
 
     return NextResponse.json({
