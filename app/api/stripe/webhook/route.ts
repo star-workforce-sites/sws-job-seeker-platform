@@ -2,6 +2,7 @@ import { type NextRequest, NextResponse } from "next/server"
 import Stripe from "stripe"
 import { sql } from "@vercel/postgres"
 import { neon } from "@neondatabase/serverless"
+import { sendSubscriptionConfirmationEmail, sendAdminNotificationEmail, getPlanDetails } from "@/lib/send-recruiter-emails"
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || "", {
   apiVersion: "2024-11-20.acacia",
@@ -9,11 +10,7 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || "", {
 
 const sqlNeon = neon(process.env.DATABASE_URL!)
 
-// Legacy price IDs (keep for backward compatibility)
-const ATS_PRICE_ID = "price_1SVd4E04KnTBJoOrBcQTH6T5"
-const COVER_LETTER_PRICE_ID = "price_1SWUhp04KnTBJoOrG8W8C8OK"
-
-// New Phase 1 price IDs
+// Price IDs
 const NEW_PRICE_IDS = {
   ATS_OPTIMIZER: process.env.STRIPE_PRICE_ATS_OPTIMIZER!,
   COVER_LETTER: process.env.STRIPE_PRICE_COVER_LETTER!,
@@ -36,265 +33,150 @@ export async function POST(request: NextRequest) {
     const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET!
     const event = stripe.webhooks.constructEvent(body, signature, webhookSecret)
 
-    console.log("[WEBHOOK] Event type:", event.type)
+    console.log("[Webhook] Event received:", event.type)
 
-    switch (event.type) {
-      case "checkout.session.completed": {
-        const session = event.data.object as Stripe.Checkout.Session
+    // Handle subscription events
+    if (event.type === "checkout.session.completed") {
+      const session = event.data.object as Stripe.Checkout.Session
 
-        const customerEmail = session.customer_email || session.metadata?.email
-        const resumeId = session.metadata?.resumeId
-        const coverLetterId = session.metadata?.coverLetterId
+      // Check if this is a subscription
+      if (session.mode === "subscription" && session.subscription) {
+        const subscriptionId = session.subscription as string
+        const customerId = session.customer as string
+        const customerEmail = session.customer_details?.email
 
-        if (!customerEmail) {
-          console.error("[WEBHOOK] No customer email in session")
-          break
-        }
+        // Get subscription details
+        const subscription = await stripe.subscriptions.retrieve(subscriptionId)
+        const priceId = subscription.items.data[0].price.id
 
-        const sessionWithItems = await stripe.checkout.sessions.retrieve(session.id, {
-          expand: ["line_items"],
-        })
+        // Determine subscription type
+        let subscriptionType = "unknown"
+        if (priceId === NEW_PRICE_IDS.RECRUITER_BASIC) subscriptionType = "recruiter_basic"
+        else if (priceId === NEW_PRICE_IDS.RECRUITER_STANDARD) subscriptionType = "recruiter_standard"
+        else if (priceId === NEW_PRICE_IDS.RECRUITER_PRO) subscriptionType = "recruiter_pro"
+        else if (priceId === NEW_PRICE_IDS.DIY_PREMIUM) subscriptionType = "diy_premium"
 
-        const lineItems = sessionWithItems.line_items?.data || []
-        const priceId = lineItems[0]?.price?.id
+        console.log("[Webhook] Subscription type:", subscriptionType)
 
-        console.log("[WEBHOOK] Processing payment for priceId:", priceId)
-
-        // ===== GUEST PURCHASE HANDLER =====
-        if (session.metadata?.user_type === 'guest') {
-          const email = session.metadata.email
-          const purchaseType = session.metadata.purchase_type
+        // Get or create user
+        let userId = null
+        if (customerEmail) {
+          const userResult = await sqlNeon`
+            SELECT id, name, email FROM users WHERE email = ${customerEmail}
+          `
           
-          try {
-            // Create guest purchase record
-            const result = await sqlNeon`
-              INSERT INTO guest_purchases (
-                email,
-                purchase_type,
-                stripe_payment_id,
-                stripe_customer_id,
-                amount_paid,
-                metadata
-              ) VALUES (
-                ${email},
-                ${purchaseType},
-                ${session.payment_intent as string},
-                ${session.customer as string},
-                ${session.amount_total},
-                ${JSON.stringify(session.metadata)}
-              )
-              RETURNING access_token
+          if (userResult.length > 0) {
+            userId = userResult[0].id
+          } else {
+            // Create user if doesn't exist
+            const newUserResult = await sqlNeon`
+              INSERT INTO users (email, name, role)
+              VALUES (${customerEmail}, ${session.customer_details?.name || 'New User'}, 'jobseeker')
+              RETURNING id
             `
-            
-            const accessToken = result[0].access_token
-            
-            // Send confirmation email with magic link
-            const { guestPurchaseConfirmationEmail } = await import('@/lib/email-templates/guest-purchase-confirmation')
-            const { sendEmail } = await import('@/lib/send-email')
-            
-            const emailContent = guestPurchaseConfirmationEmail(
-              email,
-              purchaseType,
-              accessToken
-            )
-            
-            await sendEmail(emailContent)
-            
-            console.log("[WEBHOOK] Guest purchase processed for:", email, purchaseType)
-          } catch (error) {
-            console.error("[WEBHOOK ERROR] Guest purchase failed:", error)
-          }
-          break
-        }
-
-        // ===== SUBSCRIPTION HANDLER =====
-        if (session.mode === 'subscription') {
-          console.log("[WEBHOOK] Subscription checkout completed:", session.id)
-          // Subscription will be handled by subscription.created event
-          break
-        }
-
-        // ===== LEGACY HANDLERS (Keep for backward compatibility) =====
-        if (priceId === COVER_LETTER_PRICE_ID) {
-          try {
-            await sql`
-              INSERT INTO premium_access (email, "stripeCustomerId", "stripeSessionId", "paidAt", product, "priceId", "expiresAt")
-              VALUES (
-                ${customerEmail.toLowerCase()},
-                ${session.customer as string},
-                ${session.id},
-                NOW(),
-                'COVER_LETTER',
-                ${COVER_LETTER_PRICE_ID},
-                NULL
-              )
-              ON CONFLICT (email, "priceId") DO NOTHING
-            `
-            console.log("[WEBHOOK] Cover Letter premium access granted for:", customerEmail)
-          } catch (dbError) {
-            console.error("[WEBHOOK ERROR] Cover Letter DB insert failed:", dbError)
+            userId = newUserResult[0].id
           }
         }
 
-        if (priceId === ATS_PRICE_ID) {
-          try {
-            await sql`
-              INSERT INTO premium_access (email, "stripeCustomerId", "stripeSessionId", "paidAt", product, "priceId", "resumeId", "expiresAt")
-              VALUES (
-                ${customerEmail.toLowerCase()},
-                ${session.customer as string},
-                ${session.id},
-                NOW(),
-                'ATS_OPTIMIZER',
-                ${ATS_PRICE_ID},
-                ${resumeId || null},
-                NULL
-              )
-              ON CONFLICT (email, "priceId") DO NOTHING
-            `
-            console.log("[WEBHOOK] ATS Optimizer premium access granted for:", customerEmail)
-          } catch (dbError) {
-            console.error("[WEBHOOK ERROR] ATS Optimizer DB insert failed:", dbError)
-          }
+        // Create subscription record
+        await sqlNeon`
+          INSERT INTO subscriptions (
+            user_id,
+            subscription_type,
+            stripe_customer_id,
+            stripe_subscription_id,
+            stripe_price_id,
+            status,
+            current_period_start,
+            current_period_end
+          ) VALUES (
+            ${userId},
+            ${subscriptionType},
+            ${customerId},
+            ${subscriptionId},
+            ${priceId},
+            ${subscription.status},
+            to_timestamp(${subscription.current_period_start}),
+            to_timestamp(${subscription.current_period_end})
+          )
+          ON CONFLICT (stripe_subscription_id) 
+          DO UPDATE SET
+            status = ${subscription.status},
+            current_period_end = to_timestamp(${subscription.current_period_end})
+        `
+
+        console.log("[Webhook] Subscription record created")
+
+        // NEW: Send email notifications (only for recruiter subscriptions)
+        if (subscriptionType.startsWith('recruiter_')) {
+          const planDetails = getPlanDetails(subscriptionType)
+          const jobSeekerName = session.customer_details?.name || 'Valued Customer'
+          const jobSeekerEmail = customerEmail || ''
+
+          // Send confirmation email to job seeker
+          await sendSubscriptionConfirmationEmail({
+            jobSeekerName,
+            jobSeekerEmail,
+            planName: planDetails.name,
+            planAmount: planDetails.amount,
+            subscriptionId,
+          })
+
+          // Send notification to admin
+          await sendAdminNotificationEmail({
+            jobSeekerName,
+            jobSeekerEmail,
+            planName: planDetails.name,
+            subscriptionId,
+            subscribedAt: new Date().toLocaleString('en-US', { 
+              timeZone: 'America/Chicago',
+              dateStyle: 'full',
+              timeStyle: 'short'
+            }),
+          })
+
+          console.log("[Webhook] Email notifications sent")
         }
-
-        // ===== NEW PHASE 1 ONE-TIME PURCHASES =====
-        if (priceId === NEW_PRICE_IDS.ATS_OPTIMIZER || priceId === NEW_PRICE_IDS.COVER_LETTER) {
-          try {
-            await sql`
-              INSERT INTO premium_access (email, "stripeCustomerId", "stripeSessionId", "paidAt", product, "priceId", "expiresAt")
-              VALUES (
-                ${customerEmail.toLowerCase()},
-                ${session.customer as string},
-                ${session.id},
-                NOW(),
-                ${priceId === NEW_PRICE_IDS.ATS_OPTIMIZER ? 'ATS_OPTIMIZER' : 'COVER_LETTER'},
-                ${priceId},
-                NULL
-              )
-              ON CONFLICT (email, "priceId") DO NOTHING
-            `
-            console.log("[WEBHOOK] Premium access granted for:", customerEmail, priceId)
-          } catch (dbError) {
-            console.error("[WEBHOOK ERROR] Premium access DB insert failed:", dbError)
-          }
-        }
-
-        console.log("[WEBHOOK] Payment completed for session:", session.id)
-        break
       }
+    }
 
-      // ===== SUBSCRIPTION EVENT HANDLERS =====
-      case "customer.subscription.created":
-      case "customer.subscription.updated": {
-        const subscription = event.data.object as Stripe.Subscription
-        
-        try {
-          await sqlNeon`
-            INSERT INTO subscriptions (
-              user_id,
-              subscription_type,
-              stripe_customer_id,
-              stripe_subscription_id,
-              stripe_price_id,
-              status,
-              current_period_start,
-              current_period_end
-            ) VALUES (
-              ${subscription.metadata.user_id},
-              ${subscription.metadata.subscription_type},
-              ${subscription.customer as string},
-              ${subscription.id},
-              ${subscription.items.data[0].price.id},
-              ${subscription.status},
-              to_timestamp(${subscription.current_period_start}),
-              to_timestamp(${subscription.current_period_end})
-            )
-            ON CONFLICT (stripe_subscription_id) DO UPDATE SET
-              status = ${subscription.status},
-              current_period_end = to_timestamp(${subscription.current_period_end}),
-              updated_at = NOW()
-          `
-          
-          // Log to subscription history
-          await sqlNeon`
-            INSERT INTO subscription_history (
-              subscription_id,
-              user_id,
-              event_type,
-              new_status,
-              metadata
-            ) VALUES (
-              (SELECT id FROM subscriptions WHERE stripe_subscription_id = ${subscription.id}),
-              ${subscription.metadata.user_id},
-              ${event.type === 'customer.subscription.created' ? 'created' : 'updated'},
-              ${subscription.status},
-              ${JSON.stringify(event)}
-            )
-          `
-          
-          console.log("[WEBHOOK] Subscription", event.type, "for:", subscription.id)
-        } catch (error) {
-          console.error("[WEBHOOK ERROR] Subscription handler failed:", error)
-        }
-        break
-      }
+    // Handle subscription updates
+    if (event.type === "customer.subscription.updated") {
+      const subscription = event.data.object as Stripe.Subscription
 
-      case "customer.subscription.deleted": {
-        const subscription = event.data.object as Stripe.Subscription
-        
-        try {
-          await sqlNeon`
-            UPDATE subscriptions 
-            SET status = 'canceled', 
-                canceled_at = NOW(),
-                updated_at = NOW()
-            WHERE stripe_subscription_id = ${subscription.id}
-          `
-          
-          // Log cancellation
-          await sqlNeon`
-            INSERT INTO subscription_history (
-              subscription_id,
-              user_id,
-              event_type,
-              old_status,
-              new_status
-            ) VALUES (
-              (SELECT id FROM subscriptions WHERE stripe_subscription_id = ${subscription.id}),
-              (SELECT user_id FROM subscriptions WHERE stripe_subscription_id = ${subscription.id}),
-              'canceled',
-              'active',
-              'canceled'
-            )
-          `
-          
-          console.log("[WEBHOOK] Subscription canceled:", subscription.id)
-        } catch (error) {
-          console.error("[WEBHOOK ERROR] Subscription deletion failed:", error)
-        }
-        break
-      }
+      await sqlNeon`
+        UPDATE subscriptions
+        SET 
+          status = ${subscription.status},
+          current_period_end = to_timestamp(${subscription.current_period_end}),
+          cancel_at_period_end = ${subscription.cancel_at_period_end}
+        WHERE stripe_subscription_id = ${subscription.id}
+      `
 
-      case "payment_intent.succeeded": {
-        const paymentIntent = event.data.object as Stripe.PaymentIntent
-        console.log("[WEBHOOK] Payment succeeded:", paymentIntent.id)
-        break
-      }
+      console.log("[Webhook] Subscription updated")
+    }
 
-      case "payment_intent.payment_failed": {
-        const paymentIntent = event.data.object as Stripe.PaymentIntent
-        console.error("[WEBHOOK] Payment failed:", paymentIntent.id)
-        break
-      }
+    // Handle subscription deletion
+    if (event.type === "customer.subscription.deleted") {
+      const subscription = event.data.object as Stripe.Subscription
 
-      default:
-        console.log("[WEBHOOK] Unhandled event type:", event.type)
+      await sqlNeon`
+        UPDATE subscriptions
+        SET 
+          status = 'canceled',
+          canceled_at = NOW()
+        WHERE stripe_subscription_id = ${subscription.id}
+      `
+
+      console.log("[Webhook] Subscription canceled")
     }
 
     return NextResponse.json({ received: true })
-  } catch (error) {
-    console.error("[WEBHOOK ERROR]", error)
-    return NextResponse.json({ error: "Webhook handler failed" }, { status: 400 })
+  } catch (error: any) {
+    console.error("[Webhook] Error:", error)
+    return NextResponse.json(
+      { error: `Webhook Error: ${error.message}` },
+      { status: 400 }
+    )
   }
 }

@@ -1,209 +1,240 @@
-import { redirect } from 'next/navigation';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
-import { sql } from '@vercel/postgres';
-import Navigation from '@/components/navigation';
-import Footer from '@/components/footer';
-import Link from 'next/link';
+import { getServerSession } from "next-auth"
+import { authOptions } from "@/lib/auth"
+import { redirect } from "next/navigation"
+import { sql } from "@vercel/postgres"
+import Link from "next/link"
+import { Card } from "@/components/ui/card"
+import { Button } from "@/components/ui/button"
+import { FileText, Mail, Briefcase, Upload, TrendingUp, Users, Clock } from "lucide-react"
 
-export const dynamic = 'force-dynamic';
+export default async function JobSeekerDashboard() {
+  const session = await getServerSession(authOptions)
 
-async function getDashboardData(userEmail: string) {
+  if (!session?.user?.email) {
+    redirect("/auth/login")
+  }
+
+  // Get user data
+  const userResult = await sql`
+    SELECT id, name, email, role 
+    FROM users 
+    WHERE email = ${session.user.email}
+  `
+
+  if (userResult.rows.length === 0 || userResult.rows[0].role !== "jobseeker") {
+    redirect("/auth/login")
+  }
+
+  const user = userResult.rows[0]
+
+  // Get subscription status
+  let subscription = null
+  let hasRecruiterSubscription = false
+  
   try {
-    // Get user info
-    const userResult = await sql`
-      SELECT id, name, email, role, "atsPremium"
-      FROM users
-      WHERE LOWER(email) = LOWER(${userEmail})
+    const subResult = await sql`
+      SELECT 
+        subscription_type,
+        status,
+        current_period_end
+      FROM subscriptions
+      WHERE user_id = ${user.id}
+        AND status = 'active'
+        AND subscription_type LIKE 'recruiter_%'
+      ORDER BY created_at DESC
       LIMIT 1
-    `;
-
-    if (userResult.rowCount === 0) {
-      return null;
+    `
+    
+    if (subResult.rows.length > 0) {
+      subscription = subResult.rows[0]
+      hasRecruiterSubscription = true
     }
+  } catch (error) {
+    console.error("Error fetching subscription:", error)
+  }
 
-    const user = userResult.rows[0];
-
-    // Get application count
-    const appCountResult = await sql`
+  // Get application count
+  let applicationCount = 0
+  try {
+    const appResult = await sql`
       SELECT COUNT(*) as count
       FROM applications
       WHERE "userId" = ${user.id}
-    `;
-
-    const applicationCount = parseInt(appCountResult.rows[0]?.count || '0');
-
-    // Get today's application count
-    const today = new Date().toISOString().split('T')[0];
-    const todayCountResult = await sql`
-      SELECT COALESCE(SUM(count), 0) as total
-      FROM application_limits
-      WHERE "userId" = ${user.id} AND date = ${today}
-    `;
-
-    const todayCount = parseInt(todayCountResult.rows[0]?.total || '0');
-
-    return {
-      user,
-      applicationCount,
-      todayCount,
-      isPremium: user.atsPremium || false,
-    };
+    `
+    applicationCount = parseInt(appResult.rows[0]?.count || "0")
   } catch (error) {
-    console.error('[Dashboard] Error fetching data:', error);
-    return null;
+    console.error("Error fetching applications:", error)
   }
-}
-
-export default async function JobSeekerDashboard() {
-  const session = await getServerSession(authOptions);
-
-  if (!session?.user?.email) {
-    redirect('/auth/login');
-  }
-
-  const data = await getDashboardData(session.user.email);
-
-  if (!data) {
-    return (
-      <div className="min-h-screen bg-gradient-to-b from-[#0A1A2F] to-[#132A47] flex items-center justify-center">
-        <div className="text-white text-center">
-          <p className="text-xl mb-4">Unable to load dashboard data</p>
-          <Link href="/auth/login" className="text-[#E8C547] hover:underline">
-            Return to login
-          </Link>
-        </div>
-      </div>
-    );
-  }
-
-  const { user, applicationCount, todayCount, isPremium } = data;
-  const maxDailyApplications = isPremium ? 'Unlimited' : '5';
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-[#0A1A2F] to-[#132A47] flex flex-col">
-      <Navigation />
-
-      <main className="flex-1 max-w-7xl mx-auto px-4 py-8 w-full">
-        {/* Welcome Section */}
+    <div className="min-h-screen bg-background p-4 sm:p-6 lg:p-8">
+      <div className="max-w-7xl mx-auto">
+        {/* Header */}
         <div className="mb-8">
-          <h1 className="text-4xl font-bold text-[#E8C547] mb-2">
-            Welcome back, {user.name || 'Job Seeker'}!
+          <h1 className="text-3xl font-bold text-foreground premium-heading">
+            Welcome back, {user.name || "Job Seeker"}!
           </h1>
-          <p className="text-gray-300">
-            {isPremium ? 'Premium Account' : 'Free Account'} - Track your applications and find your next opportunity
+          <p className="text-muted-foreground mt-2 premium-body">
+            Your job search dashboard
           </p>
         </div>
 
-        {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-          <div className="bg-white rounded-lg shadow-lg p-6">
-            <div className="flex justify-between items-start">
-              <div>
-                <p className="text-gray-600 text-sm mb-1">Applications Sent</p>
-                <p className="text-4xl font-bold text-[#0A1A2F]">{applicationCount}</p>
-              </div>
-              <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
-                <svg className="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                </svg>
+        {/* Current Plan Card */}
+        <Card className="mb-8 p-6 bg-gradient-to-r from-[#0A1A2F] to-[#132A47] text-white">
+          <div className="flex items-center justify-between">
+            <div>
+              <h3 className="text-lg font-semibold premium-heading">Current Plan</h3>
+              {hasRecruiterSubscription ? (
+                <>
+                  <p className="text-2xl font-bold text-[#E8C547] mt-2 premium-heading">
+                    {subscription?.subscription_type === 'recruiter_basic' && 'Recruiter Basic'}
+                    {subscription?.subscription_type === 'recruiter_standard' && 'Recruiter Standard'}
+                    {subscription?.subscription_type === 'recruiter_pro' && 'Recruiter Pro'}
+                  </p>
+                  <p className="text-sm text-gray-300 mt-1 premium-body">
+                    Renews on {new Date(subscription.current_period_end).toLocaleDateString()}
+                  </p>
+                </>
+              ) : (
+                <p className="text-2xl font-bold text-gray-400 mt-2 premium-heading">Free</p>
+              )}
+            </div>
+            {!hasRecruiterSubscription && (
+              <Link href="/hire-recruiter">
+                <Button className="bg-[#E8C547] hover:bg-[#D4AF37] text-[#0A1A2F] premium-heading">
+                  Upgrade Plan
+                </Button>
+              </Link>
+            )}
+          </div>
+        </Card>
+
+        {/* Hire Recruiter Card - Show if no subscription */}
+        {!hasRecruiterSubscription && (
+          <Card className="mb-8 p-8 bg-gradient-to-r from-[#E8C547]/20 to-[#FFD700]/10 border-2 border-[#E8C547]">
+            <div className="flex items-start gap-4">
+              <Users className="w-12 h-12 text-[#E8C547] flex-shrink-0" />
+              <div className="flex-1">
+                <h3 className="text-2xl font-bold mb-2 text-foreground premium-heading">
+                  Want a Dedicated Recruiter?
+                </h3>
+                <p className="text-muted-foreground mb-4 premium-body">
+                  Let our offshore recruiters handle your job search. Choose the plan that fits your needs.
+                </p>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                  <div className="bg-white/50 p-4 rounded-lg">
+                    <h4 className="text-lg font-bold text-[#0A1A2F] mb-1 premium-heading">Basic</h4>
+                    <p className="text-2xl font-bold text-[#E8C547] premium-heading">$199/mo</p>
+                    <p className="text-sm text-muted-foreground premium-body">3-5 apps/day</p>
+                  </div>
+                  <div className="bg-white/70 p-4 rounded-lg border-2 border-[#E8C547]">
+                    <div className="text-xs font-bold text-[#E8C547] mb-1 premium-body">MOST POPULAR</div>
+                    <h4 className="text-lg font-bold text-[#0A1A2F] mb-1 premium-heading">Standard</h4>
+                    <p className="text-2xl font-bold text-[#E8C547] premium-heading">$399/mo</p>
+                    <p className="text-sm text-muted-foreground premium-body">10-15 apps/day</p>
+                  </div>
+                  <div className="bg-white/50 p-4 rounded-lg">
+                    <h4 className="text-lg font-bold text-[#0A1A2F] mb-1 premium-heading">Pro</h4>
+                    <p className="text-2xl font-bold text-[#E8C547] premium-heading">$599/mo</p>
+                    <p className="text-sm text-muted-foreground premium-body">20-30 apps/day</p>
+                  </div>
+                </div>
+                <Link href="/hire-recruiter">
+                  <Button size="lg" className="bg-[#E8C547] hover:bg-[#D4AF37] text-[#0A1A2F] premium-heading">
+                    View All Plans
+                  </Button>
+                </Link>
               </div>
             </div>
-          </div>
+          </Card>
+        )}
 
-          <div className="bg-white rounded-lg shadow-lg p-6">
-            <div className="flex justify-between items-start">
-              <div>
-                <p className="text-gray-600 text-sm mb-1">Today's Applications</p>
-                <p className="text-4xl font-bold text-[#0A1A2F]">
-                  {todayCount} <span className="text-lg text-gray-500">/ {maxDailyApplications}</span>
+        {/* Recruiter Status Card - Show if has subscription */}
+        {hasRecruiterSubscription && (
+          <Card className="mb-8 p-6 border-2 border-[#E8C547]">
+            <div className="flex items-center gap-4">
+              <Users className="w-10 h-10 text-[#E8C547]" />
+              <div className="flex-1">
+                <h3 className="text-xl font-bold text-foreground premium-heading">Your Recruiter</h3>
+                <div className="flex items-center gap-2 mt-2">
+                  <Clock className="w-4 h-4 text-orange-500" />
+                  <p className="text-muted-foreground premium-body">
+                    <span className="font-semibold text-orange-500">Pending Assignment</span> - 
+                    Your recruiter will be assigned within 48 hours
+                  </p>
+                </div>
+                <p className="text-sm text-muted-foreground mt-2 premium-body">
+                  You'll receive an email introduction once your recruiter is assigned
                 </p>
               </div>
-              <div className="w-12 h-12 bg-[#E8C547] rounded-lg flex items-center justify-center">
-                <svg className="w-6 h-6 text-[#0A1A2F]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-              </div>
             </div>
-          </div>
+          </Card>
+        )}
 
-          <div className="bg-white rounded-lg shadow-lg p-6">
-            <div className="flex justify-between items-start">
+        {/* Stats Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+          <Card className="p-6">
+            <div className="flex items-center gap-4">
+              <Briefcase className="w-8 h-8 text-primary" />
               <div>
-                <p className="text-gray-600 text-sm mb-1">Profile Views</p>
-                <p className="text-4xl font-bold text-[#0A1A2F]">0</p>
-              </div>
-              <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
-                <svg className="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                </svg>
+                <p className="text-sm text-muted-foreground premium-body">Applications</p>
+                <p className="text-2xl font-bold text-foreground premium-heading">{applicationCount}</p>
               </div>
             </div>
-          </div>
+          </Card>
+          <Card className="p-6">
+            <div className="flex items-center gap-4">
+              <TrendingUp className="w-8 h-8 text-green-500" />
+              <div>
+                <p className="text-sm text-muted-foreground premium-body">Interview Stage</p>
+                <p className="text-2xl font-bold text-foreground premium-heading">0</p>
+              </div>
+            </div>
+          </Card>
+          <Card className="p-6">
+            <div className="flex items-center gap-4">
+              <Mail className="w-8 h-8 text-blue-500" />
+              <div>
+                <p className="text-sm text-muted-foreground premium-body">Responses</p>
+                <p className="text-2xl font-bold text-foreground premium-heading">0</p>
+              </div>
+            </div>
+          </Card>
         </div>
 
         {/* Quick Actions */}
-        <div className="mb-8">
-          <h2 className="text-2xl font-bold text-[#E8C547] mb-4">Quick Actions</h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            
-            <Link href="/jobs">
-              <div className="bg-white p-6 rounded-lg shadow-lg hover:shadow-xl transition cursor-pointer group">
-                <div className="w-12 h-12 bg-blue-600 rounded-lg flex items-center justify-center mb-4 group-hover:bg-blue-700 transition">
-                  <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                  </svg>
-                </div>
-                <h3 className="text-xl font-bold text-[#0A1A2F] mb-2">Browse Jobs</h3>
-                <p className="text-gray-600 text-sm">Find your next opportunity</p>
-              </div>
-            </Link>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <Link href="/tools/ats-optimizer">
+            <Card className="p-6 hover:shadow-lg transition cursor-pointer">
+              <FileText className="w-8 h-8 text-primary mb-3" />
+              <h3 className="text-lg font-semibold text-foreground mb-2 premium-heading">ATS Optimizer</h3>
+              <p className="text-sm text-muted-foreground premium-body">
+                Optimize your resume for ATS systems
+              </p>
+            </Card>
+          </Link>
 
-            <Link href="/dashboard/job-seeker/applications">
-              <div className="bg-white p-6 rounded-lg shadow-lg hover:shadow-xl transition cursor-pointer group">
-                <div className="w-12 h-12 bg-[#E8C547] rounded-lg flex items-center justify-center mb-4 group-hover:bg-yellow-500 transition">
-                  <svg className="w-6 h-6 text-[#0A1A2F]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                  </svg>
-                </div>
-                <h3 className="text-xl font-bold text-[#0A1A2F] mb-2">My Applications</h3>
-                <p className="text-gray-600 text-sm">Track your job applications ({applicationCount} total)</p>
-              </div>
-            </Link>
+          <Link href="/tools/cover-letter">
+            <Card className="p-6 hover:shadow-lg transition cursor-pointer">
+              <Upload className="w-8 h-8 text-primary mb-3" />
+              <h3 className="text-lg font-semibold text-foreground mb-2 premium-heading">Cover Letter</h3>
+              <p className="text-sm text-muted-foreground premium-body">
+                Generate AI-powered cover letters
+              </p>
+            </Card>
+          </Link>
 
-            <Link href="/dashboard/job-seeker/profile">
-              <div className="bg-white p-6 rounded-lg shadow-lg hover:shadow-xl transition cursor-pointer group">
-                <div className="w-12 h-12 bg-green-600 rounded-lg flex items-center justify-center mb-4 group-hover:bg-green-700 transition">
-                  <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                  </svg>
-                </div>
-                <h3 className="text-xl font-bold text-[#0A1A2F] mb-2">Edit Profile</h3>
-                <p className="text-gray-600 text-sm">Update your information</p>
-              </div>
-            </Link>
-
-          </div>
+          <Link href="/jobs">
+            <Card className="p-6 hover:shadow-lg transition cursor-pointer">
+              <Briefcase className="w-8 h-8 text-primary mb-3" />
+              <h3 className="text-lg font-semibold text-foreground mb-2 premium-heading">Browse Jobs</h3>
+              <p className="text-sm text-muted-foreground premium-body">
+                Search and apply to consulting roles
+              </p>
+            </Card>
+          </Link>
         </div>
-
-        {/* Upgrade Section (only for free users) */}
-        {!isPremium && (
-          <div className="bg-gradient-to-r from-blue-600 to-blue-700 rounded-lg p-8 text-white shadow-lg">
-            <h2 className="text-3xl font-bold mb-4">Upgrade Your Account</h2>
-            <p className="mb-6 text-lg">
-              Get access to premium features and unlimited applications. Increase your chances of landing your dream job!
-            </p>
-            <Link href="/pricing">
-              <button className="bg-[#E8C547] text-[#0A1A2F] px-8 py-3 rounded-lg font-bold text-lg hover:bg-yellow-400 transition shadow-lg">
-                View Premium Plans
-              </button>
-            </Link>
-          </div>
-        )}
-      </main>
-
-      <Footer />
+      </div>
     </div>
-  );
+  )
 }

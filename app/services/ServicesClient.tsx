@@ -1,45 +1,221 @@
 "use client"
 
-import { useState } from "react"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import Navigation from "@/components/navigation"
 import Footer from "@/components/footer"
-import { FileText, Users, Briefcase, Sparkles, MessageSquare, Users2, Check } from "lucide-react"
+import { FileText, Briefcase, Upload, Check, Users } from "lucide-react"
 
 export default function ServicesClient() {
   return (
     <div className="min-h-screen bg-background flex flex-col">
       <Navigation />
 
-      {/* Hero */}
-      <section className="abstract-gradient text-primary-foreground py-16 px-4 sm:px-6 lg:px-8 relative">
+      {/* Hero Section */}
+      <section className="abstract-gradient text-primary-foreground py-20 px-4 sm:px-6 lg:px-8 relative">
         <div className="max-w-6xl mx-auto text-center relative z-10">
-          <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold mb-4 text-white premium-heading">
-            Career Acceleration Services
+          <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold mb-6 text-white premium-heading">
+            Your Complete Career Toolkit
           </h1>
-          <p className="text-lg text-white/90 max-w-2xl mx-auto premium-body">
-            Choose the service that best fits your consulting and contract job search strategy
+          <p className="text-xl md:text-2xl mb-4 text-white/90 premium-body">
+            Professional tools to land your next consulting or contract role faster
           </p>
         </div>
       </section>
 
       {/* Services Grid */}
-      <section className="py-16 px-4 sm:px-6 lg:px-8 flex-1">
-        <div className="max-w-6xl mx-auto">
-          {/* Service 1: Resume Submission */}
+      <section className="py-20 px-4 sm:px-6 lg:px-8">
+        <div className="max-w-6xl mx-auto space-y-16">
+          {/* Service 1: ATS Optimizer */}
           <div className="mb-16">
             <Card className="p-8 border border-border">
               <div className="grid md:grid-cols-2 gap-8">
                 <div>
                   <div className="flex items-center gap-3 mb-4">
                     <FileText className="w-8 h-8 text-primary" />
-                    <h2 className="text-2xl font-bold text-foreground premium-heading">Resume Submission</h2>
+                    <h2 className="text-2xl font-bold text-foreground premium-heading">ATS Optimizer</h2>
                   </div>
                   <p className="text-muted-foreground mb-6 leading-relaxed premium-body">
-                    Submit your resume directly to verified recruiters seeking consulting and contract talent. Your
-                    profile gets reviewed by experienced hiring professionals.
+                    75% of resumes are rejected by ATS before a human sees them. Our AI-powered tool analyzes your
+                    resume for ATS compatibility and provides actionable recommendations.
+                  </p>
+                  <ul className="space-y-3 mb-6">
+                    <li className="flex items-center gap-2 text-foreground premium-body">
+                      <Check className="w-5 h-5 text-primary" />
+                      One-time fee: $5 (lifetime access)
+                    </li>
+                    <li className="flex items-center gap-2 text-foreground premium-body">
+                      <Check className="w-5 h-5 text-primary" />
+                      Complete ATS score + keyword analysis
+                    </li>
+                    <li className="flex items-center gap-2 text-foreground premium-body">
+                      <Check className="w-5 h-5 text-primary" />
+                      Formatting & improvement recommendations
+                    </li>
+                    <li className="flex items-center gap-2 text-foreground premium-body">
+                      <Check className="w-5 h-5 text-primary" />
+                      Unlimited resume uploads forever
+                    </li>
+                  </ul>
+                  <Link href="/tools/ats-optimizer">
+                    <Button className="bg-primary hover:bg-primary/90 text-primary-foreground premium-heading">
+                      Optimize Your Resume
+                    </Button>
+                  </Link>
+                </div>
+                <div className="bg-muted p-8 rounded-lg">
+                  <div className="space-y-4">
+                    <div className="bg-background p-4 rounded border border-border">
+                      <p className="font-semibold text-foreground mb-2 premium-heading">What You'll Get:</p>
+                      <ul className="text-sm text-muted-foreground space-y-1 premium-body">
+                        <li>• ATS compatibility score (0-100)</li>
+                        <li>• Missing keywords analysis</li>
+                        <li>• Formatting issues detected</li>
+                        <li>• Section-by-section improvements</li>
+                        <li>• Downloadable PDF report</li>
+                      </ul>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </Card>
+          </div>
+
+          {/* Service 2: Cover Letter Generator */}
+          <div className="mb-16">
+            <Card className="p-8 border border-border">
+              <div className="grid md:grid-cols-2 gap-8">
+                <div className="bg-muted p-8 rounded-lg">
+                  <div className="space-y-4">
+                    <div className="bg-background p-4 rounded border border-border">
+                      <p className="font-semibold text-foreground mb-2 premium-heading">How It Works:</p>
+                      <ul className="text-sm text-muted-foreground space-y-1 premium-body">
+                        <li>1. Upload your resume</li>
+                        <li>2. Paste the job description</li>
+                        <li>3. Get AI-generated cover letter</li>
+                        <li>4. Edit and customize as needed</li>
+                        <li>5. Download and apply</li>
+                      </ul>
+                    </div>
+                  </div>
+                </div>
+                <div>
+                  <div className="flex items-center gap-3 mb-4">
+                    <Upload className="w-8 h-8 text-primary" />
+                    <h2 className="text-2xl font-bold text-foreground premium-heading">Cover Letter Generator</h2>
+                  </div>
+                  <p className="text-muted-foreground mb-6 leading-relaxed premium-body">
+                    Stop writing cover letters from scratch. Our AI creates tailored, professional cover letters
+                    customized to each job description in seconds.
+                  </p>
+                  <ul className="space-y-3 mb-6">
+                    <li className="flex items-center gap-2 text-foreground premium-body">
+                      <Check className="w-5 h-5 text-primary" />
+                      One-time fee: $5 (lifetime access)
+                    </li>
+                    <li className="flex items-center gap-2 text-foreground premium-body">
+                      <Check className="w-5 h-5 text-primary" />
+                      AI-powered customization
+                    </li>
+                    <li className="flex items-center gap-2 text-foreground premium-body">
+                      <Check className="w-5 h-5 text-primary" />
+                      Professional formatting
+                    </li>
+                    <li className="flex items-center gap-2 text-foreground premium-body">
+                      <Check className="w-5 h-5 text-primary" />
+                      Unlimited generations forever
+                    </li>
+                  </ul>
+                  <Link href="/tools/cover-letter">
+                    <Button className="bg-primary hover:bg-primary/90 text-primary-foreground premium-heading">
+                      Generate Cover Letter
+                    </Button>
+                  </Link>
+                </div>
+              </div>
+            </Card>
+          </div>
+
+          {/* NEW: Service 3: Hire an Offshore Recruiter */}
+          <div className="mb-16">
+            <Card className="p-8 border-2 border-primary bg-primary/5">
+              <div className="grid md:grid-cols-2 gap-8">
+                <div>
+                  <div className="flex items-center gap-3 mb-4">
+                    <Users className="w-8 h-8 text-primary" />
+                    <h2 className="text-2xl font-bold text-foreground premium-heading">Hire an Offshore Recruiter</h2>
+                  </div>
+                  <p className="text-muted-foreground mb-6 leading-relaxed premium-body">
+                    Stop spending 10-20 hours per week applying to jobs. Let our professional offshore recruiters
+                    handle your job search while you focus on interview preparation and skills development.
+                  </p>
+                  <ul className="space-y-3 mb-6">
+                    <li className="flex items-center gap-2 text-foreground premium-body">
+                      <Check className="w-5 h-5 text-primary" />
+                      Starting at $199/month
+                    </li>
+                    <li className="flex items-center gap-2 text-foreground premium-body">
+                      <Check className="w-5 h-5 text-primary" />
+                      3-30 applications per day (depending on plan)
+                    </li>
+                    <li className="flex items-center gap-2 text-foreground premium-body">
+                      <Check className="w-5 h-5 text-primary" />
+                      Real-time application tracking dashboard
+                    </li>
+                    <li className="flex items-center gap-2 text-foreground premium-body">
+                      <Check className="w-5 h-5 text-primary" />
+                      90% feedback success rate
+                    </li>
+                    <li className="flex items-center gap-2 text-foreground premium-body">
+                      <Check className="w-5 h-5 text-primary" />
+                      Professional recruiters with 10+ years experience
+                    </li>
+                  </ul>
+                  <Link href="/hire-recruiter">
+                    <Button className="bg-accent hover:bg-[#FFD700] text-primary-foreground hover:text-black premium-heading border-2 border-black shadow-lg">
+                      View Recruiter Plans
+                    </Button>
+                  </Link>
+                </div>
+                <div className="bg-background p-8 rounded-lg border border-border">
+                  <div className="space-y-4">
+                    <div className="bg-muted p-4 rounded">
+                      <p className="font-semibold text-foreground mb-2 premium-heading">How It Works:</p>
+                      <ul className="text-sm text-muted-foreground space-y-2 premium-body">
+                        <li>1. Choose your plan (Basic, Standard, or Pro)</li>
+                        <li>2. Get assigned a dedicated recruiter within 48 hours</li>
+                        <li>3. Recruiter submits 3-30 applications daily on your behalf</li>
+                        <li>4. Track all submissions in your dashboard</li>
+                        <li>5. Receive status updates as applications progress</li>
+                      </ul>
+                    </div>
+                    <div className="bg-muted p-4 rounded">
+                      <p className="font-semibold text-foreground mb-2 premium-heading">3 Plans Available:</p>
+                      <ul className="text-sm text-muted-foreground space-y-1 premium-body">
+                        <li>• <strong>Basic:</strong> $199/mo - 3-5 apps/day</li>
+                        <li>• <strong>Standard:</strong> $399/mo - 10-15 apps/day</li>
+                        <li>• <strong>Pro:</strong> $599/mo - 20-30 apps/day</li>
+                      </ul>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </Card>
+          </div>
+
+          {/* Service 4: Resume Distribution */}
+          <div className="mb-16">
+            <Card className="p-8 border border-border">
+              <div className="grid md:grid-cols-2 gap-8">
+                <div>
+                  <div className="flex items-center gap-3 mb-4">
+                    <Briefcase className="w-8 h-8 text-primary" />
+                    <h2 className="text-2xl font-bold text-foreground premium-heading">Resume Distribution</h2>
+                  </div>
+                  <p className="text-muted-foreground mb-6 leading-relaxed premium-body">
+                    Get your resume in front of 500+ verified recruiters specializing in consulting and contract roles.
+                    Your profile gets reviewed by experienced hiring professionals.
                   </p>
                   <ul className="space-y-3 mb-6">
                     <li className="flex items-center gap-2 text-foreground premium-body">
@@ -79,7 +255,7 @@ export default function ServicesClient() {
             </Card>
           </div>
 
-          {/* Service 2: DIY Job Search */}
+          {/* Service 5: DIY Job Search */}
           <div className="mb-16">
             <Card className="p-8 border border-border">
               <div className="grid md:grid-cols-2 gap-8">
@@ -92,158 +268,74 @@ export default function ServicesClient() {
                     Browse and apply to thousands of consulting and contract opportunities yourself. Perfect for job
                     seekers who want hands-on control of their search.
                   </p>
-                  <div className="grid sm:grid-cols-2 gap-4">
-                    <div className="border border-border p-4 rounded">
-                      <p className="font-semibold text-foreground mb-2 premium-heading">Free Tier</p>
-                      <p className="text-sm text-muted-foreground mb-3 premium-body">5 applications/day</p>
-                      <Link href="/jobs">
-                        <Button variant="outline" className="w-full premium-body bg-transparent">
-                          Start Searching
-                        </Button>
-                      </Link>
-                    </div>
-                    <div className="border border-primary bg-primary/5 p-4 rounded">
-                      <p className="font-semibold text-foreground mb-2 premium-heading">Premium</p>
-                      <p className="text-sm text-muted-foreground mb-3 premium-body">Unlimited applications</p>
-                      <Link href="/contact?subject=Service Upgrade Inquiry">
-                        <Button className="w-full bg-primary hover:bg-primary/90 text-primary-foreground premium-heading">
-                          Upgrade
-                        </Button>
-                      </Link>
+                  <ul className="space-y-3 mb-6">
+                    <li className="flex items-center gap-2 text-foreground premium-body">
+                      <Check className="w-5 h-5 text-primary" />
+                      Free: 5 applications per day
+                    </li>
+                    <li className="flex items-center gap-2 text-foreground premium-body">
+                      <Check className="w-5 h-5 text-primary" />
+                      Premium: Unlimited applications ($9.99/month)
+                    </li>
+                    <li className="flex items-center gap-2 text-foreground premium-body">
+                      <Check className="w-5 h-5 text-primary" />
+                      Advanced filters and search
+                    </li>
+                    <li className="flex items-center gap-2 text-foreground premium-body">
+                      <Check className="w-5 h-5 text-primary" />
+                      Application tracking dashboard
+                    </li>
+                  </ul>
+                  <Link href="/jobs">
+                    <Button className="bg-primary hover:bg-primary/90 text-primary-foreground premium-heading">
+                      Browse Jobs
+                    </Button>
+                  </Link>
+                </div>
+                <div className="bg-muted p-8 rounded-lg">
+                  <div className="space-y-4">
+                    <div className="bg-background p-4 rounded border border-border">
+                      <p className="font-semibold text-foreground mb-2 premium-heading">Job Categories:</p>
+                      <ul className="text-sm text-muted-foreground space-y-1 premium-body">
+                        <li>• Software Development</li>
+                        <li>• AI/ML Engineering</li>
+                        <li>• Cloud Architecture</li>
+                        <li>• Cybersecurity</li>
+                        <li>• Data Engineering</li>
+                        <li>• DevOps</li>
+                      </ul>
                     </div>
                   </div>
                 </div>
-                <div className="bg-muted p-8 rounded-lg">
-                  <p className="font-semibold text-foreground mb-4 premium-heading">Premium Features:</p>
-                  <ul className="space-y-3">
-                    <li className="flex items-center gap-2 text-foreground premium-body">
-                      <Check className="w-5 h-5 text-primary" />
-                      Unlimited applications
-                    </li>
-                    <li className="flex items-center gap-2 text-foreground premium-body">
-                      <Check className="w-5 h-5 text-primary" />
-                      Saved searches & alerts
-                    </li>
-                    <li className="flex items-center gap-2 text-foreground premium-body">
-                      <Check className="w-5 h-5 text-primary" />
-                      Bookmark jobs
-                    </li>
-                    <li className="flex items-center gap-2 text-foreground premium-body">
-                      <Check className="w-5 h-5 text-primary" />
-                      Advanced filters
-                    </li>
-                    <li className="flex items-center gap-2 text-foreground premium-body">
-                      <Check className="w-5 h-5 text-primary" />
-                      $9.99/month
-                    </li>
-                  </ul>
-                </div>
               </div>
             </Card>
           </div>
+        </div>
+      </section>
 
-          {/* Service 3: Offshore Recruiter - COMPACT CTA */}
-          <div className="mb-16">
-            <Card className="p-8 border-2 border-primary bg-gradient-to-r from-primary/5 to-primary/10">
-              <div className="text-center max-w-2xl mx-auto">
-                <Users className="w-16 h-16 text-primary mx-auto mb-4" />
-                <h2 className="text-3xl font-bold text-foreground mb-4 premium-heading">
-                  Hire an Offshore Recruiter
-                </h2>
-                <p className="text-lg text-muted-foreground mb-6 premium-body">
-                  Let our dedicated recruiters handle your job search. Starting at $199/month with plans up to 30 applications per day.
-                </p>
-                <Link href="/hire-recruiter">
-                  <Button size="lg" className="bg-primary hover:bg-primary/90 text-primary-foreground px-8 py-6 text-lg premium-heading">
-                    View Recruiter Plans
-                  </Button>
-                </Link>
-              </div>
-            </Card>
-          </div>
-
-          {/* Service 4: Career Tools */}
-          <div>
-            <h2 className="text-2xl font-bold text-foreground mb-8 premium-heading">Career Tools</h2>
-            <div className="grid md:grid-cols-2 gap-6">
-              {/* ATS Optimizer */}
-              <Card className="p-8 border border-border">
-                <div className="flex items-center gap-3 mb-4">
-                  <Sparkles className="w-8 h-8 text-primary" />
-                  <h3 className="text-xl font-bold text-foreground premium-heading">ATS Optimizer</h3>
-                </div>
-                <p className="text-muted-foreground mb-6 premium-body">
-                  Get your resume scanned for ATS compatibility · $5 one-time (lifetime)
-                </p>
-                <div className="bg-muted p-4 rounded mb-6 text-sm space-y-2 premium-body">
-                  <p className="font-semibold text-foreground">Premium users get unlimited uploads + PDF export</p>
-                </div>
-                <Link href="/tools/ats-optimizer">
-                  <Button className="w-full bg-primary hover:bg-primary/90 text-primary-foreground premium-heading">
-                    Optimize Resume – $5
-                  </Button>
-                </Link>
-              </Card>
-
-              {/* Cover Letter Generator */}
-              <Card className="p-8 border border-border">
-                <div className="flex items-center gap-3 mb-4">
-                  <MessageSquare className="w-8 h-8 text-primary" />
-                  <h3 className="text-xl font-bold text-foreground premium-heading">Cover Letter Generator</h3>
-                </div>
-                <p className="text-muted-foreground mb-6 premium-body">
-                  Professional tailored cover letter in seconds · $5 one-time (lifetime)
-                </p>
-                <div className="bg-muted p-4 rounded mb-6 text-sm space-y-2 premium-body">
-                  <p className="font-semibold text-foreground">Premium ATS users get 50% off ($2.50)</p>
-                  <p className="text-muted-foreground">Free preview available</p>
-                </div>
-                <Link href="/tools/cover-letter">
-                  <Button className="w-full bg-primary hover:bg-primary/90 text-primary-foreground premium-heading">
-                    Generate Cover Letter – $5
-                  </Button>
-                </Link>
-              </Card>
-
-              {/* Interview Prep */}
-              <Card className="p-8 border border-border">
-                <div className="flex items-center gap-3 mb-4">
-                  <Users2 className="w-8 h-8 text-primary" />
-                  <h3 className="text-xl font-bold text-foreground premium-heading">Interview Prep</h3>
-                </div>
-                <p className="text-muted-foreground mb-6 premium-body">
-                  Practice unlimited interview questions based on job descriptions · 100% FREE
-                </p>
-                <div className="bg-muted p-4 rounded mb-6 text-sm space-y-2 premium-body">
-                  <p className="font-semibold text-foreground">Free unlimited practice tests</p>
-                  <p className="text-muted-foreground">Instant scoring with explanations</p>
-                </div>
-                <Link href="/tools/interview-prep">
-                  <Button className="w-full bg-primary hover:bg-primary/90 text-primary-foreground premium-heading">
-                    Start Practice Test - FREE
-                  </Button>
-                </Link>
-              </Card>
-
-              {/* LinkedIn Optimizer - Coming Soon */}
-              <Card className="p-8 border border-border opacity-75">
-                <div className="flex items-center gap-3 mb-4">
-                  <Users className="w-8 h-8 text-primary" />
-                  <h3 className="text-xl font-bold text-foreground premium-heading">
-                    LinkedIn Optimizer (Coming Soon)
-                  </h3>
-                </div>
-                <p className="text-muted-foreground mb-6 premium-body">
-                  Boost recruiter visibility · Included in future Pro plan
-                </p>
-                <div className="bg-muted p-4 rounded mb-6 text-sm space-y-2 premium-body">
-                  <p className="font-semibold text-foreground">Coming Soon</p>
-                </div>
-                <Button disabled className="w-full bg-transparent" variant="outline">
-                  Coming Soon
-                </Button>
-              </Card>
-            </div>
+      {/* CTA Section */}
+      <section className="abstract-gradient text-primary-foreground py-20 px-4 sm:px-6 lg:px-8">
+        <div className="max-w-4xl mx-auto text-center">
+          <h2 className="text-3xl md:text-4xl font-bold mb-6 text-white premium-heading">
+            Ready to Land Your Next Role?
+          </h2>
+          <p className="text-xl mb-8 text-white/90 premium-body">
+            Start with our free tools or upgrade for full access
+          </p>
+          <div className="flex flex-col sm:flex-row gap-4 justify-center">
+            <Link href="/tools/ats-optimizer">
+              <Button
+                size="lg"
+                className="bg-[#E8C547] hover:bg-[#D4AF37] text-[#0A1A2F] font-bold premium-heading"
+              >
+                Try ATS Optimizer Free
+              </Button>
+            </Link>
+            <Link href="/pricing">
+              <Button size="lg" variant="outline" className="bg-white/10 hover:bg-white/20 text-white border-white premium-heading">
+                View Pricing
+              </Button>
+            </Link>
           </div>
         </div>
       </section>
