@@ -16,7 +16,17 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: "Star Workforce Solutions - Job Seeker Platform",
-  description: "Find your next career opportunity",
+  description: "Find your next career opportunity with STAR Workforce Solutions. Connect with employers, optimize your resume, and accelerate your job search.",
+  icons: {
+    icon: [
+      { url: "/favicon.svg", type: "image/svg+xml" },
+      { url: "/icon.svg", type: "image/svg+xml" },
+    ],
+    apple: [
+      { url: "/apple-icon.png", type: "image/png" },
+    ],
+    shortcut: "/favicon.svg",
+  },
 };
 
 export default function RootLayout({
