@@ -8,7 +8,8 @@ import { useRouter, useSearchParams } from 'next/navigation';
 function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const callbackUrl = searchParams.get('callbackUrl') || '/';
+  const callbackUrl = searchParams.get('callbackUrl') || '/'
+  const registered = searchParams.get('registered') === 'true'
   
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -56,6 +57,16 @@ function LoginForm() {
             <p className="text-xl text-white">Welcome Back</p>
             <p className="text-gray-400 mt-2">Sign in to your account</p>
           </div>
+
+          {/* Registration success banner */}
+          {registered && !error && (
+            <div className="bg-green-500/10 border border-green-500 text-green-400 rounded-lg p-3 mb-6 text-sm flex items-center gap-2">
+              <svg className="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+              </svg>
+              Account created! Please sign in to continue.
+            </div>
+          )}
 
           {/* Error Message */}
           {error && (

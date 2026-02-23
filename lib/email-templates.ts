@@ -37,6 +37,13 @@ interface AssignmentNotificationRecruiterParams {
   notes?: string | null
 }
 
+
+// ── NEW: Welcome email params ─────────────────────────────────
+interface WelcomeNewUserParams {
+  userName: string
+  userEmail: string
+}
+
 export const emailTemplates = {
 
   // ── Template 1: Subscription Confirmation (to Job Seeker) ──
@@ -295,4 +302,54 @@ export const emailTemplates = {
 </html>
     `,
   }),
+  // ── Template 5: Welcome email → New User ────────────────────
+  welcomeNewUser: (params: WelcomeNewUserParams) => ({
+    subject: `Welcome to STAR Workforce Solutions!`,
+    html: `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+<body style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
+  <div style="background: linear-gradient(135deg, #0A1A2F 0%, #132A47 100%); padding: 30px; text-align: center; border-radius: 10px 10px 0 0;">
+    <h1 style="color: #E8C547; margin: 0; font-size: 28px;">STAR Workforce Solutions</h1>
+    <p style="color: #ffffff; margin: 10px 0 0 0; font-size: 16px;">Welcome to the Platform!</p>
+  </div>
+  <div style="background: #ffffff; padding: 30px; border: 1px solid #e5e7eb; border-top: none; border-radius: 0 0 10px 10px;">
+    <h2 style="color: #0A1A2F; margin-top: 0;">Hi ${params.userName},</h2>
+    <p style="font-size: 16px; color: #374151;">
+      Your account has been created successfully. Welcome to STAR Workforce Solutions!
+    </p>
+    <div style="background: #f3f4f6; padding: 20px; border-radius: 8px; margin: 20px 0;">
+      <h3 style="color: #0A1A2F; margin-top: 0;">What You Can Do:</h3>
+      <ul style="color: #374151; padding-left: 20px; margin: 0;">
+        <li style="margin-bottom: 8px;">Search and apply for jobs</li>
+        <li style="margin-bottom: 8px;">Optimize your resume with our ATS tool</li>
+        <li style="margin-bottom: 8px;">Prepare for interviews</li>
+        <li style="margin-bottom: 8px;">Hire a dedicated recruiter to apply on your behalf</li>
+      </ul>
+    </div>
+    <div style="text-align: center; margin: 30px 0;">
+      <a href="https://www.starworkforcesolutions.com/dashboard/job-seeker"
+         style="display: inline-block; background: #E8C547; color: #0A1A2F; padding: 15px 40px; text-decoration: none; border-radius: 5px; font-weight: bold; font-size: 16px;">
+        Go to Dashboard
+      </a>
+    </div>
+    <p style="color: #6b7280; font-size: 14px; margin-top: 30px;">
+      Questions? Contact us at
+      <a href="mailto:support@starworkforcesolutions.com" style="color: #E8C547;">support@starworkforcesolutions.com</a>
+    </p>
+    <p style="color: #374151; margin-top: 20px;">Best regards,<br><strong>STAR Workforce Solutions Team</strong></p>
+  </div>
+  <div style="text-align: center; padding: 20px; color: #6b7280; font-size: 12px;">
+    <p>STAR Workforce Solutions<br>
+    <a href="https://www.starworkforcesolutions.com" style="color: #E8C547;">www.starworkforcesolutions.com</a></p>
+  </div>
+</body>
+</html>
+    `,
+  }),
+
 }

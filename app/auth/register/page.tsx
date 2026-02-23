@@ -1,32 +1,44 @@
-'use client';
+'use client'
 
-import { signIn } from 'next-auth/react';
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { signIn } from 'next-auth/react'
+import { useState } from 'react'
+import { useRouter } from 'next/navigation'
+
+function getDashboardByRole(role: string): string {
+  switch (role) {
+    case 'admin':     return '/dashboard/admin'
+    case 'recruiter': return '/dashboard/recruiter'
+    case 'employer':  return '/employer/dashboard'
+    default:          return '/dashboard/job-seeker'
+  }
+}
 
 export default function RegisterPage() {
-  const router = useRouter();
+  const router = useRouter()
   const [formData, setFormData] = useState({
     name: '',
     email: '',
     password: '',
     confirmPassword: '',
-  });
-  const [error, setError] = useState('');
-  const [loading, setLoading] = useState(false);
+  })
+  const [error, setError]     = useState('')
+  const [success, setSuccess] = useState('')
+  const [loading, setLoading] = useState(false)
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError('');
+    e.preventDefault()
+    setError('')
+    setSuccess('')
 
     if (formData.password !== formData.confirmPassword) {
-      setError('Passwords do not match');
-      return;
+      setError('Passwords do not match')
+      return
     }
 
-    setLoading(true);
+    setLoading(true)
 
     try {
+      // ── Step 1: Register ──────────────────────────────────
       const response = await fetch('/api/auth/register', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -35,36 +47,54 @@ export default function RegisterPage() {
           email: formData.email,
           password: formData.password,
         }),
-      });
+      })
+
+      const data = await response.json()
 
       if (!response.ok) {
-        const data = await response.json();
-        setError(data.message || 'Registration failed');
-        return;
+        setError(data.message || 'Registration failed. Please try again.')
+        setLoading(false)
+        return
       }
 
-      // Auto sign in after registration
+      // ── Step 2: Show brief success message ────────────────
+      setSuccess('Account created! Signing you in...')
+
+      // ── Step 3: Auto sign-in ──────────────────────────────
       const result = await signIn('credentials', {
         email: formData.email,
         password: formData.password,
         redirect: false,
-      });
+      })
 
       if (result?.error) {
-        router.push('/auth/login');
-      } else {
-        router.push('/');
+        // Sign-in failed after registration — send to login with message
+        router.push('/auth/login?registered=true')
+        return
       }
-    } catch (err) {
-      setError('An error occurred. Please try again.');
-    } finally {
-      setLoading(false);
+
+      // ── Step 4: Get role from session → correct dashboard ─
+      try {
+        const profileRes = await fetch('/api/user/profile')
+        if (profileRes.ok) {
+          const profile = await profileRes.json()
+          const role = profile?.user?.role || profile?.role || 'jobseeker'
+          router.push(getDashboardByRole(role))
+        } else {
+          router.push('/dashboard/job-seeker')
+        }
+      } catch {
+        router.push('/dashboard/job-seeker')
+      }
+    } catch {
+      setError('An error occurred. Please try again.')
+      setLoading(false)
     }
-  };
+  }
 
   const handleOAuthSignIn = (provider: 'google' | 'linkedin') => {
-    signIn(provider, { callbackUrl: '/' });
-  };
+    signIn(provider, { callbackUrl: '/dashboard/job-seeker' })
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-[#0A1A2F] to-[#132A47] flex items-center justify-center px-4 py-12">
@@ -74,12 +104,24 @@ export default function RegisterPage() {
           <p className="text-gray-300">Join STAR Workforce Solutions</p>
         </div>
 
+        {/* Error message */}
         {error && (
-          <div className="bg-red-500/10 border border-red-500 text-red-500 rounded-lg p-3 mb-6">
+          <div className="bg-red-500/10 border border-red-500 text-red-500 rounded-lg p-3 mb-6 text-sm">
             {error}
           </div>
         )}
 
+        {/* Success message */}
+        {success && (
+          <div className="bg-green-500/10 border border-green-500 text-green-400 rounded-lg p-3 mb-6 text-sm flex items-center gap-2">
+            <svg className="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+            </svg>
+            {success}
+          </div>
+        )}
+
+        {/* OAuth buttons */}
         <div className="space-y-3 mb-6">
           <button
             type="button"
@@ -129,6 +171,7 @@ export default function RegisterPage() {
               className="w-full px-4 py-3 bg-white/5 border border-gray-600 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-[#E8C547] focus:ring-1 focus:ring-[#E8C547]"
               placeholder="John Doe"
               required
+              disabled={loading}
             />
           </div>
 
@@ -144,6 +187,7 @@ export default function RegisterPage() {
               className="w-full px-4 py-3 bg-white/5 border border-gray-600 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-[#E8C547] focus:ring-1 focus:ring-[#E8C547]"
               placeholder="you@example.com"
               required
+              disabled={loading}
             />
           </div>
 
@@ -160,6 +204,7 @@ export default function RegisterPage() {
               placeholder="••••••••"
               required
               minLength={8}
+              disabled={loading}
             />
             <p className="mt-1 text-xs text-gray-400">Must be at least 8 characters</p>
           </div>
@@ -176,6 +221,7 @@ export default function RegisterPage() {
               className="w-full px-4 py-3 bg-white/5 border border-gray-600 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-[#E8C547] focus:ring-1 focus:ring-[#E8C547]"
               placeholder="••••••••"
               required
+              disabled={loading}
             />
           </div>
 
@@ -184,7 +230,17 @@ export default function RegisterPage() {
             disabled={loading}
             className="w-full bg-[#E8C547] text-[#0A1A2F] py-3.5 rounded-lg font-bold hover:bg-[#D4AF37] transition disabled:opacity-50 disabled:cursor-not-allowed shadow-lg"
           >
-            {loading ? 'Creating account...' : 'Create Account'}
+            {loading ? (
+              <span className="flex items-center justify-center gap-2">
+                <svg className="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"/>
+                </svg>
+                {success ? 'Signing you in...' : 'Creating account...'}
+              </span>
+            ) : (
+              'Create Account'
+            )}
           </button>
         </form>
 
@@ -196,5 +252,5 @@ export default function RegisterPage() {
         </p>
       </div>
     </div>
-  );
+  )
 }

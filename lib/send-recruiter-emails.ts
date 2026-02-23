@@ -103,6 +103,28 @@ export async function sendAssignmentNotificationToRecruiter(params: {
   }
 }
 
+
+// ── Welcome email → New registered user ──────────────────────
+export async function sendWelcomeEmail(params: {
+  userName: string
+  userEmail: string
+}) {
+  try {
+    const template = emailTemplates.welcomeNewUser(params)
+    const result = await resend.emails.send({
+      from: 'STAR Workforce <noreply@starworkforcesolutions.com>',
+      to: params.userEmail,
+      subject: template.subject,
+      html: template.html,
+    })
+    console.log('[Email] Welcome email sent to:', params.userEmail)
+    return { success: true, result }
+  } catch (error) {
+    console.error('[Email] Failed to send welcome email:', error)
+    return { success: false, error }
+  }
+}
+
 // ── Plan details helper ───────────────────────────────────────
 export function getPlanDetails(subscriptionType: string): {
   name: string
