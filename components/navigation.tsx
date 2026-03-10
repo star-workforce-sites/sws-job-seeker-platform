@@ -16,6 +16,7 @@ export default function Navigation() {
     { href: '/distribution-wizard', label: 'Distribution Wizard' },
     { href: '/jobs', label: 'Job Search' },
     { href: '/pricing', label: 'Pricing' },
+    { href: '/hire-recruiter', label: 'Hire Recruiter' },
     { href: '/contact', label: 'Contact' },
   ]
 
