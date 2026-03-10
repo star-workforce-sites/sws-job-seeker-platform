@@ -3,8 +3,6 @@
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
-import Navigation from "@/components/navigation"
-import Footer from "@/components/footer"
 import { Check, Users, TrendingUp, Shield, Clock, Award, ArrowRight } from "lucide-react"
 
 export default function HireRecruiterClient() {
@@ -61,13 +59,12 @@ export default function HireRecruiterClient() {
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
-      <Navigation />
 
       {/* Hero Section - Matches site gradient */}
       <section className="abstract-gradient text-primary-foreground py-20 px-4 sm:px-6 lg:px-8 relative">
         <div className="max-w-6xl mx-auto text-center relative z-10">
           <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold mb-6 text-white premium-heading">
-            Hire an Offshore Recruiter
+            Hire a Dedicated Recruiter
           </h1>
           <p className="text-xl md:text-2xl mb-4 text-white/90 premium-body">
             90-900 Job Applications on Autopilot
@@ -299,7 +296,6 @@ export default function HireRecruiterClient() {
         </div>
       </section>
 
-      <Footer />
     </div>
   )
 }
