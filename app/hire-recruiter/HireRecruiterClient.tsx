@@ -3,6 +3,8 @@
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
+import Navigation from "@/components/navigation"
+import Footer from "@/components/footer"
 import { Check, Users, TrendingUp, Shield, Clock, Award, ArrowRight } from "lucide-react"
 
 export default function HireRecruiterClient() {
@@ -59,8 +61,9 @@ export default function HireRecruiterClient() {
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
+      <Navigation />
 
-      {/* Hero Section - Matches site gradient */}
+      {/* Hero Section */}
       <section className="abstract-gradient text-primary-foreground py-20 px-4 sm:px-6 lg:px-8 relative">
         <div className="max-w-6xl mx-auto text-center relative z-10">
           <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold mb-6 text-white premium-heading">
@@ -70,26 +73,28 @@ export default function HireRecruiterClient() {
             90-900 Job Applications on Autopilot
           </p>
           <p className="text-lg text-white/80 max-w-2xl mx-auto mb-8 premium-body">
-            Professional recruiters submit applications daily for consulting and contract positions. 
+            Professional recruiters submit applications daily for consulting and contract positions.
             90% feedback success rate. Save 10-20 hours per week.
+          </p>
+          <p className="text-sm text-white/60 max-w-xl mx-auto mb-8 premium-body">
+            Services paid upfront. No placement guarantees. Non-contingent staffing service.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Link href="#pricing">
-              <Button 
-                className="bg-[#E8C547] hover:bg-[#D4AF37] text-[#0A1A2F] font-bold py-6 px-10 text-lg premium-heading"
+              <Button
                 size="lg"
+                className="bg-[#E8C547] hover:bg-[#D4AF37] text-[#0A1A2F] font-bold py-6 px-10 text-lg premium-heading"
               >
                 View Pricing Plans
                 <ArrowRight className="ml-2 w-5 h-5" />
               </Button>
             </Link>
-            <Link href="#how-it-works">
-              <Button 
-                variant="outline" 
-                className="border-2 border-white text-white hover:bg-white/10 font-bold py-6 px-10 text-lg premium-heading"
+            <Link href="/auth/signup">
+              <Button
                 size="lg"
+                className="bg-white/15 hover:bg-white/25 text-white font-bold py-6 px-10 text-lg border border-white/50 premium-heading"
               >
-                How It Works
+                Get Started Free
               </Button>
             </Link>
           </div>
@@ -97,22 +102,22 @@ export default function HireRecruiterClient() {
       </section>
 
       {/* Stats Section */}
-      <section className="py-12 bg-background border-b border-border">
-        <div className="container mx-auto px-4">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-6 max-w-5xl mx-auto">
-            <div className="text-center">
+      <section className="py-12 px-4 sm:px-6 lg:px-8 bg-muted/30">
+        <div className="max-w-6xl mx-auto">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-8 text-center">
+            <div>
               <div className="text-4xl font-bold text-primary mb-2 premium-heading">90%</div>
               <div className="text-muted-foreground premium-body">Feedback Rate</div>
             </div>
-            <div className="text-center">
+            <div>
               <div className="text-4xl font-bold text-primary mb-2 premium-heading">900+</div>
-              <div className="text-muted-foreground premium-body">Apps/Month</div>
+              <div className="text-muted-foreground premium-body">Monthly Applications</div>
             </div>
-            <div className="text-center">
+            <div>
               <div className="text-4xl font-bold text-primary mb-2 premium-heading">2013</div>
-              <div className="text-muted-foreground premium-body">Established</div>
+              <div className="text-muted-foreground premium-body">Est. Year</div>
             </div>
-            <div className="text-center">
+            <div>
               <div className="text-4xl font-bold text-primary mb-2 premium-heading">No Spam</div>
               <div className="text-muted-foreground premium-body">Compliant</div>
             </div>
@@ -121,7 +126,7 @@ export default function HireRecruiterClient() {
       </section>
 
       {/* How It Works */}
-      <section id="how-it-works" className="py-20 px-4 sm:px-6 lg:px-8 bg-muted/30">
+      <section id="how-it-works" className="py-20 px-4 sm:px-6 lg:px-8">
         <div className="max-w-6xl mx-auto">
           <h2 className="text-3xl md:text-4xl font-bold text-center mb-12 text-foreground premium-heading">
             How It Works
@@ -142,7 +147,7 @@ export default function HireRecruiterClient() {
               </div>
               <h3 className="text-xl font-bold mb-3 text-foreground premium-heading">Upload Resume</h3>
               <p className="text-muted-foreground premium-body">
-                Share resume and job preferences with your dedicated recruiter
+                Share your resume and job preferences with your dedicated recruiter
               </p>
             </div>
             <div className="text-center">
@@ -151,7 +156,7 @@ export default function HireRecruiterClient() {
               </div>
               <h3 className="text-xl font-bold mb-3 text-foreground premium-heading">We Apply Daily</h3>
               <p className="text-muted-foreground premium-body">
-                Recruiters submit 3-30 applications per day to matching positions
+                Your recruiter submits applications to consulting and contract roles every day
               </p>
             </div>
             <div className="text-center">
@@ -160,60 +165,39 @@ export default function HireRecruiterClient() {
               </div>
               <h3 className="text-xl font-bold mb-3 text-foreground premium-heading">Track Progress</h3>
               <p className="text-muted-foreground premium-body">
-                Monitor applications in dashboard with 90% feedback success rate
+                Monitor applications via your dashboard and receive regular status reports
               </p>
             </div>
           </div>
         </div>
       </section>
 
-      {/* Benefits */}
-      <section className="py-20 px-4 sm:px-6 lg:px-8">
+      {/* Why Choose Us */}
+      <section className="py-20 px-4 sm:px-6 lg:px-8 bg-muted/30">
         <div className="max-w-6xl mx-auto">
           <h2 className="text-3xl md:text-4xl font-bold text-center mb-12 text-foreground premium-heading">
-            Why Choose STAR Workforce
+            Why Choose Our Service
           </h2>
           <div className="grid md:grid-cols-3 gap-8">
-            <Card className="p-8 border border-border">
-              <Shield className="w-12 h-12 text-primary mb-4" />
-              <h3 className="text-xl font-bold mb-3 text-foreground premium-heading">No Spam, Ever</h3>
-              <p className="text-muted-foreground premium-body">
-                Targeted submissions only to approved companies. Dual email system ensures deliverability.
-              </p>
-            </Card>
-            <Card className="p-8 border border-border">
-              <TrendingUp className="w-12 h-12 text-primary mb-4" />
-              <h3 className="text-xl font-bold mb-3 text-foreground premium-heading">90% Feedback Rate</h3>
-              <p className="text-muted-foreground premium-body">
-                Industry-leading tracking. Know where every application stands in real-time.
-              </p>
-            </Card>
-            <Card className="p-8 border border-border">
-              <Users className="w-12 h-12 text-primary mb-4" />
-              <h3 className="text-xl font-bold mb-3 text-foreground premium-heading">Expert Recruiters</h3>
-              <p className="text-muted-foreground premium-body">
-                Professional offshore recruiters with years of experience in IT and consulting.
-              </p>
-            </Card>
-            <Card className="p-8 border border-border">
-              <Clock className="w-12 h-12 text-primary mb-4" />
+            <Card className="p-8 text-center">
+              <Clock className="w-12 h-12 text-primary mx-auto mb-4" />
               <h3 className="text-xl font-bold mb-3 text-foreground premium-heading">Save 10-20 Hours/Week</h3>
               <p className="text-muted-foreground premium-body">
-                Stop spending evenings applying. Focus on interviews and preparation.
+                Stop spending hours on job boards. Your recruiter handles all applications daily.
               </p>
             </Card>
-            <Card className="p-8 border border-border">
-              <Award className="w-12 h-12 text-primary mb-4" />
-              <h3 className="text-xl font-bold mb-3 text-foreground premium-heading">Since 2013</h3>
+            <Card className="p-8 text-center">
+              <TrendingUp className="w-12 h-12 text-primary mx-auto mb-4" />
+              <h3 className="text-xl font-bold mb-3 text-foreground premium-heading">10x More Applications</h3>
               <p className="text-muted-foreground premium-body">
-                Over a decade of proven results and partnerships with major employers.
+                Apply to 90-900 positions per month vs the 10-20 most people manage manually.
               </p>
             </Card>
-            <Card className="p-8 border border-border">
-              <Check className="w-12 h-12 text-primary mb-4" />
-              <h3 className="text-xl font-bold mb-3 text-foreground premium-heading">Dashboard Tracking</h3>
+            <Card className="p-8 text-center">
+              <Shield className="w-12 h-12 text-primary mx-auto mb-4" />
+              <h3 className="text-xl font-bold mb-3 text-foreground premium-heading">DOL Compliant</h3>
               <p className="text-muted-foreground premium-body">
-                Real-time application tracking with 6-status framework and detailed analytics.
+                Non-contingent service. Services paid upfront. No placement fees. 29 CFR 1625.2.
               </p>
             </Card>
           </div>
@@ -221,21 +205,22 @@ export default function HireRecruiterClient() {
       </section>
 
       {/* Pricing Section */}
-      <section id="pricing" className="py-20 px-4 sm:px-6 lg:px-8 bg-muted/30">
+      <section id="pricing" className="py-20 px-4 sm:px-6 lg:px-8">
         <div className="max-w-6xl mx-auto">
           <h2 className="text-3xl md:text-4xl font-bold text-center mb-4 text-foreground premium-heading">
             Choose Your Plan
           </h2>
-          <p className="text-center text-muted-foreground mb-12 text-lg premium-body">
-            All plans include dashboard tracking, email support, and our 90% feedback guarantee
+          <p className="text-center text-muted-foreground mb-12 premium-body">
+            All plans include a dedicated recruiter. Cancel anytime.
           </p>
-
           <div className="grid md:grid-cols-3 gap-8">
             {tiers.map((tier) => (
               <Card
                 key={tier.id}
-                className={`p-8 border-2 transition-all hover:shadow-lg ${
-                  tier.highlighted ? "border-primary bg-primary/5" : "border-border"
+                className={`p-8 relative ${
+                  tier.highlighted
+                    ? "border-primary bg-primary/5"
+                    : "border-border"
                 }`}
               >
                 {tier.highlighted && (
@@ -247,7 +232,6 @@ export default function HireRecruiterClient() {
                 <p className="text-4xl font-bold mb-1 text-foreground premium-heading">{tier.price}</p>
                 <p className="text-sm text-muted-foreground mb-2 premium-body">{tier.applications}</p>
                 <p className="text-xs text-muted-foreground mb-6 premium-body">{tier.description}</p>
-
                 <ul className="space-y-3 mb-8">
                   {tier.features.map((feature, idx) => (
                     <li key={idx} className="flex items-start gap-2 text-foreground premium-body">
@@ -256,15 +240,13 @@ export default function HireRecruiterClient() {
                     </li>
                   ))}
                 </ul>
-
                 <Link href={`/contact?subject=Hire Recruiter - ${tier.name} Plan`}>
                   <Button
                     className={`w-full premium-heading ${
                       tier.highlighted
                         ? "bg-primary hover:bg-primary/90 text-primary-foreground"
-                        : ""
+                        : "bg-[#0A1A2F] hover:bg-[#132A47] text-white border border-[#0A1A2F]"
                     }`}
-                    variant={tier.highlighted ? "default" : "outline"}
                   >
                     Choose {tier.name}
                   </Button>
@@ -272,6 +254,10 @@ export default function HireRecruiterClient() {
               </Card>
             ))}
           </div>
+          <p className="text-center text-xs text-muted-foreground mt-8 premium-body">
+            Services paid upfront. No placement guarantees. Non-contingent staffing service.
+            Offshore recruiters are independent contractors, not employees of STAR Workforce Solutions.
+          </p>
         </div>
       </section>
 
@@ -285,7 +271,7 @@ export default function HireRecruiterClient() {
             Join professionals who stopped applying manually and started getting results
           </p>
           <Link href="#pricing">
-            <Button 
+            <Button
               className="bg-[#E8C547] hover:bg-[#D4AF37] text-[#0A1A2F] font-bold py-6 px-12 text-lg premium-heading"
               size="lg"
             >
@@ -296,6 +282,7 @@ export default function HireRecruiterClient() {
         </div>
       </section>
 
+      <Footer />
     </div>
   )
 }
