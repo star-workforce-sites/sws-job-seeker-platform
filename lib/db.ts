@@ -4,6 +4,17 @@ import process from "process"
 // Database utility functions for STAR Workforce Solutions
 // Uses Vercel Postgres with connection pooling
 
+/**
+ * Returns the database connection URL, checking DATABASE_URL first
+ * then falling back to POSTGRES_URL. Use this everywhere instead of
+ * directly referencing process.env.DATABASE_URL.
+ */
+export function getDbUrl(): string {
+  const url = process.env.DATABASE_URL || process.env.POSTGRES_URL
+  if (!url) throw new Error("No database URL configured (DATABASE_URL or POSTGRES_URL)")
+  return url
+}
+
 export interface User {
   id: string
   name: string | null

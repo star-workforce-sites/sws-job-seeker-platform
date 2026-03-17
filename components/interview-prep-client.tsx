@@ -48,6 +48,14 @@ export default function InterviewPrepClient() {
     percentage: string
     details: Result[]
   } | null>(null)
+  const [isPremium, setIsPremium] = useState(false)
+  const [questionLimit, setQuestionLimit] = useState(5)
+  const [purchaseLoading, setPurchaseLoading] = useState(false)
+  const [interviewReadiness, setInterviewReadiness] = useState<{
+    readinessLevel: string
+    score: number
+    recommendations: string[]
+  } | null>(null)
 
   const handleStart = async () => {
     if (!jobDescription.trim() || !email.trim()) {
@@ -69,6 +77,8 @@ export default function InterviewPrepClient() {
         setSessionId(data.sessionId)
         setSkills(data.skills)
         setQuestions(data.questions)
+        setIsPremium(data.isPremium || false)
+        setQuestionLimit(data.questionLimit || 5)
         setStep("quiz")
       } else {
         alert(data.error || "Failed to start interview prep")
@@ -107,7 +117,7 @@ export default function InterviewPrepClient() {
       const response = await fetch("/api/interview-prep-submit", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ sessionId, answers }),
+        body: JSON.stringify({ sessionId, answers, email }),
       })
 
       const data = await response.json()
@@ -119,6 +129,10 @@ export default function InterviewPrepClient() {
           percentage: data.percentage,
           details: data.results,
         })
+        if (data.isPremium && data.interviewReadiness) {
+          setInterviewReadiness(data.interviewReadiness)
+        }
+        setIsPremium(data.isPremium || false)
         setStep("results")
       } else {
         alert(data.error || "Failed to submit answers")
@@ -140,6 +154,37 @@ export default function InterviewPrepClient() {
     setCurrentQuestionIndex(0)
     setUserAnswers({})
     setResults(null)
+    setIsPremium(false)
+    setQuestionLimit(5)
+    setInterviewReadiness(null)
+  }
+
+  const handlePurchase = async () => {
+    if (!email) {
+      alert("Please enter your email first")
+      return
+    }
+    setPurchaseLoading(true)
+    try {
+      const response = await fetch("/api/interview-prep-purchase", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email }),
+      })
+      const data = await response.json()
+      if (data.checkoutUrl) {
+        window.location.href = data.checkoutUrl
+      } else if (data.alreadyPurchased) {
+        setIsPremium(true)
+        alert("You already have premium access! Restart your session to get full results.")
+      } else {
+        alert(data.error || "Failed to start purchase")
+      }
+    } catch (error) {
+      alert("An error occurred. Please try again.")
+    } finally {
+      setPurchaseLoading(false)
+    }
   }
 
   const currentQuestion = questions[currentQuestionIndex]
@@ -212,26 +257,49 @@ export default function InterviewPrepClient() {
                   {loading ? "Analyzing..." : "Start Interview Practice"}
                 </Button>
 
-                <div className="bg-[#E8C547]/10 border border-[#E8C547] rounded-lg p-4">
-                  <h3 className="font-semibold text-foreground mb-2 premium-heading">What You'll Get:</h3>
-                  <ul className="space-y-2 text-sm text-muted-foreground premium-body">
-                    <li className="flex items-start gap-2">
-                      <CheckCircle className="w-5 h-5 text-[#E8C547] flex-shrink-0 mt-0.5" />
-                      <span>10 multiple-choice questions tailored to the job description</span>
-                    </li>
-                    <li className="flex items-start gap-2">
-                      <CheckCircle className="w-5 h-5 text-[#E8C547] flex-shrink-0 mt-0.5" />
-                      <span>Instant scoring and feedback with correct answers</span>
-                    </li>
-                    <li className="flex items-start gap-2">
-                      <CheckCircle className="w-5 h-5 text-[#E8C547] flex-shrink-0 mt-0.5" />
-                      <span>Unlimited practice sessions - test yourself as many times as you want</span>
-                    </li>
-                    <li className="flex items-start gap-2">
-                      <CheckCircle className="w-5 h-5 text-[#E8C547] flex-shrink-0 mt-0.5" />
-                      <span>100% FREE - No credit card required</span>
-                    </li>
-                  </ul>
+                <div className="space-y-4">
+                  <div className="bg-[#E8C547]/10 border border-[#E8C547] rounded-lg p-4">
+                    <h3 className="font-semibold text-foreground mb-2 premium-heading">Free Tier:</h3>
+                    <ul className="space-y-2 text-sm text-muted-foreground premium-body">
+                      <li className="flex items-start gap-2">
+                        <CheckCircle className="w-5 h-5 text-[#E8C547] flex-shrink-0 mt-0.5" />
+                        <span>5 multiple-choice questions tailored to the job description</span>
+                      </li>
+                      <li className="flex items-start gap-2">
+                        <CheckCircle className="w-5 h-5 text-[#E8C547] flex-shrink-0 mt-0.5" />
+                        <span>Instant scoring with correct/incorrect indicators</span>
+                      </li>
+                      <li className="flex items-start gap-2">
+                        <CheckCircle className="w-5 h-5 text-[#E8C547] flex-shrink-0 mt-0.5" />
+                        <span>Unlimited practice sessions</span>
+                      </li>
+                    </ul>
+                  </div>
+
+                  <div className="bg-gradient-to-br from-[#0A1A2F] to-[#132A47] rounded-lg p-4 text-white">
+                    <div className="flex items-center justify-between mb-2">
+                      <h3 className="font-semibold premium-heading">Premium — $9 (or $5 with bundle)</h3>
+                      <span className="text-xs bg-[#E8C547] text-[#0A1A2F] px-2 py-1 rounded font-bold">ONE-TIME</span>
+                    </div>
+                    <ul className="space-y-2 text-sm text-white/80 premium-body">
+                      <li className="flex items-start gap-2">
+                        <CheckCircle className="w-5 h-5 text-[#E8C547] flex-shrink-0 mt-0.5" />
+                        <span>40 interview questions per session</span>
+                      </li>
+                      <li className="flex items-start gap-2">
+                        <CheckCircle className="w-5 h-5 text-[#E8C547] flex-shrink-0 mt-0.5" />
+                        <span>Detailed explanations for every answer</span>
+                      </li>
+                      <li className="flex items-start gap-2">
+                        <CheckCircle className="w-5 h-5 text-[#E8C547] flex-shrink-0 mt-0.5" />
+                        <span>Interview Readiness Report with personalized recommendations</span>
+                      </li>
+                      <li className="flex items-start gap-2">
+                        <CheckCircle className="w-5 h-5 text-[#E8C547] flex-shrink-0 mt-0.5" />
+                        <span>$5 bundle price if you already have ATS Optimizer or Cover Letter</span>
+                      </li>
+                    </ul>
+                  </div>
                 </div>
               </div>
             </Card>
@@ -344,6 +412,27 @@ export default function InterviewPrepClient() {
                 </p>
               </Card>
 
+              {/* Upgrade Prompt for Free Users */}
+              {!isPremium && (
+                <Card className="p-6 bg-gradient-to-br from-[#0A1A2F] to-[#132A47] text-white">
+                  <div className="text-center">
+                    <Award className="w-12 h-12 mx-auto mb-3 text-[#E8C547]" />
+                    <h3 className="text-xl font-bold mb-2 premium-heading">Unlock Full Results</h3>
+                    <p className="text-white/80 mb-4 premium-body">
+                      Upgrade to Premium for detailed explanations, correct answers, and a personalized Interview Readiness Report.
+                    </p>
+                    <Button
+                      onClick={handlePurchase}
+                      disabled={purchaseLoading}
+                      className="bg-[#E8C547] hover:bg-[#D4AF37] text-[#0A1A2F] font-bold px-8"
+                    >
+                      {purchaseLoading ? "Processing..." : "Upgrade for $9"}
+                    </Button>
+                    <p className="text-xs text-white/60 mt-2">One-time payment. $5 if you have ATS or Cover Letter.</p>
+                  </div>
+                </Card>
+              )}
+
               {/* Detailed Results */}
               <Card className="p-8">
                 <h3 className="text-2xl font-bold mb-6 text-foreground premium-heading">Question Breakdown</h3>
@@ -371,7 +460,7 @@ export default function InterviewPrepClient() {
                             </p>
                             <p className="text-sm text-muted-foreground mb-2">
                               Your answer: <span className="font-semibold">{userAnswers[question.id]}</span>
-                              {!result.isCorrect && (
+                              {result.correctAnswer && !result.isCorrect && (
                                 <>
                                   {" "}
                                   | Correct answer:{" "}
@@ -389,6 +478,38 @@ export default function InterviewPrepClient() {
                   })}
                 </div>
               </Card>
+
+              {/* Interview Readiness Report for Premium Users */}
+              {isPremium && interviewReadiness && (
+                <Card className="p-8">
+                  <h3 className="text-2xl font-bold mb-4 text-foreground premium-heading">Interview Readiness Report</h3>
+                  <div className="flex items-center gap-4 mb-6">
+                    <div className={`text-3xl font-bold premium-heading ${
+                      interviewReadiness.score >= 80 ? 'text-green-600' :
+                      interviewReadiness.score >= 60 ? 'text-yellow-600' : 'text-red-600'
+                    }`}>
+                      {interviewReadiness.score}%
+                    </div>
+                    <div>
+                      <p className={`font-bold text-lg ${
+                        interviewReadiness.score >= 80 ? 'text-green-600' :
+                        interviewReadiness.score >= 60 ? 'text-yellow-600' : 'text-red-600'
+                      }`}>
+                        {interviewReadiness.readinessLevel}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="space-y-3">
+                    <h4 className="font-semibold text-foreground premium-heading">Recommendations:</h4>
+                    {interviewReadiness.recommendations.map((rec, idx) => (
+                      <div key={idx} className="flex items-start gap-2 text-muted-foreground premium-body">
+                        <CheckCircle className="w-5 h-5 text-[#E8C547] flex-shrink-0 mt-0.5" />
+                        <span className="text-sm">{rec}</span>
+                      </div>
+                    ))}
+                  </div>
+                </Card>
+              )}
 
               {/* Try Again Button */}
               <Button

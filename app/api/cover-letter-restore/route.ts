@@ -6,7 +6,7 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || "", {
   apiVersion: "2024-11-20.acacia",
 })
 
-const COVER_LETTER_PRICE_ID = "price_1SWUhp04KnTBJoOrG8W8C8OK"
+const COVER_LETTER_PRICE_ID = process.env.STRIPE_PRICE_COVER_LETTER!
 
 export async function POST(request: NextRequest) {
   try {

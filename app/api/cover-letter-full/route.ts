@@ -3,8 +3,9 @@ export const revalidate = 0
 
 import { type NextRequest, NextResponse } from "next/server"
 import { sql } from "@vercel/postgres"
+import { generateCoverLetter } from "@/lib/cover-letter-ai"
 
-const COVER_LETTER_PRICE_ID = "price_1SWUhp04KnTBJoOrG8W8C8OK"
+const COVER_LETTER_PRICE_ID = process.env.STRIPE_PRICE_COVER_LETTER!
 
 export async function POST(request: NextRequest) {
   try {
@@ -19,8 +20,9 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Cover Letter ID required" }, { status: 400 })
     }
 
+    // Premium access check
     const premiumCheck = await sql`
-      SELECT id, email FROM premium_access 
+      SELECT id, email FROM premium_access
       WHERE LOWER(email) = LOWER(${email})
       AND "priceId" = ${COVER_LETTER_PRICE_ID}
       LIMIT 1
@@ -33,8 +35,9 @@ export async function POST(request: NextRequest) {
 
     console.log(`[COVER-FULL ${requestId}] Premium access confirmed`)
 
+    // Fetch cover letter data
     const result = await sql`
-      SELECT job_description, resume_filename
+      SELECT job_description, resume_url, resume_filename, generated_cover_letter
       FROM cover_letter_uploads
       WHERE id = ${coverLetterId}
       LIMIT 1
@@ -45,36 +48,68 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Cover letter data not found" }, { status: 404 })
     }
 
-    const { job_description } = result.rows[0]
+    const { job_description, resume_url, generated_cover_letter } = result.rows[0]
 
     if (!job_description || job_description.trim().length === 0) {
       console.error(`[COVER-FULL ${requestId}] Missing job description`)
       return NextResponse.json({ error: "Upload resume and job description first." }, { status: 400 })
     }
 
-    const jobTitle = extractJobTitle(job_description) || "the position"
-    const company = extractCompanyName(job_description) || "your organization"
+    // Check for cached AI cover letter
+    let coverLetterData = null
+    if (generated_cover_letter) {
+      try {
+        coverLetterData = typeof generated_cover_letter === 'string'
+          ? JSON.parse(generated_cover_letter)
+          : generated_cover_letter
+        if (coverLetterData && coverLetterData.coverLetter) {
+          console.log(`[COVER-FULL ${requestId}] Using CACHED AI cover letter`)
+        } else {
+          coverLetterData = null
+        }
+      } catch (e) {
+        console.log(`[COVER-FULL ${requestId}] Cache parse failed, regenerating`)
+        coverLetterData = null
+      }
+    }
 
-    const fullCoverLetter = `Dear Hiring Manager,
+    // If no cache, generate fresh AI cover letter
+    if (!coverLetterData) {
+      console.log(`[COVER-FULL ${requestId}] Generating FRESH AI cover letter`)
 
-I am writing to express my strong interest in the ${jobTitle} role at ${company}. With my background and experience directly aligned with the requirements outlined in your job description, I am confident I would be an excellent addition to your team.
+      let resumeText = ''
+      try {
+        if (resume_url) {
+          const res = await fetch(resume_url)
+          const buffer = await res.arrayBuffer()
+          resumeText = Buffer.from(buffer).toString('utf-8')
+          resumeText = resumeText.replace(/[^\x20-\x7E\n\r\t]/g, ' ').replace(/\s+/g, ' ').trim()
+        }
+      } catch (e) {
+        console.error(`[COVER-FULL ${requestId}] Resume fetch failed:`, e)
+        resumeText = 'Resume content unavailable'
+      }
 
-Throughout my career, I have developed expertise in the key areas you've highlighted. My hands-on experience and proven track record demonstrate my ability to deliver results and contribute meaningfully from day one. I am particularly drawn to this opportunity because it aligns perfectly with my professional goals and passion for excellence in this field.
+      coverLetterData = await generateCoverLetter(resumeText, job_description)
 
-In my previous roles, I have consistently exceeded expectations by leveraging my skills to solve complex problems and drive innovation. I am excited about the possibility of bringing this same dedication and expertise to ${company}. My approach combines technical proficiency with strong communication and collaboration skills, enabling me to work effectively across diverse teams.
+      // Cache the result
+      try {
+        await sql`
+          UPDATE cover_letter_uploads
+          SET generated_cover_letter = ${JSON.stringify(coverLetterData)}
+          WHERE id = ${coverLetterId}
+        `
+        console.log(`[COVER-FULL ${requestId}] Cover letter cached`)
+      } catch (e) {
+        console.error(`[COVER-FULL ${requestId}] Cache write failed:`, e)
+      }
+    }
 
-I would welcome the opportunity to discuss how my background, skills, and enthusiasms align with your team's needs. Thank you for considering my application. I look forward to the possibility of contributing to ${company}'s continued success.
-
-Sincerely,
-[Your Name]`
-
-    const toneScore = 85 + Math.floor(Math.random() * 15)
-
-    console.log(`[COVER-FULL ${requestId}] Successfully generated cover letter`)
+    console.log(`[COVER-FULL ${requestId}] Successfully returning full cover letter`)
 
     const response = NextResponse.json({
-      coverLetter: fullCoverLetter,
-      toneScore,
+      coverLetter: coverLetterData.coverLetter,
+      toneScore: coverLetterData.toneScore || 85,
       isPremium: true,
     })
 
@@ -99,39 +134,4 @@ Sincerely,
       { status: 500 },
     )
   }
-}
-
-function extractJobTitle(jobDescription: string): string | null {
-  const patterns = [
-    /(?:job\s+title|position|role|hiring\s+for)[:\s]+([^\n,]+)/i,
-    /(?:^|\n)([A-Z][^\n,]{5,50})(?:\s+[-–]\s+|\s+at\s+|\n)/,
-  ]
-
-  for (const pattern of patterns) {
-    const match = jobDescription.match(pattern)
-    if (match && match[1]) {
-      return match[1].trim()
-    }
-  }
-
-  return null
-}
-
-function extractCompanyName(jobDescription: string): string | null {
-  const patterns = [
-    /(?:company|organization)[:\s]+([^\n,]+)/i,
-    /(?:at|with)\s+([A-Z][A-Za-z0-9\s&.,-]{2,50})(?:\s+is\s+|\s+seeks\s+|\n|,)/,
-  ]
-
-  for (const pattern of patterns) {
-    const match = jobDescription.match(pattern)
-    if (match && match[1]) {
-      const name = match[1].trim()
-      if (!["the", "our", "this", "a", "an"].includes(name.toLowerCase())) {
-        return name
-      }
-    }
-  }
-
-  return null
 }

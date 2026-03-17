@@ -1,10 +1,11 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { neon } from "@neondatabase/serverless"
+import { getDbUrl } from "@/lib/db"
 
 export const dynamic = "force-dynamic"
 export const revalidate = 0
 
-const sql = neon(process.env.DATABASE_URL!)
+const sql = neon(getDbUrl())
 
 export async function POST(request: NextRequest) {
   try {
@@ -12,6 +13,22 @@ export async function POST(request: NextRequest) {
 
     if (!jobDescription || !email) {
       return NextResponse.json({ error: "Job description and email required" }, { status: 400 })
+    }
+
+    // Check if user has premium access for interview-prep
+    let isPremium = false
+    try {
+      const premiumCheck = await sql`
+        SELECT id FROM premium_access
+        WHERE LOWER(email) = LOWER(${email})
+        AND product = 'interview-prep'
+        LIMIT 1
+      `
+      isPremium = premiumCheck.length > 0
+      console.log("[INTERVIEW-START] Premium check for", email, ":", isPremium)
+    } catch (e) {
+      console.log("[INTERVIEW-START] Premium check error (treating as free):", e)
+      isPremium = false
     }
 
     // Extract skills from job description using simple keyword matching
@@ -37,12 +54,15 @@ export async function POST(request: NextRequest) {
       detectedSkills.push("Software Engineering")
     }
 
-    // Fetch 10 questions matching detected skills
+    // Determine question limit based on premium status
+    const questionLimit = isPremium ? 40 : 5
+
+    // Fetch questions matching detected skills
     const questions = await sql`
-      SELECT * FROM interview_questions 
+      SELECT * FROM interview_questions
       WHERE skill = ANY(${detectedSkills})
       ORDER BY RANDOM()
-      LIMIT 10
+      LIMIT ${questionLimit}
     `
 
     // If not enough questions exist, we'd generate new ones here
@@ -65,6 +85,8 @@ export async function POST(request: NextRequest) {
       success: true,
       sessionId: session[0].id,
       skills: detectedSkills,
+      isPremium: isPremium,
+      questionLimit: questionLimit,
       questions: questions.map((q) => ({
         id: q.id,
         skill: q.skill,

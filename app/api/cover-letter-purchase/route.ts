@@ -15,7 +15,7 @@ export async function POST(request: NextRequest) {
       payment_method_types: ["card"],
       line_items: [
         {
-          price: "price_1SWUhp04KnTBJoOrG8W8C8OK", // Exact Price ID from user's Stripe dashboard
+          price: process.env.STRIPE_PRICE_COVER_LETTER!,
           quantity: 1,
         },
       ],

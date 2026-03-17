@@ -3,6 +3,7 @@ import Stripe from 'stripe';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { neon } from '@neondatabase/serverless';
+import { getDbUrl } from '@/lib/db';
 
 // Initialize Stripe
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
@@ -10,7 +11,7 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
 });
 
 // Initialize Neon database
-const sql = neon(process.env.DATABASE_URL!);
+const sql = neon(getDbUrl());
 
 // Price IDs from environment variables
 const SUBSCRIPTION_PRICES: Record<string, string | undefined> = {

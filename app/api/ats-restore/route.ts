@@ -7,7 +7,7 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || "", {
 })
 
 // ATS Optimizer specific price ID
-const ATS_PRICE_ID = "price_1SVd4E04KnTBJoOrBcQTH6T5"
+const ATS_PRICE_ID = process.env.STRIPE_PRICE_ATS_OPTIMIZER!
 
 export async function POST(request: NextRequest) {
   try {

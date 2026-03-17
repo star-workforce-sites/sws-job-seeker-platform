@@ -3,6 +3,7 @@ export const revalidate = 0
 
 import { type NextRequest, NextResponse } from "next/server"
 import { sql } from "@vercel/postgres"
+import { generateATSAnalysis } from "@/lib/ats-ai-analysis"
 
 export async function POST(request: NextRequest) {
   try {
@@ -29,7 +30,7 @@ export async function POST(request: NextRequest) {
         SELECT id, email, "stripeCustomerId", "paidAt" 
         FROM premium_access
         WHERE LOWER(email) = LOWER(${email})
-        AND "priceId" = 'price_1SVd4E04KnTBJoOrBcQTH6T5'
+        AND "priceId" = ${process.env.STRIPE_PRICE_ATS_OPTIMIZER!}
         LIMIT 1
       `
 
@@ -50,7 +51,7 @@ export async function POST(request: NextRequest) {
     console.log(`[ATS ${requestId}] Access GRANTED - proceeding with full analysis`)
 
     const result = await sql`
-      SELECT "fileContent", "fileType", "fileName"
+      SELECT "fileContent", "fileType", "fileName", "analysisCache"
       FROM resume_uploads
       WHERE id = ${resumeId}
       LIMIT 1
@@ -62,166 +63,64 @@ export async function POST(request: NextRequest) {
 
     const resume = result.rows[0]
 
-    console.log(`[ATS ${requestId}] Generating FRESH FULL analysis for:`, resume.fileName)
-
-    const fileContentHash = Buffer.from(resume.fileContent).toString("base64").substring(0, 20)
-    const timestampSeed = Date.now() % 1000
-    const uniqueSeed = (Number.parseInt(fileContentHash, 36) + timestampSeed) % 100
-
-    console.log(`[ATS ${requestId}] Content hash:`, fileContentHash.substring(0, 10), "Seed:", uniqueSeed)
-
-    const dynamicScore = 60 + (uniqueSeed % 25)
-
-    const keywordOptions = [
-      [
-        "Cloud Computing",
-        "Kubernetes",
-        "Docker",
-        "CI/CD Pipeline",
-        "Agile Methodology",
-        "Python",
-        "AWS Lambda",
-        "Terraform",
-        "Jenkins",
-        "Ansible",
-      ],
-      [
-        "Machine Learning",
-        "TensorFlow",
-        "PyTorch",
-        "Data Science",
-        "SQL",
-        "R Programming",
-        "Statistical Analysis",
-        "Deep Learning",
-        "NLP",
-        "Computer Vision",
-      ],
-      [
-        "React",
-        "TypeScript",
-        "Node.js",
-        "GraphQL",
-        "Next.js",
-        "MongoDB",
-        "Redis",
-        "WebSockets",
-        "OAuth",
-        "JWT Authentication",
-      ],
-      [
-        "DevOps Engineering",
-        "Container Orchestration",
-        "Continuous Integration",
-        "Infrastructure as Code",
-        "Configuration Management",
-        "Prometheus Monitoring",
-        "Grafana",
-        "ELK Stack",
-        "GitOps",
-        "Service Mesh",
-      ],
-      [
-        "Cybersecurity",
-        "Penetration Testing",
-        "SIEM",
-        "Firewall Configuration",
-        "Intrusion Detection Systems",
-        "Compliance Auditing",
-        "Risk Assessment",
-        "Cryptography",
-        "Zero Trust Architecture",
-        "SOC Operations",
-      ],
-    ]
-
-    const selectedKeywords = keywordOptions[uniqueSeed % keywordOptions.length]
-
-    const fullResult = {
-      score: dynamicScore,
-      isPremium: true,
-      keywords: {
-        missing: selectedKeywords,
-        found: [
-          "JavaScript",
-          "React",
-          "Node.js",
-          "TypeScript",
-          "Git",
-          "Communication",
-          "Leadership",
-          "Problem Solving",
-        ],
-      },
-      formatting: [
-        { issue: "Missing contact information in standard format", severity: "high" as const },
-        { issue: "Inconsistent date formatting across work experience", severity: "medium" as const },
-        { issue: "Use of tables or columns may not parse correctly", severity: "high" as const },
-        { issue: "Missing section headers for education", severity: "medium" as const },
-        { issue: "Resume contains graphics or images", severity: "medium" as const },
-        { issue: "Font size inconsistent across sections", severity: "low" as const },
-      ],
-      tips: [
-        "Add more industry-specific keywords from the job description to increase ATS match score",
-        "Use standard section headers: Professional Summary, Experience, Education, Skills, Certifications",
-        "Quantify achievements with specific metrics and percentages (e.g., 'Increased sales by 35%')",
-        "Remove graphics, tables, and complex formatting that ATS systems cannot parse",
-        "Use bullet points instead of paragraphs for better readability and ATS parsing",
-        "Include relevant certifications and professional development courses",
-        "Add a LinkedIn profile URL and professional portfolio link if applicable",
-        "Ensure consistent formatting: same font, spacing, and bullet point style throughout",
-        "Include action verbs at the start of each bullet point (Led, Managed, Developed, Implemented)",
-        "Tailor your resume for each job application by matching keywords from the job description",
-      ],
-      sections: [
-        { name: "Contact Information", score: 85 },
-        { name: "Professional Summary", score: 60 + (uniqueSeed % 20) },
-        { name: "Work Experience", score: 70 + (uniqueSeed % 15) },
-        { name: "Education", score: 55 + (uniqueSeed % 25) },
-        { name: "Skills", score: 75 + (uniqueSeed % 20) },
-        { name: "Certifications", score: 50 + (uniqueSeed % 30) },
-      ],
-      jobAlignmentContract: 68 + (uniqueSeed % 25),
-      jobAlignmentFullTime: 72 + (uniqueSeed % 20),
-      missingCertifications: [
-        "AWS Certified Solutions Architect",
-        "Certified Kubernetes Administrator (CKA)",
-        "Project Management Professional (PMP)",
-        "Certified ScrumMaster (CSM)",
-        "CompTIA Security+",
-      ],
-      recommendedTraining: [
-        "Advanced Cloud Architecture Design Course",
-        "Leadership and Management for Technical Professionals",
-        "Data-Driven Decision Making Workshop",
-        "Agile Project Management Certification Prep",
-      ],
-      salaryRangeEstimate: {
-        min: 85000 + uniqueSeed * 1000,
-        max: 125000 + uniqueSeed * 1500,
-        currency: "USD",
-        note: "Based on your skills, experience level, and current market trends",
-      },
-      topHiringCompanies: [
-        "Amazon Web Services (AWS)",
-        "Microsoft Azure",
-        "Google Cloud Platform",
-        "Meta (Facebook)",
-        "Apple",
-        "Netflix",
-        "Tesla",
-        "Salesforce",
-        "Adobe",
-        "IBM Cloud",
-      ],
-      careerRoadmap: [
-        "Short-term (0-3 months): Obtain 1-2 industry certifications to strengthen your profile and increase ATS keyword matches",
-        "Mid-term (3-6 months): Build a portfolio of 3-5 projects showcasing your skills in cloud computing, automation, or relevant technologies",
-        "Long-term (6-12 months): Apply for senior-level positions or specialized roles that align with your newly acquired certifications and project experience",
-      ],
+    // Check for cached analysis first
+    if (resume.analysisCache) {
+      try {
+        const cached = typeof resume.analysisCache === 'string'
+          ? JSON.parse(resume.analysisCache)
+          : resume.analysisCache
+        if (cached && cached.score && cached.keywords) {
+          console.log(`[ATS ${requestId}] Returning CACHED AI analysis`)
+          cached.isPremium = true
+          const response = NextResponse.json(cached)
+          response.headers.set(
+            "Cache-Control",
+            "no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0, s-maxage=0",
+          )
+          response.headers.set("Pragma", "no-cache")
+          response.headers.set("Expires", "0")
+          response.headers.set("X-Vercel-Cache", "MISS")
+          response.headers.set("CDN-Cache-Control", "no-store")
+          response.headers.set("Surrogate-Control", "no-store")
+          response.headers.set("X-Request-ID", requestId)
+          return response
+        }
+      } catch (e) {
+        console.log(`[ATS ${requestId}] Cache parse failed, regenerating`)
+      }
     }
 
-    console.log(`[ATS ${requestId}] Analysis complete. Score:`, dynamicScore, "Keywords:", selectedKeywords[0])
+    // Extract text from resume
+    let resumeText = ''
+    try {
+      const buffer = Buffer.from(resume.fileContent, 'base64')
+      resumeText = buffer.toString('utf-8')
+      // Clean up non-printable characters
+      resumeText = resumeText.replace(/[^\x20-\x7E\n\r\t]/g, ' ').replace(/\s+/g, ' ').trim()
+    } catch (e) {
+      console.error(`[ATS ${requestId}] Text extraction failed:`, e)
+      resumeText = 'Unable to extract text from resume'
+    }
+
+    // Generate AI analysis
+    console.log(`[ATS ${requestId}] Generating AI analysis (${resumeText.length} chars)`)
+    const analysis = await generateATSAnalysis(resumeText)
+
+    // Cache the result
+    try {
+      await sql`
+        UPDATE resume_uploads
+        SET "analysisCache" = ${JSON.stringify(analysis)}::jsonb
+        WHERE id = ${resumeId}
+      `
+      console.log(`[ATS ${requestId}] Analysis cached`)
+    } catch (e) {
+      console.error(`[ATS ${requestId}] Cache write failed:`, e)
+    }
+
+    const fullResult = analysis
+
+    console.log(`[ATS ${requestId}] Analysis complete. Score:`, analysis.score)
 
     const response = NextResponse.json(fullResult)
 
@@ -236,7 +135,7 @@ export async function POST(request: NextRequest) {
     response.headers.set("Surrogate-Control", "no-store")
     response.headers.set("X-Request-ID", requestId)
 
-    console.log(`[ATS ${requestId}] Response sent with score ${dynamicScore}`)
+    console.log(`[ATS ${requestId}] Response sent with score ${analysis.score}`)
 
     return response
   } catch (error: any) {

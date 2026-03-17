@@ -3,12 +3,13 @@ import Stripe from "stripe"
 import { sql } from "@vercel/postgres"
 import { neon } from "@neondatabase/serverless"
 import { sendSubscriptionConfirmationEmail, sendAdminNotificationEmail, getPlanDetails } from "@/lib/send-recruiter-emails"
+import { getDbUrl } from "@/lib/db"
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || "", {
   apiVersion: "2024-11-20.acacia",
 })
 
-const sqlNeon = neon(process.env.DATABASE_URL!)
+const sqlNeon = neon(getDbUrl())
 
 // Price IDs
 const NEW_PRICE_IDS = {

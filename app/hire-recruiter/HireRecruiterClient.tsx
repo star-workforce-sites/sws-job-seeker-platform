@@ -1,5 +1,6 @@
 "use client"
 
+import { useState } from "react"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
@@ -8,6 +9,32 @@ import Footer from "@/components/footer"
 import { Check, Users, TrendingUp, Shield, Clock, Award, ArrowRight } from "lucide-react"
 
 export default function HireRecruiterClient() {
+  const [checkoutLoading, setCheckoutLoading] = useState<string | null>(null)
+
+  const handleSubscribe = async (tierId: string) => {
+    setCheckoutLoading(tierId)
+    try {
+      const response = await fetch('/api/checkout/subscription', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ subscriptionType: `recruiter_${tierId}` }),
+      })
+      const data = await response.json()
+      if (data.url) {
+        window.location.href = data.url
+      } else if (response.status === 401) {
+        // Redirect to sign in
+        window.location.href = '/auth/login?callbackUrl=/hire-recruiter'
+      } else {
+        alert(data.error || 'Failed to start checkout')
+      }
+    } catch (error) {
+      alert('An error occurred. Please try again.')
+    } finally {
+      setCheckoutLoading(null)
+    }
+  }
+
   const tiers = [
     {
       id: "basic",
@@ -67,10 +94,10 @@ export default function HireRecruiterClient() {
       <section className="abstract-gradient text-primary-foreground py-20 px-4 sm:px-6 lg:px-8 relative">
         <div className="max-w-6xl mx-auto text-center relative z-10">
           <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold mb-6 text-white premium-heading">
-            Hire a Dedicated Recruiter
+            Hire a Dedicated Offshore Recruiter for Your Job Search
           </h1>
           <p className="text-xl md:text-2xl mb-4 text-white/90 premium-body">
-            90-900 Job Applications on Autopilot
+            Job Application Automation Service — 90 to 900 Applications per Month
           </p>
           <p className="text-lg text-white/80 max-w-2xl mx-auto mb-8 premium-body">
             Professional recruiters submit applications daily for consulting and contract positions.
@@ -210,6 +237,9 @@ export default function HireRecruiterClient() {
           <h2 className="text-3xl md:text-4xl font-bold text-center mb-4 text-foreground premium-heading">
             Choose Your Plan
           </h2>
+          <p className="text-center text-sm font-medium text-[#E8C547] mb-8 premium-heading">
+            Monthly Subscription — Dedicated Recruiter Service
+          </p>
           <p className="text-center text-muted-foreground mb-12 premium-body">
             All plans include a dedicated recruiter. Cancel anytime.
           </p>
@@ -240,17 +270,17 @@ export default function HireRecruiterClient() {
                     </li>
                   ))}
                 </ul>
-                <Link href={`/contact?subject=Hire Recruiter - ${tier.name} Plan`}>
-                  <Button
-                    className={`w-full premium-heading ${
-                      tier.highlighted
-                        ? "bg-primary hover:bg-primary/90 text-primary-foreground"
-                        : "bg-[#0A1A2F] hover:bg-[#132A47] text-white border border-[#0A1A2F]"
-                    }`}
-                  >
-                    Choose {tier.name}
-                  </Button>
-                </Link>
+                <Button
+                  onClick={() => handleSubscribe(tier.id)}
+                  disabled={checkoutLoading !== null}
+                  className={`w-full premium-heading ${
+                    tier.highlighted
+                      ? "bg-primary hover:bg-primary/90 text-primary-foreground"
+                      : "bg-[#0A1A2F] hover:bg-[#132A47] text-white border border-[#0A1A2F]"
+                  }`}
+                >
+                  {checkoutLoading === tier.id ? "Processing..." : `Subscribe to ${tier.name}`}
+                </Button>
               </Card>
             ))}
           </div>
@@ -258,6 +288,57 @@ export default function HireRecruiterClient() {
             Services paid upfront. No placement guarantees. Non-contingent staffing service.
             Offshore recruiters are independent contractors, not employees of STAR Workforce Solutions.
           </p>
+        </div>
+      </section>
+
+      {/* One-Time Job Search Tools */}
+      <section className="py-20 px-4 sm:px-6 lg:px-8 bg-muted/30">
+        <div className="max-w-6xl mx-auto">
+          <h2 className="text-3xl md:text-4xl font-bold text-center mb-4 text-foreground premium-heading">
+            Boost Your Job Search with One-Time Tools
+          </h2>
+          <p className="text-center text-muted-foreground mb-12 premium-body">
+            No subscription needed. Pay once, use forever.
+          </p>
+          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+            {[
+              {
+                name: "Resume Distribution",
+                price: "$149",
+                description: "Distribute your resume to 1,000+ recruiters and hiring managers across the US",
+                href: "/tools/resume-distribution",
+              },
+              {
+                name: "Interview Prep",
+                price: "$9",
+                description: "40 AI-powered practice questions with detailed explanations and readiness report",
+                href: "/tools/interview-prep",
+              },
+              {
+                name: "ATS Resume Optimizer",
+                price: "$5",
+                description: "AI-powered ATS compatibility analysis with keyword optimization and score",
+                href: "/tools/ats-optimizer",
+              },
+              {
+                name: "Cover Letter Generator",
+                price: "$5",
+                description: "AI-generated cover letters tailored to specific job descriptions",
+                href: "/tools/cover-letter",
+              },
+            ].map((tool) => (
+              <Card key={tool.name} className="p-6 flex flex-col">
+                <h3 className="text-lg font-bold mb-1 text-foreground premium-heading">{tool.name}</h3>
+                <p className="text-2xl font-bold text-[#E8C547] mb-3 premium-heading">{tool.price}</p>
+                <p className="text-sm text-muted-foreground mb-4 flex-1 premium-body">{tool.description}</p>
+                <Link href={tool.href}>
+                  <Button variant="outline" className="w-full">
+                    Learn More
+                  </Button>
+                </Link>
+              </Card>
+            ))}
+          </div>
         </div>
       </section>
 

@@ -3,11 +3,12 @@ export const revalidate = 0
 
 import { type NextRequest, NextResponse } from "next/server"
 import { sql } from "@vercel/postgres"
+import { generateATSAnalysis } from "@/lib/ats-ai-analysis"
 
 export async function POST(request: NextRequest) {
   try {
     const requestId = crypto.randomUUID()
-    console.log(`[ATS ${requestId}] Fresh FREE request – no cache`)
+    console.log(`[ATS-FREE ${requestId}] Fresh FREE request`)
 
     const { searchParams } = new URL(request.url)
     const resumeId = searchParams.get("resumeId")
@@ -16,10 +17,10 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Resume ID required" }, { status: 400 })
     }
 
-    console.log(`[ATS ${requestId}] Resume ID:`, resumeId, "Timestamp:", new Date().toISOString())
+    console.log(`[ATS-FREE ${requestId}] Resume ID:`, resumeId, "Timestamp:", new Date().toISOString())
 
     const result = await sql`
-      SELECT "fileContent", "fileType", "fileName"
+      SELECT "fileContent", "fileType", "fileName", "analysisCache"
       FROM resume_uploads
       WHERE id = ${resumeId}
       LIMIT 1
@@ -31,96 +32,69 @@ export async function POST(request: NextRequest) {
 
     const resume = result.rows[0]
 
-    console.log(`[ATS ${requestId}] Generating FRESH analysis for:`, resume.fileName)
-
-    const fileContentHash = Buffer.from(resume.fileContent).toString("base64").substring(0, 20)
-    const timestampSeed = Date.now() % 1000
-    const uniqueSeed = (Number.parseInt(fileContentHash, 36) + timestampSeed) % 100
-
-    console.log(`[ATS ${requestId}] Content hash:`, fileContentHash.substring(0, 10), "Seed:", uniqueSeed)
-
-    const keywordSets = [
-      ["Cloud Infrastructure", "Kubernetes Orchestration", "Docker Containers", "CI/CD Automation", "Scrum Agile"],
-      ["AI Machine Learning", "Python Programming", "TensorFlow Framework", "Big Data Analytics", "SQL Databases"],
-      ["React Framework", "TypeScript Language", "Node.js Backend", "GraphQL API", "AWS Services"],
-      ["DevOps Culture", "Jenkins Pipelines", "Terraform IaC", "Ansible Automation", "Prometheus Monitoring"],
-      ["Information Security", "Network Protection", "Ethical Hacking", "SIEM Tools", "Compliance Standards"],
-    ]
-
-    const formattingIssues = [
-      [
-        { issue: "Missing contact information in standard format", severity: "high" as const },
-        { issue: "Inconsistent date formatting across work experience", severity: "medium" as const },
-      ],
-      [
-        { issue: "Use of tables or columns may not parse correctly", severity: "high" as const },
-        { issue: "Missing section headers for education", severity: "medium" as const },
-      ],
-      [
-        { issue: "Resume contains graphics or images", severity: "high" as const },
-        { issue: "Bullet points not properly formatted", severity: "low" as const },
-      ],
-    ]
-
-    const tipsSets = [
-      [
-        "Add more industry-specific keywords from the job description",
-        "Use standard section headers: Experience, Education, Skills",
-      ],
-      [
-        "Quantify achievements with specific metrics and percentages",
-        "Remove graphics, tables, and complex formatting",
-      ],
-      ["Use bullet points instead of paragraphs", "Include relevant certifications and technical skills"],
-    ]
-
-    const selectedKeywords = keywordSets[uniqueSeed % keywordSets.length]
-    const selectedFormatting = formattingIssues[uniqueSeed % formattingIssues.length]
-    const selectedTips = tipsSets[uniqueSeed % tipsSets.length]
-
-    const dynamicScore = 60 + (uniqueSeed % 20)
-
-    const freeResult = {
-      score: dynamicScore,
-      isPremium: false,
-      keywords: {
-        missing: Array.from(
-          new Set([
-            ...selectedKeywords,
-            "RESTful APIs",
-            "Microservices Architecture",
-            "Database Optimization",
-            "Team Leadership",
-            "Critical Thinking",
-          ]),
-        ),
-        found: ["JavaScript", "Communication Skills", "Project Management"],
-      },
-      formatting: [
-        ...selectedFormatting,
-        { issue: "Use of tables or columns may not parse correctly", severity: "high" as const },
-        { issue: "Missing quantifiable achievements", severity: "medium" as const },
-      ],
-      tips: [
-        ...selectedTips,
-        "Ensure consistent formatting throughout the document",
-        "Add a professional summary at the top",
-        "Include links to portfolio or GitHub projects",
-      ],
+    // Check for cached analysis first (shared with full route)
+    let analysis = null
+    if (resume.analysisCache) {
+      try {
+        analysis = typeof resume.analysisCache === 'string'
+          ? JSON.parse(resume.analysisCache)
+          : resume.analysisCache
+        if (analysis && analysis.score && analysis.keywords) {
+          console.log(`[ATS-FREE ${requestId}] Using CACHED AI analysis`)
+        } else {
+          analysis = null
+        }
+      } catch (e) {
+        console.log(`[ATS-FREE ${requestId}] Cache parse failed, regenerating`)
+        analysis = null
+      }
     }
 
-    console.log(`[ATS ${requestId}] Analysis complete. Score:`, dynamicScore, "Keywords:", selectedKeywords[0])
+    // If no cache, generate fresh AI analysis and cache it
+    if (!analysis) {
+      console.log(`[ATS-FREE ${requestId}] Generating FRESH AI analysis for:`, resume.fileName)
 
-    const response = NextResponse.json({
-      score: freeResult.score,
+      let resumeText = ''
+      try {
+        const buffer = Buffer.from(resume.fileContent, 'base64')
+        resumeText = buffer.toString('utf-8')
+        resumeText = resumeText.replace(/[^\x20-\x7E\n\r\t]/g, ' ').replace(/\s+/g, ' ').trim()
+      } catch (e) {
+        console.error(`[ATS-FREE ${requestId}] Text extraction failed:`, e)
+        resumeText = 'Unable to extract text from resume'
+      }
+
+      console.log(`[ATS-FREE ${requestId}] Generating AI analysis (${resumeText.length} chars)`)
+      analysis = await generateATSAnalysis(resumeText)
+
+      // Cache the result for reuse by the full route
+      try {
+        await sql`
+          UPDATE resume_uploads
+          SET "analysisCache" = ${JSON.stringify(analysis)}::jsonb
+          WHERE id = ${resumeId}
+        `
+        console.log(`[ATS-FREE ${requestId}] Analysis cached for future use`)
+      } catch (e) {
+        console.error(`[ATS-FREE ${requestId}] Cache write failed:`, e)
+      }
+    }
+
+    // Return LIMITED free tier results from the real AI analysis
+    const freeResult = {
+      score: analysis.score,
       isPremium: false,
       keywords: {
-        missing: freeResult.keywords.missing.slice(0, 5),
-        found: freeResult.keywords.found,
+        found: (analysis.keywords?.found || []).slice(0, 3),
+        missing: (analysis.keywords?.missing || []).slice(0, 5),
       },
-      formatting: freeResult.formatting.slice(0, 2),
-      tips: freeResult.tips.slice(0, 2),
-    })
+      formatting: (analysis.formatting || []).slice(0, 2),
+      tips: (analysis.tips || []).slice(0, 2),
+    }
+
+    console.log(`[ATS-FREE ${requestId}] Analysis complete. Score:`, freeResult.score)
+
+    const response = NextResponse.json(freeResult)
 
     response.headers.set(
       "Cache-Control",
@@ -133,7 +107,7 @@ export async function POST(request: NextRequest) {
     response.headers.set("Surrogate-Control", "no-store")
     response.headers.set("X-Request-ID", requestId)
 
-    console.log(`[ATS ${requestId}] Response sent with score ${dynamicScore}`)
+    console.log(`[ATS-FREE ${requestId}] Response sent with score ${freeResult.score}`)
 
     return response
   } catch (error: any) {
