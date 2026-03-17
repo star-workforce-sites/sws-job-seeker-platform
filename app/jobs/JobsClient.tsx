@@ -174,11 +174,45 @@ export default function Jobs() {
       <section className="abstract-gradient text-primary-foreground py-16 px-4 sm:px-6 lg:px-8">
         <div className="max-w-6xl mx-auto text-center">
           <h1 className="text-4xl sm:text-5xl font-bold mb-4 text-white premium-heading">
-            Consulting & Contract Jobs
+            DIY Job Search
           </h1>
           <p className="text-lg text-white/90 premium-body">
-            Browse thousands of premium opportunities in Software, AI, Cloud, and more
+            Browse consulting and contract opportunities in Software, AI, Cloud, and more
           </p>
+        </div>
+      </section>
+
+      {/* Coming Soon Banner */}
+      <section className="py-8 px-4 sm:px-6 lg:px-8">
+        <div className="max-w-4xl mx-auto">
+          <div className="bg-gradient-to-br from-[#0A1A2F] to-[#132A47] rounded-xl p-8 text-center text-white">
+            <div className="inline-flex items-center gap-2 bg-[#E8C547] text-[#0A1A2F] px-4 py-1.5 rounded-full text-sm font-bold mb-4">
+              Coming Soon
+            </div>
+            <h2 className="text-2xl sm:text-3xl font-bold mb-4 premium-heading">
+              3rd-Party Job Aggregation — Under Development
+            </h2>
+            <p className="text-white/80 mb-4 max-w-2xl mx-auto premium-body">
+              We are building a job aggregator that pulls consulting and contract opportunities from sources
+              not found on major job boards — giving you access to hidden roles across the US and Canada.
+            </p>
+            <p className="text-white/80 mb-6 max-w-2xl mx-auto premium-body">
+              When it launches, the DIY Job Search will be completely free. Search, filter, save, and apply
+              to jobs directly from this page — no subscription required.
+            </p>
+            <div className="flex flex-col sm:flex-row gap-4 justify-center">
+              <Link href="/tools/ats-optimizer">
+                <Button className="bg-[#E8C547] hover:bg-[#D4AF37] text-[#0A1A2F] font-bold px-8">
+                  Optimize Your Resume While You Wait
+                </Button>
+              </Link>
+              <Link href="/hire-recruiter">
+                <Button variant="outline" className="border-white/50 text-white hover:bg-white/10 px-8">
+                  Let a Recruiter Apply for You
+                </Button>
+              </Link>
+            </div>
+          </div>
         </div>
       </section>
 
@@ -240,7 +274,8 @@ export default function Jobs() {
         {/* Jobs List */}
         {filteredJobs.length === 0 ? (
           <div className="text-center py-12">
-            <p className="text-muted-foreground">No jobs found. Try adjusting your filters.</p>
+            <p className="text-lg font-semibold text-foreground mb-2">No jobs listed yet</p>
+            <p className="text-muted-foreground">Job listings will appear here once the 3rd-party aggregation is live. Check back soon!</p>
           </div>
         ) : (
           <div className="space-y-4">
