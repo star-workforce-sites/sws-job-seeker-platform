@@ -7,6 +7,7 @@ import { Card } from "@/components/ui/card"
 import Navigation from "@/components/navigation"
 import Footer from "@/components/footer"
 import { Check, Users, TrendingUp, Shield, Clock, Award, ArrowRight } from "lucide-react"
+import { trackSubscription, trackBeginCheckout } from "@/lib/analytics"
 
 export default function HireRecruiterClient() {
   const [checkoutLoading, setCheckoutLoading] = useState<string | null>(null)
@@ -21,6 +22,9 @@ export default function HireRecruiterClient() {
       })
       const data = await response.json()
       if (data.url) {
+        const prices: Record<string, number> = { basic: 199, standard: 399, pro: 599 }
+        trackSubscription(tierId, prices[tierId] || 0)
+        trackBeginCheckout(`Recruiter ${tierId}`, prices[tierId] || 0)
         window.location.href = data.url
       } else if (response.status === 401) {
         // Redirect to sign in

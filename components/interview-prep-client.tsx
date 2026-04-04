@@ -10,6 +10,7 @@ import { Progress } from "@/components/ui/progress"
 import Navigation from "@/components/navigation"
 import Footer from "@/components/footer"
 import { ClipboardList, CheckCircle, XCircle, Award, RefreshCw } from "lucide-react"
+import { trackBeginCheckout, trackPurchase, trackUpgradeClick } from "@/lib/analytics"
 
 type Question = {
   id: string
@@ -173,6 +174,8 @@ export default function InterviewPrepClient() {
       })
       const data = await response.json()
       if (data.checkoutUrl) {
+        trackBeginCheckout("Interview Prep", 9)
+        trackUpgradeClick("Interview Prep", 9)
         window.location.href = data.checkoutUrl
       } else if (data.alreadyPurchased) {
         setIsPremium(true)

@@ -12,6 +12,7 @@ import { useToast } from "@/hooks/use-toast"
 import Footer from "./footer"
 import Navigation from "./navigation"
 import Image from "next/image"
+import { trackBeginCheckout, trackPurchase, trackUpgradeClick } from "@/lib/analytics"
 
 interface CoverLetterResult {
   coverLetter: string
@@ -63,6 +64,7 @@ export default function CoverLetterClient() {
     }
 
     if (status === "success") {
+      trackPurchase("Cover Letter Generator", 5)
       document.cookie = "coverLetterPremium=true; max-age=31536000; path=/; secure; samesite=lax"
       document.cookie = urlEmail ? `coverLetterEmail=${urlEmail}; max-age=31536000; path=/; secure; samesite=lax` : ""
       setIsPremium(true)
@@ -277,6 +279,8 @@ export default function CoverLetterClient() {
       }
 
       const { checkoutUrl } = await response.json()
+      trackBeginCheckout("Cover Letter Generator", 5)
+      trackUpgradeClick("Cover Letter Generator", 5)
       window.location.href = checkoutUrl
     } catch (err) {
       setError("Failed to initiate purchase. Please try again.")

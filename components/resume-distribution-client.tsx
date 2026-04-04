@@ -19,6 +19,7 @@ import { useToast } from "@/hooks/use-toast"
 import Footer from "./footer"
 import Navigation from "./navigation"
 import Image from "next/image"
+import { trackBeginCheckout, trackPurchase, trackFileUpload } from "@/lib/analytics"
 
 interface FormData {
   resume: File | null
@@ -60,6 +61,7 @@ export default function ResumeDistributionClient() {
     const urlEmail = urlParams.get("email")
 
     if (urlStatus === "success") {
+      trackPurchase("Resume Distribution", 149)
       setSubmitted(true)
       setStatus("success")
       setFormData((prev) => ({ ...prev, email: urlEmail || "" }))
@@ -191,6 +193,7 @@ export default function ResumeDistributionClient() {
 
       const data = await response.json()
       if (data.url) {
+        trackBeginCheckout("Resume Distribution", 149)
         window.location.href = data.url
       }
     } catch (err) {

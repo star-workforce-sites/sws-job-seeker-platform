@@ -12,6 +12,7 @@ import { useToast } from "@/hooks/use-toast"
 import Footer from "./footer"
 import Navigation from "./navigation"
 import Image from "next/image"
+import { trackBeginCheckout, trackPurchase, trackFreeToolUse, trackFileUpload, trackUpgradeClick } from "@/lib/analytics"
 
 interface ATSResult {
   score: number
@@ -74,6 +75,7 @@ export default function ATSOptimizerClient() {
     }
 
     if (status === "success") {
+      trackPurchase("ATS Resume Optimizer", 5)
       document.cookie = "atsPremium=true; max-age=31536000; path=/; secure; samesite=lax"
       document.cookie = urlEmail ? `atsEmail=${urlEmail}; max-age=31536000; path=/; secure; samesite=lax` : ""
       setIsPremium(true)
@@ -277,6 +279,8 @@ export default function ATSOptimizerClient() {
       }
 
       const { checkoutUrl } = await response.json()
+      trackBeginCheckout("ATS Resume Optimizer", 5)
+      trackUpgradeClick("ATS Resume Optimizer", 5)
       window.location.href = checkoutUrl
     } catch (err) {
       setError("Failed to initiate purchase. Please try again.")
