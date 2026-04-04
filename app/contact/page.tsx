@@ -8,6 +8,9 @@ import ContactFormClient from "@/components/contact-form-client"
 export const metadata = {
   title: "Contact Us | STAR Workforce Solutions",
   description: "Get in touch with our team. We respond within 24 hours.",
+  alternates: {
+    canonical: "https://www.starworkforcesolutions.com/contact",
+  },
 }
 
 export default function ContactPage() {

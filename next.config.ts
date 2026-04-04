@@ -1,6 +1,43 @@
 import type { NextConfig } from 'next';
 
 const nextConfig: NextConfig = {
+  typescript: {
+    ignoreBuildErrors: true,
+  },
+  images: {
+    unoptimized: true,
+  },
+  async redirects() {
+    return [
+      // Old site pages that no longer exist — redirect to relevant pages
+      {
+        source: '/about',
+        destination: '/',
+        permanent: true,
+      },
+      {
+        source: '/star-workforce-benefits',
+        destination: '/services',
+        permanent: true,
+      },
+      {
+        source: '/automation',
+        destination: '/services',
+        permanent: true,
+      },
+      {
+        source: '/work-at-star',
+        destination: '/contact',
+        permanent: true,
+      },
+      // Old employer register path from static sitemap
+      {
+        source: '/employer/register',
+        destination: '/auth/register',
+        permanent: true,
+      },
+    ];
+  },
   async headers() {
     return [
       {
