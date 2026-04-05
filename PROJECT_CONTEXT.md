@@ -106,6 +106,16 @@ app/
     cron/cleanup-uploads/ ← Daily privacy delete (30-day retention)
     cron/expire-jobs/     ← Daily job expiry
     stripe/webhook/       ← Stripe webhook handler
+    chrm/jobs/            ← CHRM NEXUS job board proxy (server-side, x-api-key)
+    chrm/intelligence/    ← CHRM NEXUS market intelligence proxy (no auth needed)
+    chrm/activity/        ← Activity tracking (job_viewed, candidate_submitted, job_saved, hot_jobs)
+  dashboard/
+    recruiter/
+      RecruiterDashboardClient.tsx ← Recruiter dashboard with Job Board tab
+      CHRMJobBoard.tsx             ← CHRM NEXUS Job Board component (filters, pagination, submit candidate)
+    job-seeker/
+      page.tsx                     ← Job seeker dashboard (server component)
+      CHRMJobSeekerPanel.tsx       ← Market intel, hot jobs, job feed, visa filter
 
 components/
   analytics-tracker.tsx   ← GA page view tracking (in layout)
@@ -143,6 +153,7 @@ vercel.json               ← Cron jobs (cleanup-uploads, expire-jobs)
 | `subscriptions` | Recruiter plan subscription records |
 | `jobs` | Job listings |
 | `guest_purchases` | Guest checkout records |
+| `chrm_activity_events` | CHRM NEXUS activity tracking (job_viewed, candidate_submitted, job_saved) |
 
 ---
 
@@ -181,6 +192,7 @@ POSTGRES_URL=...
 BLOB_READ_WRITE_TOKEN=...
 CRON_SECRET=...
 NEXT_PUBLIC_URL=https://www.starworkforcesolutions.com
+CHRM_API_KEY=...                     ← CHRM NEXUS API key (server-side only, used in x-api-key header)
 ```
 
 ---
@@ -210,6 +222,7 @@ NEXT_PUBLIC_URL=https://www.starworkforcesolutions.com
 10. ✅ SEO Fixes — dynamic robots.txt, dynamic sitemap, canonical on /contact, 301 redirects for old pages
 11. ✅ DIY Job Search — "Coming Soon" banner with explanation
 12. ✅ GA Conversion Tracking — begin_checkout + purchase events on all 5 payment flows
+13. ✅ CHRM NEXUS Integration — Recruiter Job Board tab on /dashboard/recruiter + Job Seeker dashboard enhancements (market intelligence, hot jobs, job feed, visa filter, activity tracking)
 
 ---
 

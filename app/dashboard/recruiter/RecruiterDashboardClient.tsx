@@ -25,7 +25,9 @@ import {
   TrendingUp,
   FileText,
   LogOut,
+  Search,
 } from "lucide-react"
+import CHRMJobBoard from "./CHRMJobBoard"
 
 // ── DOL-compliant status values ───────────────────────────────
 const VALID_STATUSES = [
@@ -521,6 +523,10 @@ export default function RecruiterDashboardClient({
                 </span>
               )}
             </TabsTrigger>
+            <TabsTrigger value="jobboard" className="premium-heading">
+              <Search className="w-4 h-4 mr-1.5" />
+              Job Board
+            </TabsTrigger>
           </TabsList>
 
           {/* ── Tab: My Clients ─────────────────────────────── */}
@@ -799,6 +805,18 @@ export default function RecruiterDashboardClient({
                 </div>
               )}
             </Card>
+          </TabsContent>
+
+          {/* ── Tab: CHRM NEXUS Job Board ──────────────────────── */}
+          <TabsContent value="jobboard">
+            <CHRMJobBoard
+              clients={clients.map((c) => ({
+                assignment_id: c.assignment_id,
+                client_name: c.client_name,
+                client_email: c.client_email,
+                plan_type: c.plan_type,
+              }))}
+            />
           </TabsContent>
         </Tabs>
       </div>

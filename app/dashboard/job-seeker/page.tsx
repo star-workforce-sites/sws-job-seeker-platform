@@ -18,6 +18,7 @@ import {
   ExternalLink,
   UserCheck,
 } from "lucide-react"
+import CHRMJobSeekerPanel from "./CHRMJobSeekerPanel"
 
 export const dynamic = "force-dynamic"
 
@@ -522,6 +523,11 @@ export default async function JobSeekerDashboard() {
               </p>
             </Card>
           </Link>
+        </div>
+
+        {/* ── CHRM NEXUS Job Feed, Market Intelligence & Hot Jobs ── */}
+        <div className="mt-8">
+          <CHRMJobSeekerPanel />
         </div>
 
       </div>
