@@ -238,10 +238,11 @@ export async function POST(request: NextRequest) {
       subscription: sub,
       emails: emailStatus,
     })
-  } catch (error) {
-    console.error("[admin/recruiter-assignments POST]", error)
+  } catch (error: unknown) {
+    const errMsg = error instanceof Error ? error.message : String(error)
+    console.error("[admin/recruiter-assignments POST]", errMsg, error)
     return NextResponse.json(
-      { error: "Failed to create assignment" },
+      { error: `Failed to create assignment: ${errMsg}` },
       { status: 500 }
     )
   }
