@@ -11,7 +11,7 @@ CREATE TABLE IF NOT EXISTS users (
   name TEXT,
   email TEXT UNIQUE NOT NULL,
   "emailVerified" TIMESTAMP,
-  role TEXT NOT NULL DEFAULT 'jobseeker' CHECK (role IN ('jobseeker', 'employer', 'employer-pending', 'admin')),
+  role TEXT NOT NULL DEFAULT 'jobseeker' CHECK (role IN ('jobseeker', 'employer', 'employer-pending', 'admin', 'recruiter')),
   "atsPremium" BOOLEAN DEFAULT FALSE,
   "createdAt" TIMESTAMP DEFAULT NOW()
 );
