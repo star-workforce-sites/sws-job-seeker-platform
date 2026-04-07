@@ -3,6 +3,28 @@ import GoogleProvider from "next-auth/providers/google"
 import LinkedInProvider from "next-auth/providers/linkedin"
 import CredentialsProvider from "next-auth/providers/credentials"
 
+// Internal domains that get automatic recruiter role (no payment required)
+const INTERNAL_RECRUITER_DOMAINS = [
+  "starworkforce.net",
+  "startekk.net",
+  "starworkforcesolutions.com",
+]
+
+// Specific emails that get automatic admin role
+const ADMIN_EMAILS = [
+  "srikanth@startekk.net",
+  "naveen@starworkforce.net",
+]
+
+// Determine auto-assigned role based on email
+function getAutoRole(email: string): "admin" | "recruiter" | "jobseeker" {
+  const lower = email.toLowerCase()
+  if (ADMIN_EMAILS.includes(lower)) return "admin"
+  const domain = lower.split("@")[1]
+  if (domain && INTERNAL_RECRUITER_DOMAINS.includes(domain)) return "recruiter"
+  return "jobseeker"
+}
+
 // Helper to safely check if database is available
 function isDatabaseConfigured(): boolean {
   return Boolean(process.env.DATABASE_URL)
@@ -76,11 +98,12 @@ export const authOptions: NextAuthOptions = {
         const existingUser = await safeGetUserByEmail(user.email)
 
         if (!existingUser && isDatabaseConfigured()) {
+          const autoRole = getAutoRole(user.email)
           await safeCreateUser({
             name: user.name || undefined,
             email: user.email,
             emailVerified: new Date(),
-            role: "jobseeker",
+            role: autoRole,
           })
         }
       } catch (error) {
@@ -146,7 +169,7 @@ export const authOptions: NextAuthOptions = {
             session.user.atsPremium = dbUser.atsPremium
           } else {
             session.user.id = token.sub
-            session.user.role = (token.role as string) || "jobseeker"
+            session.user.role = (token.role as typeof session.user.role) || "jobseeker"
             session.user.atsPremium = (token.atsPremium as boolean) || false
           }
         }

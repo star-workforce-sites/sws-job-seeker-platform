@@ -81,8 +81,11 @@ export default async function JobSeekerDashboard() {
     FROM users
     WHERE email = ${session.user.email}
   `
-  if (userResult.rows.length === 0 || userResult.rows[0].role !== "jobseeker") {
+  if (userResult.rows.length === 0) {
     redirect("/auth/login")
+  }
+  if (userResult.rows[0].role !== "jobseeker") {
+    redirect("/dashboard")
   }
   const user = userResult.rows[0]
 

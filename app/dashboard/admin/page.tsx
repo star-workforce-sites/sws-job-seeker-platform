@@ -13,8 +13,11 @@ export default async function AdminDashboardPage() {
   const userResult = await sql`
     SELECT id, name, email, role FROM users WHERE email = ${session.user.email}
   `
-  if (userResult.rows.length === 0 || userResult.rows[0].role !== "admin") {
-    redirect("/dashboard/job-seeker")
+  if (userResult.rows.length === 0) {
+    redirect("/auth/login")
+  }
+  if (userResult.rows[0].role !== "admin") {
+    redirect("/dashboard")
   }
 
   // ── Fetch subscribers with assignment status ─────────────
