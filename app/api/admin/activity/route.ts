@@ -32,8 +32,8 @@ export async function GET(request: NextRequest) {
               COUNT(*) FILTER (WHERE role = 'recruiter') AS total_recruiters,
               COUNT(*) FILTER (WHERE role = 'employer') AS total_employers,
               COUNT(*) FILTER (WHERE suspended = true) AS suspended_users,
-              COUNT(*) FILTER (WHERE created_at >= NOW() - INTERVAL '7 days') AS new_users_7d,
-              COUNT(*) FILTER (WHERE created_at >= NOW() - INTERVAL '30 days') AS new_users_30d
+              COUNT(*) FILTER (WHERE "createdAt" >= NOW() - INTERVAL '7 days') AS new_users_7d,
+              COUNT(*) FILTER (WHERE "createdAt" >= NOW() - INTERVAL '30 days') AS new_users_30d
             FROM users
           `,
           sql`
@@ -130,7 +130,7 @@ export async function GET(request: NextRequest) {
         }
 
         const [userResult, activityResult, submissionsResult, subscriptionResult] = await Promise.all([
-          sql`SELECT id, name, email, role, suspended, created_at, last_login FROM users WHERE id = ${userId}`,
+          sql`SELECT id, name, email, role, suspended, "createdAt" AS created_at FROM users WHERE id = ${userId}`,
           sql`
             SELECT event_type, job_id, metadata, created_at
             FROM chrm_activity_events
@@ -205,8 +205,9 @@ export async function GET(request: NextRequest) {
           error: "Invalid view. Use: overview, recruiter_performance, user_activity, submissions",
         }, { status: 400 })
     }
-  } catch (error) {
-    console.error("[Admin Activity GET]", error)
-    return NextResponse.json({ error: "Failed to fetch activity data" }, { status: 500 })
+  } catch (error: unknown) {
+    const errMsg = error instanceof Error ? error.message : String(error)
+    console.error("[Admin Activity GET]", errMsg, error)
+    return NextResponse.json({ error: `Failed to fetch activity data: ${errMsg}` }, { status: 500 })
   }
 }
