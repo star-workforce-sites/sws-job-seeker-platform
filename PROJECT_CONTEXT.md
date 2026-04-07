@@ -86,9 +86,11 @@ app/
     resume-distribution/  ← Resume distribution tool pages
   jobs/
     JobsClient.tsx        ← "Coming Soon" banner
-  admin/panel/            ← Admin dashboard (role-gated)
+  dashboard/admin/
+    page.tsx              ← Admin dashboard (server component, role-gated)
+    AdminDashboardClient.tsx ← Full admin UI: Overview, Users, Assignments, Recruiter Performance tabs
   auth/login/             ← Email/password + OAuth login
-  auth/register/          ← User registration
+  auth/signup/            ← User registration (Google, LinkedIn, email/password)
   api/
     ats-free/             ← Free ATS (limited results)
     ats-purchase/         ← Stripe checkout for ATS
@@ -109,6 +111,9 @@ app/
     chrm/jobs/            ← CHRM NEXUS job board proxy (server-side, x-api-key)
     chrm/intelligence/    ← CHRM NEXUS market intelligence proxy (no auth needed)
     chrm/activity/        ← Activity tracking (job_viewed, candidate_submitted, job_saved, hot_jobs)
+    admin/users/          ← Admin user management (GET/PUT/POST: search, role change, suspend)
+    admin/activity/       ← Admin activity monitoring (overview, recruiter_performance, user_activity, submissions)
+    admin/recruiter-assignments/[id]/ ← Admin assignment CRUD (GET/PUT/DELETE)
   dashboard/
     recruiter/
       RecruiterDashboardClient.tsx ← Recruiter dashboard with Job Board tab
@@ -146,7 +151,7 @@ vercel.json               ← Cron jobs (cleanup-uploads, expire-jobs)
 
 | Table | Purpose |
 |-------|---------|
-| `users` | User accounts |
+| `users` | User accounts (has suspended, suspended_at, suspended_reason columns) |
 | `resume_uploads` | Resume files (base64) + ATS analysis cache |
 | `cover_letter_uploads` | Cover letter data + generated letter cache |
 | `premium_access` | Records of one-time purchases by email + product |
@@ -154,15 +159,21 @@ vercel.json               ← Cron jobs (cleanup-uploads, expire-jobs)
 | `jobs` | Job listings |
 | `guest_purchases` | Guest checkout records |
 | `chrm_activity_events` | CHRM NEXUS activity tracking (job_viewed, candidate_submitted, job_saved) |
+| `recruiter_assignments` | Recruiter-to-client assignments (client_id, recruiter_id, subscription_id) |
+| `application_tracking` | Recruiter job submissions for clients (job_title, company, status, feedback) |
 
 ---
 
 ## Admin Credentials
 
-- **URL:** https://www.starworkforcesolutions.com/admin/panel
-- **Email:** admin@starworkforcesolutions.com
-- **Password:** Set in environment variables (`ADMIN_PASSWORD`)
-- **Admin dashboard:** Manage subscribers, assign recruiters, track plans
+- **URL:** https://www.starworkforcesolutions.com/dashboard/admin
+- **Access:** Login as admin user (role = 'admin' in users table)
+- **Capabilities:**
+  - Overview tab: Platform stats (users, subscriptions, assignments, CHRM activity, submissions)
+  - Users tab: Search/filter users, change roles, suspend/unsuspend, create new users
+  - Assignments tab: Assign/reassign recruiters to job seekers, view unassigned subscribers
+  - Recruiter Performance tab: Per-recruiter metrics (clients, submissions, interviews)
+- **SQL Migration Required:** Run `scripts/add-user-suspended-column.sql` in Neon console for suspend feature
 
 ---
 
@@ -216,13 +227,17 @@ CHRM_API_KEY=...                     ← CHRM NEXUS API key (server-side only, u
 4. ✅ Resume Distribution — upload + $149 Stripe checkout, success flow (manual fulfillment for now)
 5. ✅ Hire-a-Recruiter — 3 Stripe subscription tiers, admin assignment dashboard
 6. ✅ Auth — Google OAuth, LinkedIn OAuth, email/password (NextAuth shared config)
-7. ✅ Admin Dashboard — subscriber management, recruiter assignment
+7. ✅ Admin Dashboard — comprehensive: user management, suspend/unsuspend, role changes, recruiter assignment, activity monitoring, performance metrics
 8. ✅ Privacy Cron — daily auto-delete of uploads after 30 days
 9. ✅ Google Analytics — gtag.js in layout, page view tracking, conversion events on all purchase flows
-10. ✅ SEO Fixes — dynamic robots.txt, dynamic sitemap, canonical on /contact, 301 redirects for old pages
-11. ✅ DIY Job Search — "Coming Soon" banner with explanation
+10. ✅ SEO — Comprehensive: long-tail keywords on all pages, JSON-LD schemas (Organization, WebSite, SoftwareApplication, FAQPage), OpenGraph + Twitter Cards, canonical URLs, metadataBase
+11. ✅ DIY Job Search / Job Board — Redesigned for free user visibility, "Register Free to Apply" CTA, styled filter bar, colorful job badges
 12. ✅ GA Conversion Tracking — begin_checkout + purchase events on all 5 payment flows
 13. ✅ CHRM NEXUS Integration — Recruiter Job Board tab on /dashboard/recruiter + Job Seeker dashboard enhancements (market intelligence, hot jobs, job feed, visa filter, activity tracking)
+14. ✅ Favicon — Proper favicon.ico + PNG icons generated from gold star SVG, webmanifest updated
+15. ✅ Button Visibility — Fixed white-on-white buttons across site with gold accent styling
+16. ✅ Signup Page OAuth — Fixed Google/LinkedIn OAuth buttons (signIn from next-auth/react)
+17. ✅ Job Seeker Dashboard Redesign — 3-column layout (Plan + Recruiter + Market Intel), 48h timer badges, redesigned filter bar
 
 ---
 
