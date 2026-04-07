@@ -16,11 +16,12 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
-    const apiKey = process.env.CHRM_API_KEY
+    // Support both env var names (CHRM_NEXUS_API_KEY is the canonical name per integration guide)
+    const apiKey = process.env.CHRM_NEXUS_API_KEY || process.env.CHRM_API_KEY
     if (!apiKey) {
-      console.error("[CHRM Jobs] CHRM_API_KEY not configured")
+      console.error("[CHRM Jobs] Neither CHRM_NEXUS_API_KEY nor CHRM_API_KEY configured")
       return NextResponse.json(
-        { error: "Job board service not configured" },
+        { error: "Job board service not configured — API key missing" },
         { status: 503 }
       )
     }
@@ -29,21 +30,16 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url)
     const params = new URLSearchParams()
 
-    const limit = searchParams.get("limit")
-    const offset = searchParams.get("offset")
-    const state = searchParams.get("state")
-    const work_model = searchParams.get("work_model")
-    const skills = searchParams.get("skills")
-    const min_score = searchParams.get("min_score")
-    const contract_type = searchParams.get("contract_type")
-
-    if (limit) params.set("limit", limit)
-    if (offset) params.set("offset", offset)
-    if (state) params.set("state", state)
-    if (work_model) params.set("work_model", work_model)
-    if (skills) params.set("skills", skills)
-    if (min_score) params.set("min_score", min_score)
-    if (contract_type) params.set("contract_type", contract_type)
+    // Forward all supported query params to CHRM NEXUS
+    const allowedParams = [
+      "limit", "offset", "state", "work_model", "skills", "min_score",
+      "contract_type", "industry", "seniority_level", "keyword",
+      "company_name", "posted_after", "sort_by",
+    ]
+    for (const key of allowedParams) {
+      const val = searchParams.get(key)
+      if (val) params.set(key, val)
+    }
 
     const url = `${CHRM_JOBS_URL}?${params.toString()}`
 
@@ -57,19 +53,32 @@ export async function GET(request: NextRequest) {
       cache: "no-store",
     })
 
+    const responseText = await response.text()
+
     if (!response.ok) {
       console.error(
         "[CHRM Jobs] API error:",
         response.status,
-        await response.text()
+        responseText.substring(0, 500)
       )
       return NextResponse.json(
-        { error: "Failed to fetch jobs from provider" },
+        { error: `Failed to fetch jobs from provider (${response.status})`, details: responseText.substring(0, 200) },
         { status: 502 }
       )
     }
 
-    const data: CHRMJobsResponse = await response.json()
+    let data: CHRMJobsResponse
+    try {
+      data = JSON.parse(responseText)
+    } catch {
+      console.error("[CHRM Jobs] Invalid JSON response:", responseText.substring(0, 500))
+      return NextResponse.json(
+        { error: "Invalid response from job provider" },
+        { status: 502 }
+      )
+    }
+
+    console.log("[CHRM Jobs] Success:", { total: data.total, count: data.count, jobsReturned: data.jobs?.length ?? 0 })
 
     return NextResponse.json(data)
   } catch (error) {
