@@ -5,21 +5,19 @@ import { sql } from "@vercel/postgres"
 import Link from "next/link"
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
+// Badge removed — now handled by PlanManagerClient
 import {
   FileText,
   Mail,
   Briefcase,
   Upload,
   TrendingUp,
-  Users,
-  Clock,
   CheckCircle,
   ExternalLink,
-  UserCheck,
 } from "lucide-react"
 import CHRMJobSeekerPanel from "./CHRMJobSeekerPanel"
 import CHRMMarketIntelSnapshot from "./CHRMMarketIntelSnapshot"
+import PlanManagerClient from "./PlanManagerClient"
 
 export const dynamic = "force-dynamic"
 
@@ -215,84 +213,15 @@ export default async function JobSeekerDashboard() {
           </p>
         </div>
 
-        {/* ── Top Row: Plan + Recruiter/Promo + Market Intel ── */}
+        {/* ── Top Row: Plan Manager (2 cols) + Market Intel (1 col) ── */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
-          {/* Column 1: Current Plan */}
-          <Card className="p-5 bg-gradient-to-br from-[#0A1A2F] to-[#132A47] text-white">
-            <h3 className="text-sm font-semibold text-white/70 premium-heading mb-1">Current Plan</h3>
-            {hasRecruiterSubscription ? (
-              <>
-                <p className="text-xl font-bold text-[#E8C547] premium-heading">
-                  {subscription?.subscription_type === "recruiter_basic"    && "Recruiter Basic"}
-                  {subscription?.subscription_type === "recruiter_standard" && "Recruiter Standard"}
-                  {subscription?.subscription_type === "recruiter_pro"      && "Recruiter Pro"}
-                </p>
-                <p className="text-xs text-gray-300 mt-1 premium-body">
-                  Renews on {formatDate(subscription.current_period_end)}
-                </p>
-              </>
-            ) : (
-              <>
-                <p className="text-xl font-bold text-gray-400 premium-heading">Free Plan</p>
-                <Link href="/hire-recruiter" className="mt-3 inline-block">
-                  <Button size="sm" className="bg-[#E8C547] hover:bg-[#D4AF37] text-[#0A1A2F] text-xs font-bold premium-heading">
-                    Upgrade Plan
-                  </Button>
-                </Link>
-              </>
-            )}
-          </Card>
-
-          {/* Column 2: Recruiter Status / Promo */}
-          <Card className="p-5 border-2 border-[#E8C547]">
-            {hasRecruiterSubscription ? (
-              <div className="flex items-start gap-3">
-                <UserCheck className="w-8 h-8 text-[#E8C547] shrink-0" />
-                <div className="min-w-0">
-                  <h3 className="text-sm font-bold text-foreground premium-heading">Your Recruiter</h3>
-                  {assignedRecruiter ? (
-                    <div className="mt-1.5 space-y-0.5">
-                      <div className="flex items-center gap-1.5">
-                        <CheckCircle className="w-3.5 h-3.5 text-green-500 shrink-0" />
-                        <span className="text-xs font-semibold text-green-600 premium-body">Assigned</span>
-                      </div>
-                      <p className="text-sm font-medium text-foreground premium-heading truncate">
-                        {assignedRecruiter.name}
-                      </p>
-                      <p className="text-xs text-muted-foreground premium-body truncate">
-                        {assignedRecruiter.email}
-                      </p>
-                    </div>
-                  ) : (
-                    <div className="mt-1.5">
-                      <div className="flex items-center gap-1.5">
-                        <Clock className="w-3.5 h-3.5 text-orange-500 shrink-0" />
-                        <span className="text-xs font-semibold text-orange-500 premium-body">Pending Assignment</span>
-                      </div>
-                      <p className="text-xs text-muted-foreground mt-1 premium-body">
-                        Your recruiter will be assigned within 48 hours
-                      </p>
-                    </div>
-                  )}
-                </div>
-              </div>
-            ) : (
-              <div className="flex items-start gap-3">
-                <Users className="w-8 h-8 text-[#E8C547] shrink-0" />
-                <div>
-                  <h3 className="text-sm font-bold text-foreground premium-heading">Want a Recruiter?</h3>
-                  <p className="text-xs text-muted-foreground mt-1 premium-body">
-                    Plans from $199/mo. Dedicated recruiter applies to jobs on your behalf daily.
-                  </p>
-                  <Link href="/hire-recruiter" className="mt-2 inline-block">
-                    <Button size="sm" variant="outline" className="text-xs border-[#E8C547] text-[#0A1A2F] hover:bg-[#E8C547]/10 font-semibold">
-                      View Plans
-                    </Button>
-                  </Link>
-                </div>
-              </div>
-            )}
-          </Card>
+          {/* Columns 1-2: Plan + Recruiter (inline upgrade/downgrade) */}
+          <PlanManagerClient
+            currentPlan={hasRecruiterSubscription ? subscription?.subscription_type : null}
+            renewalDate={subscription?.current_period_end || null}
+            assignedRecruiter={assignedRecruiter}
+            isAssigned={!!assignedRecruiter}
+          />
 
           {/* Column 3: Market Intelligence Snapshot (client component) */}
           <CHRMMarketIntelSnapshot />
