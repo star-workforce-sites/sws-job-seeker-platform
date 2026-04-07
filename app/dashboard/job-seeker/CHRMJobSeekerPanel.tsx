@@ -36,12 +36,12 @@ import {
   Eye,
   Loader2,
   Filter,
+  ExternalLink,
+  Timer,
 } from "lucide-react"
 import type {
   CHRMJob,
   CHRMIntelligenceData,
-  CHRMSkillVelocity,
-  CHRMCityHeatmap,
 } from "@/types/chrm-nexus"
 
 // ── Helpers ──────────────────────────────────────────────────
@@ -79,6 +79,16 @@ function relativeTime(dateStr: string): string {
   if (diffDays === 1) return "1 day ago"
   if (diffDays < 7) return `${diffDays} days ago`
   return `${Math.floor(diffDays / 7)} weeks ago`
+}
+
+function timeRemaining(expiresAt: string): string {
+  const diffMs = new Date(expiresAt).getTime() - Date.now()
+  if (diffMs <= 0) return "Expired"
+  const hours = Math.floor(diffMs / (1000 * 60 * 60))
+  if (hours < 1) return "<1hr left"
+  if (hours < 24) return `${hours}h left`
+  const days = Math.floor(hours / 24)
+  return `${days}d left`
 }
 
 // ── Common visa types ────────────────────────────────────────
@@ -180,7 +190,6 @@ export default function CHRMJobSeekerPanel() {
           // Fetch job details for top 6 hot job IDs
           if (hotMap.size > 0) {
             const topIds = Array.from(hotMap.keys()).slice(0, 6)
-            // Fetch all jobs and filter locally (CHRM API doesn't support ID filtering)
             const jobRes = await fetch("/api/chrm/jobs?limit=50&min_score=50")
             if (jobRes.ok) {
               const jobData = await jobRes.json()
@@ -220,7 +229,6 @@ export default function CHRMJobSeekerPanel() {
         if (filterVisaType && filterVisaType !== "none") {
           fetchedJobs = fetchedJobs.filter((job) => {
             if (!job.visa_restrictions || job.visa_restrictions.length === 0) return true
-            // Hide jobs where user's visa type is in the restrictions list
             return !job.visa_restrictions.some(
               (r) => r.toLowerCase() === filterVisaType.toLowerCase()
             )
@@ -286,119 +294,126 @@ export default function CHRMJobSeekerPanel() {
       {/* ══════════════════════════════════════════════════════ */}
       {/* ── MARKET INTELLIGENCE PANEL ─────────────────────── */}
       {/* ══════════════════════════════════════════════════════ */}
-      <Card className="p-6 bg-gradient-to-br from-[#0A1A2F] to-[#132A47] text-white">
+      <div id="market-intelligence">
+        <Card className="p-6 bg-gradient-to-br from-[#0A1A2F] to-[#132A47] text-white">
+          <div className="flex items-center gap-3 mb-4">
+            <BarChart3 className="w-6 h-6 text-[#E8C547]" />
+            <h2 className="text-xl font-bold premium-heading">Market Intelligence</h2>
+          </div>
+
+          {intelLoading ? (
+            <div className="flex items-center justify-center py-8">
+              <Loader2 className="w-6 h-6 animate-spin text-white/50" />
+            </div>
+          ) : intelligence ? (
+            <div className="space-y-6">
+              {/* Stats row */}
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div className="bg-white/10 rounded-lg p-4 text-center">
+                  <p className="text-3xl font-bold text-[#E8C547] premium-heading">
+                    {intelligence.stats.total_active.toLocaleString()}
+                  </p>
+                  <p className="text-sm text-white/70 premium-body">Live Jobs</p>
+                </div>
+                <div className="bg-white/10 rounded-lg p-4 text-center">
+                  <p className="text-3xl font-bold text-[#E8C547] premium-heading">
+                    {intelligence.stats.metro_count}
+                  </p>
+                  <p className="text-sm text-white/70 premium-body">Metro Areas</p>
+                </div>
+                <div className="bg-white/10 rounded-lg p-4 text-center">
+                  <p className="text-3xl font-bold text-[#E8C547] premium-heading">
+                    {intelligence.stats.state_count}
+                  </p>
+                  <p className="text-sm text-white/70 premium-body">States</p>
+                </div>
+                <div className="bg-white/10 rounded-lg p-4 text-center">
+                  <p className="text-3xl font-bold text-[#E8C547] premium-heading">
+                    {intelligence.stats.avg_quality}
+                  </p>
+                  <p className="text-sm text-white/70 premium-body">Avg Quality</p>
+                </div>
+              </div>
+
+              {/* In-Demand Skills */}
+              {intelligence.skill_velocity && intelligence.skill_velocity.length > 0 && (
+                <div>
+                  <h3 className="text-sm font-semibold text-white/90 premium-heading mb-3 flex items-center gap-2">
+                    <TrendingUp className="w-4 h-4 text-[#E8C547]" />
+                    In-Demand Skills
+                  </h3>
+                  <div className="flex flex-wrap gap-2">
+                    {intelligence.skill_velocity.slice(0, 15).map((sv) => (
+                      <span
+                        key={sv.skill}
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium"
+                        style={{
+                          backgroundColor: `${sv.color}20`,
+                          color: sv.color,
+                          border: `1px solid ${sv.color}40`,
+                        }}
+                      >
+                        {sv.skill}
+                        <span className="text-[10px] opacity-70">({sv.count})</span>
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Top Cities */}
+              {intelligence.city_heatmap && intelligence.city_heatmap.length > 0 && (
+                <div>
+                  <h3 className="text-sm font-semibold text-white/90 premium-heading mb-3 flex items-center gap-2">
+                    <Globe className="w-4 h-4 text-[#E8C547]" />
+                    Top Cities by Job Volume
+                  </h3>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                    {intelligence.city_heatmap.slice(0, 8).map((ch) => (
+                      <div key={ch.city} className="bg-white/10 rounded-lg px-3 py-2">
+                        <p className="text-sm font-medium text-white premium-heading truncate">
+                          {ch.city}
+                        </p>
+                        <p className="text-xs text-white/60 premium-body">
+                          {ch.roles} roles · Score {ch.score}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              <p className="text-xs text-white/40 premium-body">
+                Last updated: {new Date(intelligence.stats.last_updated).toLocaleDateString()}
+              </p>
+            </div>
+          ) : (
+            <p className="text-sm text-white/50 premium-body">
+              Market intelligence data is currently unavailable.
+            </p>
+          )}
+        </Card>
+      </div>
+
+      {/* ══════════════════════════════════════════════════════ */}
+      {/* ── HOT JOBS SECTION — always visible ─────────────── */}
+      {/* ══════════════════════════════════════════════════════ */}
+      <Card className="p-6">
         <div className="flex items-center gap-3 mb-4">
-          <BarChart3 className="w-6 h-6 text-[#E8C547]" />
-          <h2 className="text-xl font-bold premium-heading">Market Intelligence</h2>
+          <Flame className="w-6 h-6 text-orange-500" />
+          <h2 className="text-xl font-bold text-foreground premium-heading">
+            Hot Jobs
+          </h2>
+          <span className="text-xs text-muted-foreground premium-body">
+            Most viewed this week
+          </span>
         </div>
 
-        {intelLoading ? (
+        {hotLoading ? (
           <div className="flex items-center justify-center py-8">
-            <Loader2 className="w-6 h-6 animate-spin text-white/50" />
+            <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
           </div>
-        ) : intelligence ? (
-          <div className="space-y-6">
-            {/* Stats row */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <div className="bg-white/10 rounded-lg p-4 text-center">
-                <p className="text-3xl font-bold text-[#E8C547] premium-heading">
-                  {intelligence.stats.total_active.toLocaleString()}
-                </p>
-                <p className="text-sm text-white/70 premium-body">Live Jobs</p>
-              </div>
-              <div className="bg-white/10 rounded-lg p-4 text-center">
-                <p className="text-3xl font-bold text-[#E8C547] premium-heading">
-                  {intelligence.stats.metro_count}
-                </p>
-                <p className="text-sm text-white/70 premium-body">Metro Areas</p>
-              </div>
-              <div className="bg-white/10 rounded-lg p-4 text-center">
-                <p className="text-3xl font-bold text-[#E8C547] premium-heading">
-                  {intelligence.stats.state_count}
-                </p>
-                <p className="text-sm text-white/70 premium-body">States</p>
-              </div>
-              <div className="bg-white/10 rounded-lg p-4 text-center">
-                <p className="text-3xl font-bold text-[#E8C547] premium-heading">
-                  {intelligence.stats.avg_quality}
-                </p>
-                <p className="text-sm text-white/70 premium-body">Avg Quality</p>
-              </div>
-            </div>
-
-            {/* In-Demand Skills */}
-            {intelligence.skill_velocity && intelligence.skill_velocity.length > 0 && (
-              <div>
-                <h3 className="text-sm font-semibold text-white/90 premium-heading mb-3 flex items-center gap-2">
-                  <TrendingUp className="w-4 h-4 text-[#E8C547]" />
-                  In-Demand Skills
-                </h3>
-                <div className="flex flex-wrap gap-2">
-                  {intelligence.skill_velocity.slice(0, 15).map((sv) => (
-                    <span
-                      key={sv.skill}
-                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium"
-                      style={{
-                        backgroundColor: `${sv.color}20`,
-                        color: sv.color,
-                        border: `1px solid ${sv.color}40`,
-                      }}
-                    >
-                      {sv.skill}
-                      <span className="text-[10px] opacity-70">({sv.count})</span>
-                    </span>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* Top Cities */}
-            {intelligence.city_heatmap && intelligence.city_heatmap.length > 0 && (
-              <div>
-                <h3 className="text-sm font-semibold text-white/90 premium-heading mb-3 flex items-center gap-2">
-                  <Globe className="w-4 h-4 text-[#E8C547]" />
-                  Top Cities by Job Volume
-                </h3>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-                  {intelligence.city_heatmap.slice(0, 8).map((ch) => (
-                    <div key={ch.city} className="bg-white/10 rounded-lg px-3 py-2">
-                      <p className="text-sm font-medium text-white premium-heading truncate">
-                        {ch.city}
-                      </p>
-                      <p className="text-xs text-white/60 premium-body">
-                        {ch.roles} roles · Score {ch.score}
-                      </p>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            <p className="text-xs text-white/40 premium-body">
-              Last updated: {new Date(intelligence.stats.last_updated).toLocaleDateString()}
-            </p>
-          </div>
-        ) : (
-          <p className="text-sm text-white/50 premium-body">
-            Market intelligence data is currently unavailable.
-          </p>
-        )}
-      </Card>
-
-      {/* ══════════════════════════════════════════════════════ */}
-      {/* ── HOT JOBS SECTION ──────────────────────────────── */}
-      {/* ══════════════════════════════════════════════════════ */}
-      {!hotLoading && hotJobs.length > 0 && (
-        <Card className="p-6">
-          <div className="flex items-center gap-3 mb-4">
-            <Flame className="w-6 h-6 text-orange-500" />
-            <h2 className="text-xl font-bold text-foreground premium-heading">
-              Hot Jobs
-            </h2>
-            <span className="text-xs text-muted-foreground premium-body">
-              Most viewed by recruiters this week
-            </span>
-          </div>
+        ) : hotJobs.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {hotJobs.map((job) => (
               <Card
@@ -439,77 +454,102 @@ export default function CHRMJobSeekerPanel() {
                     ))}
                   </div>
                 )}
+                {/* 48-hour indicator */}
+                <div className="flex items-center gap-1 mt-2 text-[10px] text-orange-600">
+                  <Timer className="w-3 h-3" />
+                  {timeRemaining(job.expires_at)}
+                </div>
               </Card>
             ))}
           </div>
-        </Card>
-      )}
+        ) : (
+          <div className="text-center py-8 bg-orange-50/50 rounded-lg border border-dashed border-orange-200">
+            <Flame className="w-10 h-10 text-orange-300 mx-auto mb-2" />
+            <p className="text-sm font-medium text-foreground premium-heading">
+              No hot jobs yet
+            </p>
+            <p className="text-xs text-muted-foreground mt-1 premium-body">
+              Hot jobs appear here once job seekers and recruiters start viewing listings.
+              Browse the Job Feed below to discover opportunities!
+            </p>
+          </div>
+        )}
+      </Card>
 
       {/* ══════════════════════════════════════════════════════ */}
       {/* ── JOB FEED WITH FILTERS ─────────────────────────── */}
       {/* ══════════════════════════════════════════════════════ */}
       <Card className="p-6">
-        <div className="flex items-center gap-3 mb-4">
-          <Briefcase className="w-6 h-6 text-primary" />
-          <h2 className="text-xl font-bold text-foreground premium-heading">
-            Job Feed
-          </h2>
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-3">
+            <Briefcase className="w-6 h-6 text-primary" />
+            <h2 className="text-xl font-bold text-foreground premium-heading">
+              Job Feed
+            </h2>
+          </div>
+          {/* 48h freshness badge */}
+          <div className="flex items-center gap-1.5 text-xs bg-amber-50 text-amber-700 border border-amber-200 rounded-full px-3 py-1 font-medium">
+            <Timer className="w-3.5 h-3.5" />
+            Jobs refresh every 48 hours
+          </div>
         </div>
-        <Separator className="mb-4" />
 
-        {/* Filters */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
-          <div>
-            <label className="text-xs font-medium text-muted-foreground premium-heading mb-1 block">
-              Skills (comma-separated)
-            </label>
-            <Input
-              placeholder="e.g. Python, AWS, React"
-              value={filterSkills}
-              onChange={(e) => setFilterSkills(e.target.value)}
-              className="h-9 text-sm"
-            />
-          </div>
-          <div>
-            <label className="text-xs font-medium text-muted-foreground premium-heading mb-1 block">
-              State
-            </label>
-            <Select value={filterState} onValueChange={setFilterState}>
-              <SelectTrigger className="h-9 text-sm">
-                <SelectValue placeholder="All states" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All States</SelectItem>
-                {["CA","TX","NY","FL","WA","IL","GA","NC","VA","MA","PA","OH","CO","AZ","NJ","DC"].map((s) => (
-                  <SelectItem key={s} value={s}>{s}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          <div>
-            <label className="text-xs font-medium text-muted-foreground premium-heading mb-1 block flex items-center gap-1.5">
-              <Filter className="w-3 h-3" />
-              Visa Filter
-            </label>
-            <Select value={filterVisaType} onValueChange={setFilterVisaType}>
-              <SelectTrigger className="h-9 text-sm">
-                <SelectValue placeholder="No filter" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="none">No Visa Filter</SelectItem>
-                {VISA_TYPES.map((v) => (
-                  <SelectItem key={v} value={v}>{v}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <p className="text-[10px] text-muted-foreground mt-1">
-              Hides jobs that restrict your visa type
-            </p>
-          </div>
-          <div className="flex items-end">
-            <p className="text-sm text-muted-foreground premium-body">
+        {/* ── FILTER BAR — distinct styling ─── */}
+        <div className="bg-[#F0F4F8] border border-[#D1DAE6] rounded-xl p-4 mb-6">
+          <div className="flex items-center gap-2 mb-3">
+            <Filter className="w-4 h-4 text-[#0A1A2F]" />
+            <span className="text-sm font-bold text-[#0A1A2F] premium-heading">Filter Jobs</span>
+            <span className="text-xs text-muted-foreground premium-body ml-auto">
               {jobsLoading ? "Loading..." : `${total} jobs available`}
-            </p>
+            </span>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+            <div>
+              <label className="text-[10px] font-semibold text-[#0A1A2F] uppercase tracking-wider mb-1 block premium-heading">
+                Skills
+              </label>
+              <Input
+                placeholder="e.g. Python, AWS, React"
+                value={filterSkills}
+                onChange={(e) => setFilterSkills(e.target.value)}
+                className="h-9 text-sm bg-white border-[#C0CBDA] focus:border-[#E8C547] focus:ring-[#E8C547]"
+              />
+            </div>
+            <div>
+              <label className="text-[10px] font-semibold text-[#0A1A2F] uppercase tracking-wider mb-1 block premium-heading">
+                State
+              </label>
+              <Select value={filterState} onValueChange={setFilterState}>
+                <SelectTrigger className="h-9 text-sm bg-white border-[#C0CBDA]">
+                  <SelectValue placeholder="All states" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All States</SelectItem>
+                  {["CA","TX","NY","FL","WA","IL","GA","NC","VA","MA","PA","OH","CO","AZ","NJ","DC"].map((s) => (
+                    <SelectItem key={s} value={s}>{s}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <label className="text-[10px] font-semibold text-[#0A1A2F] uppercase tracking-wider mb-1 block premium-heading">
+                Visa Type
+              </label>
+              <Select value={filterVisaType} onValueChange={setFilterVisaType}>
+                <SelectTrigger className="h-9 text-sm bg-white border-[#C0CBDA]">
+                  <SelectValue placeholder="No filter" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">No Visa Filter</SelectItem>
+                  {VISA_TYPES.map((v) => (
+                    <SelectItem key={v} value={v}>{v}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="text-[10px] text-muted-foreground mt-0.5">
+                Hides jobs that restrict your visa type
+              </p>
+            </div>
           </div>
         </div>
 
@@ -537,7 +577,7 @@ export default function CHRMJobSeekerPanel() {
             {jobs.map((job) => (
               <Card
                 key={job.job_id}
-                className="p-4 hover:shadow-md transition cursor-pointer"
+                className="p-4 hover:shadow-md transition cursor-pointer border hover:border-[#E8C547]/50"
                 onClick={() => handleViewJob(job)}
               >
                 <div className="flex justify-between items-start gap-3">
@@ -575,6 +615,11 @@ export default function CHRMJobSeekerPanel() {
                         <Clock className="w-3 h-3" />
                         {relativeTime(job.ingested_at)}
                       </span>
+                      {/* 48h countdown */}
+                      <span className="flex items-center gap-1 text-amber-600 font-medium">
+                        <Timer className="w-3 h-3" />
+                        {timeRemaining(job.expires_at)}
+                      </span>
                     </div>
                     {job.skills && job.skills.length > 0 && (
                       <div className="flex flex-wrap gap-1 mt-2">
@@ -600,21 +645,34 @@ export default function CHRMJobSeekerPanel() {
                       </p>
                     )}
                   </div>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-8 w-8 shrink-0"
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      handleSaveJob(job.job_id)
-                    }}
-                  >
-                    <BookmarkIcon
-                      className={`w-4 h-4 ${
-                        savedJobIds.has(job.job_id) ? "fill-[#E8C547] text-[#E8C547]" : "text-muted-foreground"
-                      }`}
-                    />
-                  </Button>
+                  {/* Right side: Save + View */}
+                  <div className="flex flex-col gap-1.5 shrink-0">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8"
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        handleSaveJob(job.job_id)
+                      }}
+                    >
+                      <BookmarkIcon
+                        className={`w-4 h-4 ${
+                          savedJobIds.has(job.job_id) ? "fill-[#E8C547] text-[#E8C547]" : "text-muted-foreground"
+                        }`}
+                      />
+                    </Button>
+                    <Button
+                      size="sm"
+                      className="bg-[#E8C547] hover:bg-[#D4AF37] text-[#0A1A2F] text-[10px] h-7 px-2.5 font-bold"
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        handleViewJob(job)
+                      }}
+                    >
+                      View
+                    </Button>
+                  </div>
                 </div>
               </Card>
             ))}
@@ -672,6 +730,11 @@ export default function CHRMJobSeekerPanel() {
                     <Star className="w-3 h-3 mr-1" />
                     Quality: {selectedJob.quality_score}
                   </Badge>
+                  {/* 48h freshness */}
+                  <Badge className="bg-amber-50 text-amber-700 border border-amber-200">
+                    <Timer className="w-3 h-3 mr-1" />
+                    {timeRemaining(selectedJob.expires_at)}
+                  </Badge>
                 </div>
 
                 <div className="grid grid-cols-2 gap-4 text-sm">
@@ -690,6 +753,15 @@ export default function CHRMJobSeekerPanel() {
                   <p className="flex items-center gap-2 text-muted-foreground premium-body">
                     <Briefcase className="w-4 h-4" />
                     Expires {new Date(selectedJob.expires_at).toLocaleDateString()}
+                  </p>
+                </div>
+
+                {/* 48-hour notice */}
+                <div className="bg-amber-50 border border-amber-200 rounded-lg px-4 py-2.5 flex items-center gap-2">
+                  <Timer className="w-4 h-4 text-amber-600 shrink-0" />
+                  <p className="text-xs text-amber-700">
+                    This listing is available for <strong>48 hours</strong> from when it was posted.
+                    Act quickly to express interest.
                   </p>
                 </div>
 
@@ -726,18 +798,32 @@ export default function CHRMJobSeekerPanel() {
                 </div>
 
                 <Separator />
-                <Button
-                  variant="outline"
-                  onClick={() => handleSaveJob(selectedJob.job_id)}
-                  className="flex items-center gap-2"
-                >
-                  <BookmarkIcon
-                    className={`w-4 h-4 ${
-                      savedJobIds.has(selectedJob.job_id) ? "fill-[#E8C547] text-[#E8C547]" : ""
-                    }`}
-                  />
-                  {savedJobIds.has(selectedJob.job_id) ? "Saved" : "Save Job"}
-                </Button>
+
+                {/* Action buttons */}
+                <div className="flex items-center gap-3">
+                  <Button
+                    className="bg-[#E8C547] hover:bg-[#D4AF37] text-[#0A1A2F] font-bold flex items-center gap-2"
+                    onClick={() => {
+                      // For now, open the job URL if available, or save the job
+                      handleSaveJob(selectedJob.job_id)
+                    }}
+                  >
+                    <ExternalLink className="w-4 h-4" />
+                    {submittedJobIds.has(selectedJob.job_id) ? "Already Applied" : "Express Interest"}
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={() => handleSaveJob(selectedJob.job_id)}
+                    className="flex items-center gap-2"
+                  >
+                    <BookmarkIcon
+                      className={`w-4 h-4 ${
+                        savedJobIds.has(selectedJob.job_id) ? "fill-[#E8C547] text-[#E8C547]" : ""
+                      }`}
+                    />
+                    {savedJobIds.has(selectedJob.job_id) ? "Saved" : "Save Job"}
+                  </Button>
+                </div>
               </div>
             </>
           )}

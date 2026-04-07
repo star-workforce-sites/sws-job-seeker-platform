@@ -19,6 +19,7 @@ import {
   UserCheck,
 } from "lucide-react"
 import CHRMJobSeekerPanel from "./CHRMJobSeekerPanel"
+import CHRMMarketIntelSnapshot from "./CHRMMarketIntelSnapshot"
 
 export const dynamic = "force-dynamic"
 
@@ -214,128 +215,88 @@ export default async function JobSeekerDashboard() {
           </p>
         </div>
 
-        {/* Current Plan Card */}
-        <Card className="mb-8 p-6 bg-gradient-to-r from-[#0A1A2F] to-[#132A47] text-white">
-          <div className="flex items-center justify-between flex-wrap gap-4">
-            <div>
-              <h3 className="text-lg font-semibold premium-heading">Current Plan</h3>
-              {hasRecruiterSubscription ? (
-                <>
-                  <p className="text-2xl font-bold text-[#E8C547] mt-2 premium-heading">
-                    {subscription?.subscription_type === "recruiter_basic"    && "Recruiter Basic"}
-                    {subscription?.subscription_type === "recruiter_standard" && "Recruiter Standard"}
-                    {subscription?.subscription_type === "recruiter_pro"      && "Recruiter Pro"}
-                  </p>
-                  <p className="text-sm text-gray-300 mt-1 premium-body">
-                    Renews on {formatDate(subscription.current_period_end)}
-                  </p>
-                </>
-              ) : (
-                <p className="text-2xl font-bold text-gray-400 mt-2 premium-heading">Free</p>
-              )}
-            </div>
-            {!hasRecruiterSubscription && (
-              <Link href="/hire-recruiter">
-                <Button className="bg-[#E8C547] hover:bg-[#D4AF37] text-[#0A1A2F] premium-heading">
-                  Upgrade Plan
-                </Button>
-              </Link>
-            )}
-          </div>
-        </Card>
-
-        {/* ── Hire Recruiter promo — only when no subscription ── */}
-        {!hasRecruiterSubscription && (
-          <Card className="mb-8 p-8 bg-gradient-to-r from-[#E8C547]/20 to-[#FFD700]/10 border-2 border-[#E8C547]">
-            <div className="flex items-start gap-4">
-              <Users className="w-12 h-12 text-[#E8C547] flex-shrink-0" />
-              <div className="flex-1">
-                <h3 className="text-2xl font-bold mb-2 text-foreground premium-heading">
-                  Want a Dedicated Recruiter?
-                </h3>
-                <p className="text-muted-foreground mb-4 premium-body">
-                  Let our offshore recruiters handle your job search. Choose the plan that fits your needs.
+        {/* ── Top Row: Plan + Recruiter/Promo + Market Intel ── */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+          {/* Column 1: Current Plan */}
+          <Card className="p-5 bg-gradient-to-br from-[#0A1A2F] to-[#132A47] text-white">
+            <h3 className="text-sm font-semibold text-white/70 premium-heading mb-1">Current Plan</h3>
+            {hasRecruiterSubscription ? (
+              <>
+                <p className="text-xl font-bold text-[#E8C547] premium-heading">
+                  {subscription?.subscription_type === "recruiter_basic"    && "Recruiter Basic"}
+                  {subscription?.subscription_type === "recruiter_standard" && "Recruiter Standard"}
+                  {subscription?.subscription_type === "recruiter_pro"      && "Recruiter Pro"}
                 </p>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-                  <div className="bg-white/50 p-4 rounded-lg">
-                    <h4 className="text-lg font-bold text-[#0A1A2F] mb-1 premium-heading">Basic</h4>
-                    <p className="text-2xl font-bold text-[#E8C547] premium-heading">$199/mo</p>
-                    <p className="text-sm text-muted-foreground premium-body">3-5 apps/day</p>
-                  </div>
-                  <div className="bg-white/70 p-4 rounded-lg border-2 border-[#E8C547]">
-                    <div className="text-xs font-bold text-[#E8C547] mb-1 premium-body">MOST POPULAR</div>
-                    <h4 className="text-lg font-bold text-[#0A1A2F] mb-1 premium-heading">Standard</h4>
-                    <p className="text-2xl font-bold text-[#E8C547] premium-heading">$399/mo</p>
-                    <p className="text-sm text-muted-foreground premium-body">10-15 apps/day</p>
-                  </div>
-                  <div className="bg-white/50 p-4 rounded-lg">
-                    <h4 className="text-lg font-bold text-[#0A1A2F] mb-1 premium-heading">Pro</h4>
-                    <p className="text-2xl font-bold text-[#E8C547] premium-heading">$599/mo</p>
-                    <p className="text-sm text-muted-foreground premium-body">20-30 apps/day</p>
-                  </div>
-                </div>
-                <Link href="/hire-recruiter">
-                  <Button size="lg" className="bg-[#E8C547] hover:bg-[#D4AF37] text-[#0A1A2F] premium-heading">
-                    View All Plans
+                <p className="text-xs text-gray-300 mt-1 premium-body">
+                  Renews on {formatDate(subscription.current_period_end)}
+                </p>
+              </>
+            ) : (
+              <>
+                <p className="text-xl font-bold text-gray-400 premium-heading">Free Plan</p>
+                <Link href="/hire-recruiter" className="mt-3 inline-block">
+                  <Button size="sm" className="bg-[#E8C547] hover:bg-[#D4AF37] text-[#0A1A2F] text-xs font-bold premium-heading">
+                    Upgrade Plan
                   </Button>
                 </Link>
-              </div>
-            </div>
+              </>
+            )}
           </Card>
-        )}
 
-        {/* ── Recruiter Status Card — only when subscribed ───── */}
-        {hasRecruiterSubscription && (
-          <Card className="mb-8 p-6 border-2 border-[#E8C547]">
-            <div className="flex items-start gap-4">
-              <UserCheck className="w-10 h-10 text-[#E8C547] shrink-0 mt-1" />
-              <div className="flex-1">
-                <h3 className="text-xl font-bold text-foreground premium-heading">
-                  Your Recruiter
-                </h3>
-
-                {assignedRecruiter ? (
-                  // ── Recruiter has been assigned ─────────────
-                  <div className="mt-2 space-y-1">
-                    <div className="flex items-center gap-2">
-                      <CheckCircle className="w-4 h-4 text-green-500" />
-                      <span className="font-semibold text-green-600 premium-body">
-                        Recruiter Assigned
-                      </span>
-                    </div>
-                    <p className="text-foreground font-medium premium-heading">
-                      {assignedRecruiter.name}
-                    </p>
-                    <p className="text-sm text-muted-foreground premium-body">
-                      {assignedRecruiter.email}
-                    </p>
-                    {assignment?.plan_type && (
-                      <p className="text-xs text-muted-foreground premium-body mt-1">
-                        Plan: {planLabel(assignment.plan_type)} ·
-                        Assigned {formatDate(assignment.assigned_at)}
+          {/* Column 2: Recruiter Status / Promo */}
+          <Card className="p-5 border-2 border-[#E8C547]">
+            {hasRecruiterSubscription ? (
+              <div className="flex items-start gap-3">
+                <UserCheck className="w-8 h-8 text-[#E8C547] shrink-0" />
+                <div className="min-w-0">
+                  <h3 className="text-sm font-bold text-foreground premium-heading">Your Recruiter</h3>
+                  {assignedRecruiter ? (
+                    <div className="mt-1.5 space-y-0.5">
+                      <div className="flex items-center gap-1.5">
+                        <CheckCircle className="w-3.5 h-3.5 text-green-500 shrink-0" />
+                        <span className="text-xs font-semibold text-green-600 premium-body">Assigned</span>
+                      </div>
+                      <p className="text-sm font-medium text-foreground premium-heading truncate">
+                        {assignedRecruiter.name}
                       </p>
-                    )}
-                  </div>
-                ) : (
-                  // ── Pending assignment ─────────────────────
-                  <div className="flex items-center gap-2 mt-2">
-                    <Clock className="w-4 h-4 text-orange-500" />
-                    <p className="text-muted-foreground premium-body">
-                      <span className="font-semibold text-orange-500">Pending Assignment</span>
-                      {" "}- Your recruiter will be assigned within 48 hours
-                    </p>
-                  </div>
-                )}
-
-                {!assignedRecruiter && (
-                  <p className="text-sm text-muted-foreground mt-2 premium-body">
-                    You'll receive an email introduction once your recruiter is assigned
-                  </p>
-                )}
+                      <p className="text-xs text-muted-foreground premium-body truncate">
+                        {assignedRecruiter.email}
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="mt-1.5">
+                      <div className="flex items-center gap-1.5">
+                        <Clock className="w-3.5 h-3.5 text-orange-500 shrink-0" />
+                        <span className="text-xs font-semibold text-orange-500 premium-body">Pending Assignment</span>
+                      </div>
+                      <p className="text-xs text-muted-foreground mt-1 premium-body">
+                        Your recruiter will be assigned within 48 hours
+                      </p>
+                    </div>
+                  )}
+                </div>
               </div>
-            </div>
+            ) : (
+              <div className="flex items-start gap-3">
+                <Users className="w-8 h-8 text-[#E8C547] shrink-0" />
+                <div>
+                  <h3 className="text-sm font-bold text-foreground premium-heading">Want a Recruiter?</h3>
+                  <p className="text-xs text-muted-foreground mt-1 premium-body">
+                    Plans from $199/mo. Dedicated recruiter applies to jobs on your behalf daily.
+                  </p>
+                  <Link href="/hire-recruiter" className="mt-2 inline-block">
+                    <Button size="sm" variant="outline" className="text-xs border-[#E8C547] text-[#0A1A2F] hover:bg-[#E8C547]/10 font-semibold">
+                      View Plans
+                    </Button>
+                  </Link>
+                </div>
+              </div>
+            )}
           </Card>
-        )}
+
+          {/* Column 3: Market Intelligence Snapshot (client component) */}
+          <CHRMMarketIntelSnapshot />
+        </div>
 
         {/* ── Stats Grid ────────────────────────────────────── */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
