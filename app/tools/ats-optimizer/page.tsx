@@ -2,21 +2,31 @@ import type { Metadata } from "next"
 import ATSOptimizerClient from "@/components/ats-optimizer-client"
 
 export const metadata: Metadata = {
-  title: "Free ATS Resume Optimizer | STAR Workforce Solutions",
+  title: "Free AI Resume Optimizer for ATS | Pass Automated Screening in Seconds",
   description:
-    "Free AI-powered ATS resume checker and optimizer. Analyze your resume for ATS compatibility, discover missing keywords, and get optimization tips to pass ATS systems and land interviews.",
+    "Optimize your resume for ATS systems with AI-powered keyword matching. Compare your resume to any job description, get an ATS compatibility score, and discover missing keywords. Free scan included.",
   keywords: [
-    "ATS optimizer",
-    "resume checker",
-    "ATS score",
-    "resume keywords",
-    "applicant tracking system",
-    "free resume analysis",
+    "ATS resume optimizer", "how to pass ATS screening", "ATS resume checker free",
+    "resume keyword optimization tool", "best resume optimization tool 2026",
+    "how to get past ATS filters", "resume scanner for ATS",
+    "applicant tracking system resume format", "ATS-friendly resume",
+    "resume keywords for ATS systems", "beat the ATS algorithm",
+    "AI resume optimizer tool", "resume score checker",
+    "Jobscan alternative", "free ATS resume checker",
   ],
   openGraph: {
-    title: "Free ATS Resume Optimizer | STAR Workforce Solutions",
-    description: "Free AI-powered ATS resume checker. Get instant analysis and optimization tips.",
+    title: "Free AI Resume Optimizer for ATS | Pass Automated Screening",
+    description: "Upload your resume and job description. Get instant ATS compatibility score, missing keywords, and optimization tips. Free to start.",
     type: "website",
+    url: "https://www.starworkforcesolutions.com/tools/ats-optimizer",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Free AI Resume Optimizer for ATS",
+    description: "Get past ATS filters with AI-powered resume optimization. Free scan included.",
+  },
+  alternates: {
+    canonical: "https://www.starworkforcesolutions.com/tools/ats-optimizer",
   },
 }
 

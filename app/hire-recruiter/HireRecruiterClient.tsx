@@ -123,7 +123,7 @@ export default function HireRecruiterClient() {
             <Link href="/auth/signup">
               <Button
                 size="lg"
-                className="bg-white/15 hover:bg-white/25 text-white font-bold py-6 px-10 text-lg border border-white/50 premium-heading"
+                className="bg-[#E8C547]/20 hover:bg-[#E8C547]/30 text-[#E8C547] font-bold py-6 px-10 text-lg border-2 border-[#E8C547] premium-heading"
               >
                 Get Started Free
               </Button>

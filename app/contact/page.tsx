@@ -6,8 +6,18 @@ import { Mail, Phone, MapPin, Clock } from "lucide-react"
 import ContactFormClient from "@/components/contact-form-client"
 
 export const metadata = {
-  title: "Contact Us | STAR Workforce Solutions",
-  description: "Get in touch with our team. We respond within 24 hours.",
+  title: "Contact Us | STAR Workforce Solutions Career Support",
+  description: "Have questions about our ATS resume optimizer, recruiter service, or career tools? Contact STAR Workforce Solutions. We respond within 24 hours. Call (469) 713-3993 or email us.",
+  keywords: [
+    "contact STAR Workforce Solutions", "career services support",
+    "job search help contact", "resume optimization support",
+  ],
+  openGraph: {
+    title: "Contact Us | STAR Workforce Solutions",
+    description: "Questions about career tools or recruiter services? We respond within 24 hours.",
+    type: "website",
+    url: "https://www.starworkforcesolutions.com/contact",
+  },
   alternates: {
     canonical: "https://www.starworkforcesolutions.com/contact",
   },

@@ -67,7 +67,7 @@ export default function Home() {
               <Link href="/hire-recruiter">
                 <Button
                   variant="outline"
-                  className="border-white text-white hover:text-[#FFD700] hover:bg-white/10 px-8 py-6 text-lg h-auto font-semibold premium-body bg-transparent transition-colors"
+                  className="border-2 border-[#E8C547] text-[#E8C547] hover:bg-[#E8C547]/20 px-8 py-6 text-lg h-auto font-semibold premium-body bg-transparent transition-colors"
                 >
                   Hire a Dedicated Recruiter
                 </Button>
@@ -245,7 +245,7 @@ export default function Home() {
             <Link href="/services">
               <Button
                 variant="outline"
-                className="border-white text-white hover:text-[#FFD700] hover:bg-white/10 px-8 py-6 text-lg h-auto font-semibold premium-body bg-transparent transition-colors"
+                className="border-2 border-[#E8C547] text-[#E8C547] hover:bg-[#E8C547]/20 px-8 py-6 text-lg h-auto font-semibold premium-body bg-transparent transition-colors"
               >
                 Explore Services
               </Button>

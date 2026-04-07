@@ -333,7 +333,7 @@ export default function ServicesClient() {
               </Button>
             </Link>
             <Link href="/pricing">
-              <Button size="lg" variant="outline" className="bg-white/10 hover:bg-white/20 text-white border-white premium-heading">
+              <Button size="lg" variant="outline" className="bg-[#E8C547]/15 hover:bg-[#E8C547]/25 text-[#E8C547] border-2 border-[#E8C547] premium-heading">
                 View Pricing
               </Button>
             </Link>
