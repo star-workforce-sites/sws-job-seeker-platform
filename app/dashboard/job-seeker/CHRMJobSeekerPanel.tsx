@@ -81,8 +81,11 @@ function relativeTime(dateStr: string): string {
   return `${Math.floor(diffDays / 7)} weeks ago`
 }
 
-function timeRemaining(expiresAt: string): string {
-  const diffMs = new Date(expiresAt).getTime() - Date.now()
+function timeRemaining(expiresAt: string | null | undefined): string {
+  if (!expiresAt) return "48h window"
+  const expTime = new Date(expiresAt).getTime()
+  if (isNaN(expTime)) return "48h window"
+  const diffMs = expTime - Date.now()
   if (diffMs <= 0) return "Expired"
   const hours = Math.floor(diffMs / (1000 * 60 * 60))
   if (hours < 1) return "<1hr left"
@@ -282,6 +285,48 @@ export default function CHRMJobSeekerPanel() {
       }
     } catch {}
   }, [])
+
+  // ── Express Interest (apply) ──────────────────────────────
+  const [applyingJobId, setApplyingJobId] = useState<string | null>(null)
+  const handleExpressInterest = useCallback(async (job: CHRMJob) => {
+    if (submittedJobIds.has(job.job_id)) return
+    setApplyingJobId(job.job_id)
+    try {
+      const rateInfo = job.rate_min && job.rate_max
+        ? `$${job.rate_min}-$${job.rate_max}/${job.rate_type || "hr"}`
+        : job.rate_min
+          ? `$${job.rate_min}/${job.rate_type || "hr"}`
+          : null
+      const res = await fetch("/api/chrm/express-interest", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          job_id: job.job_id,
+          job_title: job.title,
+          company: job.description?.split("\n")[0]?.substring(0, 100) || "See description",
+          location: `${job.city}, ${job.state}`,
+          work_model: job.work_model,
+          rate_info: rateInfo,
+        }),
+      })
+      if (res.ok) {
+        setSubmittedJobIds((prev) => new Set(prev).add(job.job_id))
+        alert("Interest submitted! Our team will review and follow up with you.")
+      } else {
+        const err = await res.json()
+        if (res.status === 409) {
+          setSubmittedJobIds((prev) => new Set(prev).add(job.job_id))
+          alert("You have already expressed interest in this job.")
+        } else {
+          alert(err.error || "Failed to submit interest. Please try again.")
+        }
+      }
+    } catch {
+      alert("Network error. Please try again.")
+    } finally {
+      setApplyingJobId(null)
+    }
+  }, [submittedJobIds])
 
   // Pagination
   const totalPages = Math.ceil(total / LIMIT)
@@ -664,7 +709,19 @@ export default function CHRMJobSeekerPanel() {
                     </Button>
                     <Button
                       size="sm"
-                      className="bg-[#E8C547] hover:bg-[#D4AF37] text-[#0A1A2F] text-[10px] h-7 px-2.5 font-bold"
+                      className="bg-[#E8C547] hover:bg-[#D4AF37] text-[#0A1A2F] text-[10px] h-7 px-2.5 font-bold disabled:opacity-50"
+                      disabled={submittedJobIds.has(job.job_id) || applyingJobId === job.job_id}
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        handleExpressInterest(job)
+                      }}
+                    >
+                      {submittedJobIds.has(job.job_id) ? "Applied" : "Apply"}
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="text-[10px] h-7 px-2.5"
                       onClick={(e) => {
                         e.stopPropagation()
                         handleViewJob(job)
@@ -802,14 +859,16 @@ export default function CHRMJobSeekerPanel() {
                 {/* Action buttons */}
                 <div className="flex items-center gap-3">
                   <Button
-                    className="bg-[#E8C547] hover:bg-[#D4AF37] text-[#0A1A2F] font-bold flex items-center gap-2"
-                    onClick={() => {
-                      // For now, open the job URL if available, or save the job
-                      handleSaveJob(selectedJob.job_id)
-                    }}
+                    className="bg-[#E8C547] hover:bg-[#D4AF37] text-[#0A1A2F] font-bold flex items-center gap-2 disabled:opacity-50"
+                    disabled={submittedJobIds.has(selectedJob.job_id) || applyingJobId === selectedJob.job_id}
+                    onClick={() => handleExpressInterest(selectedJob)}
                   >
-                    <ExternalLink className="w-4 h-4" />
-                    {submittedJobIds.has(selectedJob.job_id) ? "Already Applied" : "Express Interest"}
+                    {applyingJobId === selectedJob.job_id ? (
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-[#0A1A2F]" />
+                    ) : (
+                      <ExternalLink className="w-4 h-4" />
+                    )}
+                    {submittedJobIds.has(selectedJob.job_id) ? "Interest Submitted" : applyingJobId === selectedJob.job_id ? "Submitting..." : "Express Interest"}
                   </Button>
                   <Button
                     variant="outline"

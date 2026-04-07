@@ -164,26 +164,30 @@ export const authOptions: NextAuthOptions = {
 
     async jwt({ token, user }) {
       try {
+        // On initial sign-in, store the user email in the token
         if (user) {
-          token.sub = user.id
+          token.email = user.email
+        }
 
-          if (user.email) {
-            const dbUser = await safeGetUserByEmail(user.email)
-            if (dbUser) {
-              token.role = dbUser.role
-              token.atsPremium = dbUser.atsPremium
-            } else {
-              token.role = "jobseeker"
-              token.atsPremium = false
-            }
-          } else {
+        // Always refresh role from DB using email (handles role changes without re-login)
+        const email = token.email as string
+        if (email) {
+          const dbUser = await safeGetUserByEmail(email)
+          if (dbUser) {
+            token.sub = dbUser.id // Use DB user ID, not OAuth provider ID
+            token.role = dbUser.role
+            token.atsPremium = dbUser.atsPremium
+          } else if (!token.role) {
             token.role = "jobseeker"
             token.atsPremium = false
           }
+        } else if (!token.role) {
+          token.role = "jobseeker"
+          token.atsPremium = false
         }
       } catch (error) {
         console.error("[NextAuth] JWT callback error:", error)
-        if (user && !token.role) {
+        if (!token.role) {
           token.role = "jobseeker"
           token.atsPremium = false
         }
