@@ -1,14 +1,24 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog"
+import { Input } from "@/components/ui/input"
+import {
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+} from "@/components/ui/select"
+import {
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
+} from "@/components/ui/dialog"
 import { Separator } from "@/components/ui/separator"
-import { Users, Clock, CheckCircle, AlertCircle, RefreshCw, UserCheck, Briefcase } from "lucide-react"
+import {
+  Users, Clock, CheckCircle, AlertCircle, RefreshCw, UserCheck,
+  Briefcase, Search, Shield, Ban, Plus, ChevronRight,
+  BarChart3, Activity, Eye, BookmarkIcon, UserPlus, TrendingUp,
+  Loader2, XCircle,
+} from "lucide-react"
 
 // ── Types ────────────────────────────────────────────────────
 
@@ -31,78 +41,126 @@ interface Recruiter {
   id: string
   name: string
   email: string
+  suspended: boolean
   active_assignments: number
 }
 
-interface AssignModalState {
-  open: boolean
-  subscriber: Subscriber | null
-  selectedRecruiterId: string
-  notes: string
-  loading: boolean
-  error: string | null
+interface UserRecord {
+  id: string
+  name: string | null
+  email: string
+  role: string
+  created_at: string
+  last_login: string | null
+  suspended: boolean
+  suspended_at: string | null
+  suspended_reason: string | null
+  active_subscriptions: number
+  as_client_assignments: number
+  as_recruiter_assignments: number
+}
+
+interface OverviewStats {
+  users: {
+    total_users: number
+    total_jobseekers: number
+    total_recruiters: number
+    total_employers: number
+    suspended_users: number
+    new_users_7d: number
+    new_users_30d: number
+  }
+  subscriptions: {
+    total_active_subscriptions: number
+    basic_count: number
+    standard_count: number
+    pro_count: number
+  }
+  assignments: {
+    total_active_assignments: number
+    active: number
+    inactive: number
+  }
+  chrm_activity: {
+    total_events: number
+    job_views: number
+    job_saves: number
+    candidate_submissions: number
+    events_7d: number
+    events_24h: number
+  }
+  recruiter_submissions: {
+    total_submissions: number
+    submissions_7d: number
+    submissions_24h: number
+    interview_count: number
+  }
+}
+
+interface RecruiterPerf {
+  recruiter_id: string
+  recruiter_name: string
+  recruiter_email: string
+  suspended: boolean
+  active_clients: number
+  total_submissions: number
+  submissions_7d: number
+  submissions_24h: number
+  interview_conversions: number
 }
 
 // ── Helpers ──────────────────────────────────────────────────
 
-function planLabel(planName: string): string {
-  const map: Record<string, string> = {
-    recruiter_basic: "Basic",
-    recruiter_standard: "Standard",
-    recruiter_pro: "Pro",
-  }
-  return map[planName] ?? planName
+function planLabel(p: string): string {
+  return ({ recruiter_basic: "Basic", recruiter_standard: "Standard", recruiter_pro: "Pro" }[p] ?? p)
 }
-
-function planColor(planName: string): string {
-  const map: Record<string, string> = {
+function planColor(p: string): string {
+  return ({
     recruiter_basic: "bg-blue-100 text-blue-800",
     recruiter_standard: "bg-purple-100 text-purple-800",
     recruiter_pro: "bg-[#E8C547]/20 text-[#0A1A2F]",
-  }
-  return map[planName] ?? "bg-gray-100 text-gray-800"
+  }[p] ?? "bg-gray-100 text-gray-800")
 }
-
-function formatDate(dateStr: string | null): string {
-  if (!dateStr) return "—"
-  return new Date(dateStr).toLocaleDateString("en-US", {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-  })
+function roleColor(r: string): string {
+  return ({
+    admin: "bg-red-100 text-red-800",
+    recruiter: "bg-blue-100 text-blue-800",
+    jobseeker: "bg-green-100 text-green-800",
+    employer: "bg-purple-100 text-purple-800",
+  }[r] ?? "bg-gray-100 text-gray-800")
 }
-
-function daysSince(dateStr: string): number {
-  return Math.floor((Date.now() - new Date(dateStr).getTime()) / 86400000)
+function formatDate(d: string | null): string {
+  if (!d) return "—"
+  return new Date(d).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })
+}
+function daysSince(d: string): number {
+  return Math.floor((Date.now() - new Date(d).getTime()) / 86400000)
+}
+function n(val: string | number | null | undefined): number {
+  return parseInt(String(val || "0"))
 }
 
 // ── Stat Card ────────────────────────────────────────────────
 
-function StatCard({
-  icon,
-  label,
-  value,
-  color,
-}: {
-  icon: React.ReactNode
-  label: string
-  value: number | string
-  color: string
+function StatCard({ icon, label, value, color }: {
+  icon: React.ReactNode; label: string; value: number | string; color: string
 }) {
   return (
-    <Card className="p-6">
-      <div className="flex items-center gap-4">
-        <div className={`${color}`}>{icon}</div>
+    <Card className="p-4">
+      <div className="flex items-center gap-3">
+        <div className={color}>{icon}</div>
         <div>
-          <p className="text-sm text-muted-foreground premium-body">{label}</p>
-          <p className="text-2xl font-bold text-foreground premium-heading">{value}</p>
+          <p className="text-xs text-muted-foreground premium-body">{label}</p>
+          <p className="text-xl font-bold text-foreground premium-heading">{value}</p>
         </div>
       </div>
     </Card>
   )
 }
 
-// ── Main Client Component ─────────────────────────────────────
+// ══════════════════════════════════════════════════════════════
+// ── Main Component ───────────────────────────────────────────
+// ══════════════════════════════════════════════════════════════
 
 export default function AdminDashboardClient({
   initialSubscribers,
@@ -111,22 +169,97 @@ export default function AdminDashboardClient({
   initialSubscribers: Subscriber[]
   initialRecruiters: Recruiter[]
 }) {
+  // Tabs
+  const [activeTab, setActiveTab] = useState("overview")
+
+  // Assignments data (from server props)
   const [subscribers, setSubscribers] = useState<Subscriber[]>(initialSubscribers)
   const [recruiters, setRecruiters] = useState<Recruiter[]>(initialRecruiters)
+
+  // Overview
+  const [overview, setOverview] = useState<OverviewStats | null>(null)
+  const [overviewLoading, setOverviewLoading] = useState(false)
+
+  // Users
+  const [users, setUsers] = useState<UserRecord[]>([])
+  const [usersTotal, setUsersTotal] = useState(0)
+  const [usersLoading, setUsersLoading] = useState(false)
+  const [userSearch, setUserSearch] = useState("")
+  const [userRoleFilter, setUserRoleFilter] = useState("all")
+
+  // Recruiter performance
+  const [recruiterPerf, setRecruiterPerf] = useState<RecruiterPerf[]>([])
+  const [perfLoading, setPerfLoading] = useState(false)
+
+  // Modals
+  const [assignModal, setAssignModal] = useState<{
+    open: boolean; subscriber: Subscriber | null; selectedRecruiterId: string;
+    notes: string; loading: boolean; error: string | null
+  }>({ open: false, subscriber: null, selectedRecruiterId: "", notes: "", loading: false, error: null })
+
+  const [userActionModal, setUserActionModal] = useState<{
+    open: boolean; user: UserRecord | null; action: string; role: string;
+    reason: string; loading: boolean; error: string | null
+  }>({ open: false, user: null, action: "", role: "", reason: "", loading: false, error: null })
+
+  const [addUserModal, setAddUserModal] = useState<{
+    open: boolean; name: string; email: string; role: string;
+    loading: boolean; error: string | null; success: boolean
+  }>({ open: false, name: "", email: "", role: "recruiter", loading: false, error: null, success: false })
+
   const [refreshing, setRefreshing] = useState(false)
-  const [modal, setModal] = useState<AssignModalState>({
-    open: false,
-    subscriber: null,
-    selectedRecruiterId: "",
-    notes: "",
-    loading: false,
-    error: null,
-  })
 
   const unassigned = subscribers.filter((s) => !s.assignment_id)
   const assigned = subscribers.filter((s) => s.assignment_id)
 
-  // ── Refresh data ────────────────────────────────────────────
+  // ── Load overview ───────────────────────────────────────────
+  const loadOverview = useCallback(async () => {
+    setOverviewLoading(true)
+    try {
+      const res = await fetch("/api/admin/activity?view=overview")
+      if (res.ok) setOverview(await res.json())
+    } catch {} finally { setOverviewLoading(false) }
+  }, [])
+
+  useEffect(() => { loadOverview() }, [loadOverview])
+
+  // ── Load users ──────────────────────────────────────────────
+  const loadUsers = useCallback(async () => {
+    setUsersLoading(true)
+    try {
+      const params = new URLSearchParams({ limit: "100", offset: "0" })
+      if (userRoleFilter !== "all") params.set("role", userRoleFilter)
+      if (userSearch.trim()) params.set("search", userSearch.trim())
+      const res = await fetch(`/api/admin/users?${params.toString()}`)
+      if (res.ok) {
+        const data = await res.json()
+        setUsers(data.users ?? [])
+        setUsersTotal(data.total ?? 0)
+      }
+    } catch {} finally { setUsersLoading(false) }
+  }, [userRoleFilter, userSearch])
+
+  useEffect(() => {
+    if (activeTab === "users") loadUsers()
+  }, [activeTab, loadUsers])
+
+  // ── Load recruiter performance ─────────────────────────────
+  const loadRecruiterPerf = useCallback(async () => {
+    setPerfLoading(true)
+    try {
+      const res = await fetch("/api/admin/activity?view=recruiter_performance")
+      if (res.ok) {
+        const data = await res.json()
+        setRecruiterPerf(data.recruiters ?? [])
+      }
+    } catch {} finally { setPerfLoading(false) }
+  }, [])
+
+  useEffect(() => {
+    if (activeTab === "performance") loadRecruiterPerf()
+  }, [activeTab, loadRecruiterPerf])
+
+  // ── Refresh assignments data ────────────────────────────────
   async function handleRefresh() {
     setRefreshing(true)
     try {
@@ -134,321 +267,522 @@ export default function AdminDashboardClient({
         fetch("/api/admin/subscribers"),
         fetch("/api/admin/recruiters"),
       ])
-      if (subRes.ok) {
-        const data = await subRes.json()
-        setSubscribers(data.subscribers ?? [])
-      }
-      if (recRes.ok) {
-        const data = await recRes.json()
-        setRecruiters(data.recruiters ?? [])
-      }
-    } catch {
-      // silently fail — user can retry
-    } finally {
-      setRefreshing(false)
-    }
+      if (subRes.ok) setSubscribers((await subRes.json()).subscribers ?? [])
+      if (recRes.ok) setRecruiters((await recRes.json()).recruiters ?? [])
+      await loadOverview()
+    } catch {} finally { setRefreshing(false) }
   }
 
-  // ── Open assign modal ───────────────────────────────────────
-  function openAssignModal(subscriber: Subscriber) {
-    setModal({
-      open: true,
-      subscriber,
-      selectedRecruiterId: subscriber.recruiter_name
-        ? (recruiters.find((r) => r.name === subscriber.recruiter_name)?.id ?? "")
-        : "",
-      notes: subscriber.assignment_id ? (subscriber.recruiter_name ?? "") : "",
-      loading: false,
-      error: null,
-    })
-  }
-
-  function closeModal() {
-    setModal((prev) => ({ ...prev, open: false, error: null }))
-  }
-
-  // ── Submit assignment ───────────────────────────────────────
+  // ── Assign recruiter ────────────────────────────────────────
   async function handleAssign() {
-    if (!modal.subscriber || !modal.selectedRecruiterId) {
-      setModal((prev) => ({ ...prev, error: "Please select a recruiter." }))
+    if (!assignModal.subscriber || !assignModal.selectedRecruiterId) {
+      setAssignModal((p) => ({ ...p, error: "Please select a recruiter." }))
       return
     }
-    setModal((prev) => ({ ...prev, loading: true, error: null }))
-
+    setAssignModal((p) => ({ ...p, loading: true, error: null }))
     try {
       const res = await fetch("/api/admin/recruiter-assignments", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          subscription_id: modal.subscriber.subscription_id,
-          recruiter_id: modal.selectedRecruiterId,
-          notes: modal.notes || null,
+          subscription_id: assignModal.subscriber.subscription_id,
+          recruiter_id: assignModal.selectedRecruiterId,
+          notes: assignModal.notes || null,
         }),
       })
-
       const data = await res.json()
-
       if (!res.ok) {
-        setModal((prev) => ({
-          ...prev,
-          loading: false,
-          error: data.error ?? "Assignment failed. Please try again.",
-        }))
+        setAssignModal((p) => ({ ...p, loading: false, error: data.error ?? "Failed" }))
         return
       }
-
-      // Optimistically update local state
-      const recruiter = recruiters.find((r) => r.id === modal.selectedRecruiterId)
+      const rec = recruiters.find((r) => r.id === assignModal.selectedRecruiterId)
       setSubscribers((prev) =>
         prev.map((s) =>
-          s.subscription_id === modal.subscriber!.subscription_id
-            ? {
-                ...s,
-                assignment_id: data.assignment?.id ?? "assigned",
-                assignment_status: "active",
-                assigned_at: new Date().toISOString(),
-                recruiter_name: recruiter?.name ?? null,
-                recruiter_email: recruiter?.email ?? null,
-              }
+          s.subscription_id === assignModal.subscriber!.subscription_id
+            ? { ...s, assignment_id: data.assignment?.id ?? "assigned", assignment_status: "active",
+                assigned_at: new Date().toISOString(), recruiter_name: rec?.name ?? null, recruiter_email: rec?.email ?? null }
             : s
         )
       )
-
-      closeModal()
+      setAssignModal((p) => ({ ...p, open: false }))
     } catch {
-      setModal((prev) => ({
-        ...prev,
-        loading: false,
-        error: "Network error. Please try again.",
-      }))
+      setAssignModal((p) => ({ ...p, loading: false, error: "Network error" }))
     }
   }
 
-  // ── Subscriber Row ──────────────────────────────────────────
-  function SubscriberRow({ sub }: { sub: Subscriber }) {
-    const isAssigned = !!sub.assignment_id
-    const days = daysSince(sub.subscribed_at)
+  // ── User actions (role change, suspend, unsuspend) ──────────
+  async function handleUserAction() {
+    if (!userActionModal.user) return
+    setUserActionModal((p) => ({ ...p, loading: true, error: null }))
+    try {
+      const body: Record<string, string> = {
+        user_id: userActionModal.user.id,
+        action: userActionModal.action,
+      }
+      if (userActionModal.action === "change_role") body.role = userActionModal.role
+      if (userActionModal.action === "suspend") body.reason = userActionModal.reason
 
-    return (
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 border rounded-lg hover:bg-muted/30 transition">
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2 flex-wrap">
-            <span className="font-semibold text-foreground premium-heading truncate">
-              {sub.job_seeker_name || "Unknown"}
-            </span>
-            <Badge className={`text-xs ${planColor(sub.plan_name)}`}>
-              {planLabel(sub.plan_name)}
-            </Badge>
-            {!isAssigned && days >= 2 && (
-              <Badge className="text-xs bg-red-100 text-red-700">
-                {days}d waiting
-              </Badge>
-            )}
-          </div>
-          <p className="text-sm text-muted-foreground premium-body mt-0.5">
-            {sub.job_seeker_email}
-          </p>
-          <p className="text-xs text-muted-foreground premium-body mt-1">
-            Subscribed: {formatDate(sub.subscribed_at)}
-            {isAssigned && (
-              <span className="ml-3 text-green-600 font-medium">
-                → {sub.recruiter_name} (assigned {formatDate(sub.assigned_at)})
-              </span>
-            )}
-          </p>
-        </div>
-        <Button
-          size="sm"
-          onClick={() => openAssignModal(sub)}
-          className={
-            isAssigned
-              ? "bg-muted text-foreground hover:bg-muted/70 border border-border"
-              : "bg-[#0A1A2F] hover:bg-[#132A47] text-white premium-heading"
-          }
-        >
-          {isAssigned ? "Reassign" : "Assign Recruiter"}
-        </Button>
-      </div>
-    )
+      const res = await fetch("/api/admin/users", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      })
+      const data = await res.json()
+      if (!res.ok) {
+        setUserActionModal((p) => ({ ...p, loading: false, error: data.error ?? "Failed" }))
+        return
+      }
+      setUserActionModal((p) => ({ ...p, open: false }))
+      loadUsers() // refresh
+      handleRefresh() // refresh recruiters too
+    } catch {
+      setUserActionModal((p) => ({ ...p, loading: false, error: "Network error" }))
+    }
   }
 
-  // ── Recruiter Card ──────────────────────────────────────────
-  function RecruiterCard({ rec }: { rec: Recruiter }) {
-    return (
-      <Card className="p-5">
-        <div className="flex items-start justify-between">
-          <div>
-            <div className="flex items-center gap-2">
-              <UserCheck className="w-5 h-5 text-[#E8C547]" />
-              <span className="font-semibold text-foreground premium-heading">{rec.name}</span>
-            </div>
-            <p className="text-sm text-muted-foreground premium-body mt-1">{rec.email}</p>
-          </div>
-          <Badge className="bg-[#0A1A2F] text-white text-xs">
-            {rec.active_assignments} active
-          </Badge>
-        </div>
-      </Card>
-    )
+  // ── Add new user ────────────────────────────────────────────
+  async function handleAddUser() {
+    if (!addUserModal.name || !addUserModal.email || !addUserModal.role) {
+      setAddUserModal((p) => ({ ...p, error: "All fields required" }))
+      return
+    }
+    setAddUserModal((p) => ({ ...p, loading: true, error: null }))
+    try {
+      const res = await fetch("/api/admin/users", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: addUserModal.name, email: addUserModal.email, role: addUserModal.role }),
+      })
+      const data = await res.json()
+      if (!res.ok) {
+        setAddUserModal((p) => ({ ...p, loading: false, error: data.error ?? "Failed" }))
+        return
+      }
+      setAddUserModal((p) => ({ ...p, loading: false, success: true }))
+      loadUsers()
+      handleRefresh()
+    } catch {
+      setAddUserModal((p) => ({ ...p, loading: false, error: "Network error" }))
+    }
   }
 
-  // ── Render ──────────────────────────────────────────────────
+  // ══════════════════════════════════════════════════════════════
+  // ── RENDER ─────────────────────────────────────────────────
+  // ══════════════════════════════════════════════════════════════
+
   return (
     <div className="min-h-screen bg-background p-4 sm:p-6 lg:p-8">
       <div className="max-w-7xl mx-auto">
 
         {/* Header */}
-        <div className="mb-8 flex items-start justify-between flex-wrap gap-4">
+        <div className="mb-6 flex items-start justify-between flex-wrap gap-4">
           <div>
-            <h1 className="text-3xl font-bold text-foreground premium-heading">
-              Admin Panel
+            <h1 className="text-3xl font-bold text-foreground premium-heading flex items-center gap-3">
+              <Shield className="w-8 h-8 text-[#E8C547]" />
+              Admin Dashboard
             </h1>
-            <p className="text-muted-foreground mt-2 premium-body">
-              Manage recruiter assignments for Hire-a-Recruiter subscribers
+            <p className="text-muted-foreground mt-1 premium-body">
+              Complete platform control — users, recruiters, assignments, and activity
             </p>
           </div>
-          <Button
-            variant="outline"
-            onClick={handleRefresh}
-            disabled={refreshing}
-            className="flex items-center gap-2"
-          >
+          <Button variant="outline" onClick={handleRefresh} disabled={refreshing} className="flex items-center gap-2">
             <RefreshCw className={`w-4 h-4 ${refreshing ? "animate-spin" : ""}`} />
-            {refreshing ? "Refreshing..." : "Refresh"}
+            {refreshing ? "Refreshing..." : "Refresh All"}
           </Button>
         </div>
 
-        {/* Stats */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          <StatCard
-            icon={<Users className="w-8 h-8" />}
-            label="Total Subscribers"
-            value={subscribers.length}
-            color="text-primary"
-          />
-          <StatCard
-            icon={<AlertCircle className="w-8 h-8" />}
-            label="Unassigned"
-            value={unassigned.length}
-            color={unassigned.length > 0 ? "text-red-500" : "text-green-500"}
-          />
-          <StatCard
-            icon={<CheckCircle className="w-8 h-8" />}
-            label="Assigned"
-            value={assigned.length}
-            color="text-green-500"
-          />
-          <StatCard
-            icon={<Briefcase className="w-8 h-8" />}
-            label="Active Recruiters"
-            value={recruiters.length}
-            color="text-[#E8C547]"
-          />
-        </div>
-
-        {/* Unassigned alert banner */}
-        {unassigned.length > 0 && (
-          <Card className="mb-6 p-4 border-2 border-red-200 bg-red-50">
-            <div className="flex items-center gap-3">
-              <Clock className="w-5 h-5 text-red-500 flex-shrink-0" />
-              <p className="text-sm text-red-700 premium-body">
-                <span className="font-bold">{unassigned.length} subscriber{unassigned.length > 1 ? "s" : ""}</span>{" "}
-                {unassigned.length > 1 ? "need" : "needs"} a recruiter assigned.
-                Subscribers should be assigned within 48 hours of signup.
-              </p>
-            </div>
-          </Card>
-        )}
-
-        {/* Tabs */}
-        <Tabs defaultValue="unassigned">
-          <TabsList className="mb-6">
-            <TabsTrigger value="unassigned" className="premium-heading">
-              Unassigned
+        {/* ── TABS ──────────────────────────────────────────── */}
+        <Tabs value={activeTab} onValueChange={setActiveTab}>
+          <TabsList className="mb-6 flex-wrap h-auto gap-1">
+            <TabsTrigger value="overview" className="premium-heading">
+              <BarChart3 className="w-4 h-4 mr-1.5" /> Overview
+            </TabsTrigger>
+            <TabsTrigger value="users" className="premium-heading">
+              <Users className="w-4 h-4 mr-1.5" /> Users
+            </TabsTrigger>
+            <TabsTrigger value="assignments" className="premium-heading">
+              <UserCheck className="w-4 h-4 mr-1.5" /> Assignments
               {unassigned.length > 0 && (
-                <span className="ml-2 bg-red-500 text-white text-xs rounded-full px-2 py-0.5">
+                <span className="ml-1.5 bg-red-500 text-white text-[10px] rounded-full px-1.5 py-0.5">
                   {unassigned.length}
                 </span>
               )}
             </TabsTrigger>
-            <TabsTrigger value="assigned" className="premium-heading">
-              Assigned ({assigned.length})
-            </TabsTrigger>
-            <TabsTrigger value="recruiters" className="premium-heading">
-              Recruiters ({recruiters.length})
+            <TabsTrigger value="performance" className="premium-heading">
+              <TrendingUp className="w-4 h-4 mr-1.5" /> Recruiter Performance
             </TabsTrigger>
           </TabsList>
 
-          {/* Tab: Unassigned */}
-          <TabsContent value="unassigned">
+          {/* ════════════════════════════════════════════════════ */}
+          {/* ── TAB: OVERVIEW ──────────────────────────────── */}
+          {/* ════════════════════════════════════════════════════ */}
+          <TabsContent value="overview">
+            {overviewLoading && !overview ? (
+              <div className="flex items-center justify-center py-12">
+                <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
+              </div>
+            ) : overview ? (
+              <div className="space-y-6">
+                {/* User stats */}
+                <div>
+                  <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-3 premium-heading">Users</h3>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+                    <StatCard icon={<Users className="w-6 h-6" />} label="Total Users" value={n(overview.users.total_users)} color="text-primary" />
+                    <StatCard icon={<Briefcase className="w-6 h-6" />} label="Job Seekers" value={n(overview.users.total_jobseekers)} color="text-green-500" />
+                    <StatCard icon={<UserCheck className="w-6 h-6" />} label="Recruiters" value={n(overview.users.total_recruiters)} color="text-blue-500" />
+                    <StatCard icon={<UserPlus className="w-6 h-6" />} label="New (7d)" value={n(overview.users.new_users_7d)} color="text-[#E8C547]" />
+                    <StatCard icon={<UserPlus className="w-6 h-6" />} label="New (30d)" value={n(overview.users.new_users_30d)} color="text-purple-500" />
+                    <StatCard icon={<Ban className="w-6 h-6" />} label="Suspended" value={n(overview.users.suspended_users)} color="text-red-500" />
+                  </div>
+                </div>
+
+                {/* Subscriptions */}
+                <div>
+                  <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-3 premium-heading">Recruiter Subscriptions</h3>
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                    <StatCard icon={<Briefcase className="w-6 h-6" />} label="Total Active" value={n(overview.subscriptions.total_active_subscriptions)} color="text-primary" />
+                    <StatCard icon={<Briefcase className="w-6 h-6" />} label="Basic" value={n(overview.subscriptions.basic_count)} color="text-blue-500" />
+                    <StatCard icon={<Briefcase className="w-6 h-6" />} label="Standard" value={n(overview.subscriptions.standard_count)} color="text-purple-500" />
+                    <StatCard icon={<Briefcase className="w-6 h-6" />} label="Pro" value={n(overview.subscriptions.pro_count)} color="text-[#E8C547]" />
+                  </div>
+                </div>
+
+                {/* Assignments */}
+                <div>
+                  <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-3 premium-heading">Assignments</h3>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                    <StatCard icon={<CheckCircle className="w-6 h-6" />} label="Active" value={n(overview.assignments.active)} color="text-green-500" />
+                    <StatCard icon={<AlertCircle className="w-6 h-6" />} label="Unassigned" value={unassigned.length} color={unassigned.length > 0 ? "text-red-500" : "text-green-500"} />
+                    <StatCard icon={<XCircle className="w-6 h-6" />} label="Inactive" value={n(overview.assignments.inactive)} color="text-gray-400" />
+                  </div>
+                </div>
+
+                {/* Platform Activity */}
+                <div>
+                  <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-3 premium-heading">Platform Activity (CHRM)</h3>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+                    <StatCard icon={<Eye className="w-6 h-6" />} label="Job Views" value={n(overview.chrm_activity.job_views)} color="text-blue-500" />
+                    <StatCard icon={<BookmarkIcon className="w-6 h-6" />} label="Job Saves" value={n(overview.chrm_activity.job_saves)} color="text-[#E8C547]" />
+                    <StatCard icon={<ChevronRight className="w-6 h-6" />} label="Candidates Sent" value={n(overview.chrm_activity.candidate_submissions)} color="text-green-500" />
+                    <StatCard icon={<Activity className="w-6 h-6" />} label="Events (24h)" value={n(overview.chrm_activity.events_24h)} color="text-purple-500" />
+                    <StatCard icon={<Activity className="w-6 h-6" />} label="Events (7d)" value={n(overview.chrm_activity.events_7d)} color="text-orange-500" />
+                    <StatCard icon={<Activity className="w-6 h-6" />} label="Total Events" value={n(overview.chrm_activity.total_events)} color="text-gray-500" />
+                  </div>
+                </div>
+
+                {/* Recruiter Submissions */}
+                <div>
+                  <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-3 premium-heading">Recruiter Submissions</h3>
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                    <StatCard icon={<Briefcase className="w-6 h-6" />} label="Total" value={n(overview.recruiter_submissions.total_submissions)} color="text-primary" />
+                    <StatCard icon={<Briefcase className="w-6 h-6" />} label="Last 7 Days" value={n(overview.recruiter_submissions.submissions_7d)} color="text-blue-500" />
+                    <StatCard icon={<Briefcase className="w-6 h-6" />} label="Last 24h" value={n(overview.recruiter_submissions.submissions_24h)} color="text-green-500" />
+                    <StatCard icon={<TrendingUp className="w-6 h-6" />} label="Interviews" value={n(overview.recruiter_submissions.interview_count)} color="text-[#E8C547]" />
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <p className="text-muted-foreground">Failed to load overview data.</p>
+            )}
+          </TabsContent>
+
+          {/* ════════════════════════════════════════════════════ */}
+          {/* ── TAB: USERS ─────────────────────────────────── */}
+          {/* ════════════════════════════════════════════════════ */}
+          <TabsContent value="users">
             <Card className="p-6">
-              <h2 className="text-lg font-semibold text-foreground premium-heading mb-4">
-                Subscribers Awaiting Assignment
-              </h2>
+              {/* Search / Filter bar */}
+              <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 mb-6">
+                <div className="flex items-center gap-2 flex-1 min-w-0">
+                  <Search className="w-4 h-4 text-muted-foreground shrink-0" />
+                  <Input
+                    placeholder="Search by name or email..."
+                    value={userSearch}
+                    onChange={(e) => setUserSearch(e.target.value)}
+                    className="h-9 text-sm"
+                  />
+                </div>
+                <Select value={userRoleFilter} onValueChange={setUserRoleFilter}>
+                  <SelectTrigger className="h-9 text-sm w-[160px]">
+                    <SelectValue placeholder="All roles" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Roles</SelectItem>
+                    <SelectItem value="jobseeker">Job Seekers</SelectItem>
+                    <SelectItem value="recruiter">Recruiters</SelectItem>
+                    <SelectItem value="employer">Employers</SelectItem>
+                    <SelectItem value="admin">Admins</SelectItem>
+                  </SelectContent>
+                </Select>
+                <Button size="sm" onClick={loadUsers} disabled={usersLoading} variant="outline" className="h-9">
+                  <RefreshCw className={`w-3.5 h-3.5 mr-1.5 ${usersLoading ? "animate-spin" : ""}`} />
+                  Refresh
+                </Button>
+                <Button
+                  size="sm"
+                  className="h-9 bg-[#0A1A2F] hover:bg-[#132A47] text-white"
+                  onClick={() => setAddUserModal({ open: true, name: "", email: "", role: "recruiter", loading: false, error: null, success: false })}
+                >
+                  <Plus className="w-3.5 h-3.5 mr-1.5" />
+                  Add User
+                </Button>
+              </div>
+
+              <p className="text-xs text-muted-foreground mb-3">{usersTotal} users found</p>
               <Separator className="mb-4" />
+
+              {usersLoading && users.length === 0 ? (
+                <div className="flex items-center justify-center py-12">
+                  <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {users.map((u) => (
+                    <div key={u.id} className={`flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3 border rounded-lg hover:bg-muted/30 transition ${u.suspended ? "opacity-60 bg-red-50/50" : ""}`}>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="font-semibold text-sm text-foreground premium-heading truncate">
+                            {u.name || "No name"}
+                          </span>
+                          <Badge className={`text-[10px] ${roleColor(u.role)}`}>{u.role}</Badge>
+                          {u.suspended && <Badge className="text-[10px] bg-red-100 text-red-700">Suspended</Badge>}
+                        </div>
+                        <p className="text-xs text-muted-foreground premium-body">{u.email}</p>
+                        <p className="text-[10px] text-muted-foreground mt-0.5">
+                          Joined {formatDate(u.created_at)}
+                          {u.last_login && ` · Last login ${formatDate(u.last_login)}`}
+                          {n(u.active_subscriptions) > 0 && ` · ${n(u.active_subscriptions)} subscription(s)`}
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-2 shrink-0">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="h-7 text-xs"
+                          onClick={() => setUserActionModal({
+                            open: true, user: u, action: "change_role",
+                            role: u.role, reason: "", loading: false, error: null,
+                          })}
+                        >
+                          Change Role
+                        </Button>
+                        {u.suspended ? (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="h-7 text-xs text-green-700 border-green-300 hover:bg-green-50"
+                            onClick={() => setUserActionModal({
+                              open: true, user: u, action: "unsuspend",
+                              role: "", reason: "", loading: false, error: null,
+                            })}
+                          >
+                            Unsuspend
+                          </Button>
+                        ) : (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="h-7 text-xs text-red-700 border-red-300 hover:bg-red-50"
+                            onClick={() => setUserActionModal({
+                              open: true, user: u, action: "suspend",
+                              role: "", reason: "", loading: false, error: null,
+                            })}
+                          >
+                            Suspend
+                          </Button>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                  {users.length === 0 && !usersLoading && (
+                    <div className="text-center py-8">
+                      <Users className="w-10 h-10 text-muted-foreground mx-auto mb-2" />
+                      <p className="text-sm text-muted-foreground">No users found matching your criteria.</p>
+                    </div>
+                  )}
+                </div>
+              )}
+            </Card>
+          </TabsContent>
+
+          {/* ════════════════════════════════════════════════════ */}
+          {/* ── TAB: ASSIGNMENTS ───────────────────────────── */}
+          {/* ════════════════════════════════════════════════════ */}
+          <TabsContent value="assignments">
+            {/* Stats */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
+              <StatCard icon={<Users className="w-6 h-6" />} label="Total Subscribers" value={subscribers.length} color="text-primary" />
+              <StatCard icon={<AlertCircle className="w-6 h-6" />} label="Unassigned" value={unassigned.length} color={unassigned.length > 0 ? "text-red-500" : "text-green-500"} />
+              <StatCard icon={<CheckCircle className="w-6 h-6" />} label="Assigned" value={assigned.length} color="text-green-500" />
+            </div>
+
+            {unassigned.length > 0 && (
+              <Card className="mb-4 p-3 border-2 border-red-200 bg-red-50">
+                <div className="flex items-center gap-2">
+                  <Clock className="w-4 h-4 text-red-500 shrink-0" />
+                  <p className="text-xs text-red-700 premium-body">
+                    <span className="font-bold">{unassigned.length}</span> subscriber{unassigned.length > 1 ? "s" : ""} need a recruiter assigned within 48 hours.
+                  </p>
+                </div>
+              </Card>
+            )}
+
+            {/* Unassigned */}
+            <Card className="p-6 mb-6">
+              <h2 className="text-lg font-semibold text-foreground premium-heading mb-3">Awaiting Assignment</h2>
+              <Separator className="mb-3" />
               {unassigned.length === 0 ? (
-                <div className="text-center py-12">
-                  <CheckCircle className="w-12 h-12 text-green-500 mx-auto mb-3" />
-                  <p className="text-muted-foreground premium-body">
-                    All subscribers have been assigned a recruiter.
-                  </p>
+                <div className="text-center py-8">
+                  <CheckCircle className="w-10 h-10 text-green-500 mx-auto mb-2" />
+                  <p className="text-sm text-muted-foreground">All subscribers are assigned.</p>
                 </div>
               ) : (
-                <div className="space-y-3">
+                <div className="space-y-2">
                   {unassigned.map((sub) => (
-                    <SubscriberRow key={sub.subscription_id} sub={sub} />
+                    <div key={sub.subscription_id} className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3 border rounded-lg hover:bg-muted/30 transition">
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="font-semibold text-sm premium-heading">{sub.job_seeker_name || "Unknown"}</span>
+                          <Badge className={`text-[10px] ${planColor(sub.plan_name)}`}>{planLabel(sub.plan_name)}</Badge>
+                          {daysSince(sub.subscribed_at) >= 2 && <Badge className="text-[10px] bg-red-100 text-red-700">{daysSince(sub.subscribed_at)}d waiting</Badge>}
+                        </div>
+                        <p className="text-xs text-muted-foreground">{sub.job_seeker_email} · Subscribed {formatDate(sub.subscribed_at)}</p>
+                      </div>
+                      <Button size="sm" onClick={() => setAssignModal({ open: true, subscriber: sub, selectedRecruiterId: "", notes: "", loading: false, error: null })} className="bg-[#0A1A2F] hover:bg-[#132A47] text-white text-xs h-8">
+                        Assign Recruiter
+                      </Button>
+                    </div>
                   ))}
                 </div>
               )}
             </Card>
-          </TabsContent>
 
-          {/* Tab: Assigned */}
-          <TabsContent value="assigned">
-            <Card className="p-6">
-              <h2 className="text-lg font-semibold text-foreground premium-heading mb-4">
-                All Active Assignments
-              </h2>
-              <Separator className="mb-4" />
+            {/* Assigned */}
+            <Card className="p-6 mb-6">
+              <h2 className="text-lg font-semibold text-foreground premium-heading mb-3">Active Assignments</h2>
+              <Separator className="mb-3" />
               {assigned.length === 0 ? (
-                <div className="text-center py-12">
-                  <Users className="w-12 h-12 text-muted-foreground mx-auto mb-3" />
-                  <p className="text-muted-foreground premium-body">
-                    No assignments yet.
-                  </p>
+                <div className="text-center py-8">
+                  <Users className="w-10 h-10 text-muted-foreground mx-auto mb-2" />
+                  <p className="text-sm text-muted-foreground">No assignments yet.</p>
                 </div>
               ) : (
-                <div className="space-y-3">
+                <div className="space-y-2">
                   {assigned.map((sub) => (
-                    <SubscriberRow key={sub.subscription_id} sub={sub} />
+                    <div key={sub.subscription_id} className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3 border rounded-lg hover:bg-muted/30 transition">
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="font-semibold text-sm premium-heading">{sub.job_seeker_name || "Unknown"}</span>
+                          <Badge className={`text-[10px] ${planColor(sub.plan_name)}`}>{planLabel(sub.plan_name)}</Badge>
+                        </div>
+                        <p className="text-xs text-muted-foreground">
+                          {sub.job_seeker_email} · <span className="text-green-600 font-medium">→ {sub.recruiter_name}</span> (assigned {formatDate(sub.assigned_at)})
+                        </p>
+                      </div>
+                      <Button size="sm" variant="outline" onClick={() => setAssignModal({ open: true, subscriber: sub, selectedRecruiterId: recruiters.find(r => r.name === sub.recruiter_name)?.id ?? "", notes: "", loading: false, error: null })} className="text-xs h-8">
+                        Reassign
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </Card>
+
+            {/* Recruiters list */}
+            <Card className="p-6">
+              <h2 className="text-lg font-semibold text-foreground premium-heading mb-3">Available Recruiters</h2>
+              <Separator className="mb-3" />
+              {recruiters.length === 0 ? (
+                <div className="text-center py-8">
+                  <UserCheck className="w-10 h-10 text-muted-foreground mx-auto mb-2" />
+                  <p className="text-sm text-muted-foreground mb-2">No recruiters in the system.</p>
+                  <Button size="sm" onClick={() => setAddUserModal({ open: true, name: "", email: "", role: "recruiter", loading: false, error: null, success: false })} className="bg-[#0A1A2F] text-white text-xs">
+                    <Plus className="w-3.5 h-3.5 mr-1" /> Add Recruiter
+                  </Button>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                  {recruiters.map((rec) => (
+                    <Card key={rec.id} className={`p-4 ${rec.suspended ? "opacity-60 bg-red-50/50" : ""}`}>
+                      <div className="flex items-start justify-between">
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <UserCheck className="w-4 h-4 text-[#E8C547]" />
+                            <span className="font-semibold text-sm premium-heading">{rec.name}</span>
+                            {rec.suspended && <Badge className="text-[10px] bg-red-100 text-red-700">Suspended</Badge>}
+                          </div>
+                          <p className="text-xs text-muted-foreground mt-0.5">{rec.email}</p>
+                        </div>
+                        <Badge className="bg-[#0A1A2F] text-white text-xs">{n(rec.active_assignments)} active</Badge>
+                      </div>
+                    </Card>
                   ))}
                 </div>
               )}
             </Card>
           </TabsContent>
 
-          {/* Tab: Recruiters */}
-          <TabsContent value="recruiters">
+          {/* ════════════════════════════════════════════════════ */}
+          {/* ── TAB: RECRUITER PERFORMANCE ─────────────────── */}
+          {/* ════════════════════════════════════════════════════ */}
+          <TabsContent value="performance">
             <Card className="p-6">
-              <h2 className="text-lg font-semibold text-foreground premium-heading mb-4">
-                Available Recruiters
-              </h2>
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-lg font-semibold text-foreground premium-heading">Recruiter Performance</h2>
+                <Button size="sm" variant="outline" onClick={loadRecruiterPerf} disabled={perfLoading}>
+                  <RefreshCw className={`w-3.5 h-3.5 mr-1.5 ${perfLoading ? "animate-spin" : ""}`} /> Refresh
+                </Button>
+              </div>
               <Separator className="mb-4" />
-              {recruiters.length === 0 ? (
-                <div className="text-center py-12">
-                  <UserCheck className="w-12 h-12 text-muted-foreground mx-auto mb-3" />
-                  <p className="text-muted-foreground premium-body mb-2">
-                    No recruiters found in the system.
-                  </p>
-                  <p className="text-xs text-muted-foreground premium-body">
-                    Add users with role = 'recruiter' in the database to populate this list.
-                  </p>
+
+              {perfLoading && recruiterPerf.length === 0 ? (
+                <div className="flex items-center justify-center py-12">
+                  <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+                </div>
+              ) : recruiterPerf.length === 0 ? (
+                <div className="text-center py-8">
+                  <TrendingUp className="w-10 h-10 text-muted-foreground mx-auto mb-2" />
+                  <p className="text-sm text-muted-foreground">No recruiter data available yet.</p>
                 </div>
               ) : (
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {recruiters.map((rec) => (
-                    <RecruiterCard key={rec.id} rec={rec} />
-                  ))}
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="border-b">
+                        <th className="px-3 py-2 text-left font-semibold text-foreground premium-heading">Recruiter</th>
+                        <th className="px-3 py-2 text-center font-semibold text-foreground premium-heading">Clients</th>
+                        <th className="px-3 py-2 text-center font-semibold text-foreground premium-heading">Total Submissions</th>
+                        <th className="px-3 py-2 text-center font-semibold text-foreground premium-heading">Last 7 Days</th>
+                        <th className="px-3 py-2 text-center font-semibold text-foreground premium-heading">Last 24h</th>
+                        <th className="px-3 py-2 text-center font-semibold text-foreground premium-heading">Interviews</th>
+                        <th className="px-3 py-2 text-center font-semibold text-foreground premium-heading">Status</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {recruiterPerf.map((rp) => (
+                        <tr key={rp.recruiter_id} className="border-b hover:bg-muted/30 transition">
+                          <td className="px-3 py-3">
+                            <p className="font-medium text-foreground premium-heading">{rp.recruiter_name}</p>
+                            <p className="text-xs text-muted-foreground">{rp.recruiter_email}</p>
+                          </td>
+                          <td className="px-3 py-3 text-center">{n(rp.active_clients)}</td>
+                          <td className="px-3 py-3 text-center font-semibold">{n(rp.total_submissions)}</td>
+                          <td className="px-3 py-3 text-center">{n(rp.submissions_7d)}</td>
+                          <td className="px-3 py-3 text-center">{n(rp.submissions_24h)}</td>
+                          <td className="px-3 py-3 text-center">
+                            <span className="font-semibold text-green-600">{n(rp.interview_conversions)}</span>
+                          </td>
+                          <td className="px-3 py-3 text-center">
+                            {rp.suspended ? (
+                              <Badge className="text-[10px] bg-red-100 text-red-700">Suspended</Badge>
+                            ) : (
+                              <Badge className="text-[10px] bg-green-100 text-green-800">Active</Badge>
+                            )}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
                 </div>
               )}
             </Card>
@@ -456,113 +790,166 @@ export default function AdminDashboardClient({
         </Tabs>
       </div>
 
-      {/* Assign / Reassign Modal */}
-      <Dialog open={modal.open} onOpenChange={(open) => !open && closeModal()}>
+      {/* ════════════════════════════════════════════════════════ */}
+      {/* ── MODAL: Assign Recruiter ────────────────────────── */}
+      {/* ════════════════════════════════════════════════════════ */}
+      <Dialog open={assignModal.open} onOpenChange={(open) => !open && setAssignModal(p => ({ ...p, open: false }))}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle className="premium-heading">
-              {modal.subscriber?.assignment_id ? "Reassign Recruiter" : "Assign Recruiter"}
+              {assignModal.subscriber?.assignment_id ? "Reassign Recruiter" : "Assign Recruiter"}
             </DialogTitle>
           </DialogHeader>
-
-          {modal.subscriber && (
+          {assignModal.subscriber && (
             <div className="space-y-4 py-2">
-              {/* Subscriber info */}
-              <div className="bg-muted/40 rounded-lg p-4 space-y-1">
-                <p className="font-semibold text-foreground premium-heading">
-                  {modal.subscriber.job_seeker_name}
+              <div className="bg-muted/40 rounded-lg p-3">
+                <p className="font-semibold text-foreground premium-heading">{assignModal.subscriber.job_seeker_name}</p>
+                <p className="text-sm text-muted-foreground">{assignModal.subscriber.job_seeker_email}</p>
+                <Badge className={`text-xs mt-1 ${planColor(assignModal.subscriber.plan_name)}`}>{planLabel(assignModal.subscriber.plan_name)}</Badge>
+              </div>
+              {assignModal.subscriber.assignment_id && (
+                <p className="text-xs text-muted-foreground flex items-center gap-1">
+                  <CheckCircle className="w-3.5 h-3.5 text-green-500" />
+                  Currently: {assignModal.subscriber.recruiter_name}
                 </p>
-                <p className="text-sm text-muted-foreground premium-body">
-                  {modal.subscriber.job_seeker_email}
-                </p>
-                <Badge className={`text-xs ${planColor(modal.subscriber.plan_name)}`}>
-                  {planLabel(modal.subscriber.plan_name)}
-                </Badge>
-              </div>
-
-              {/* Current assignment (if reassigning) */}
-              {modal.subscriber.assignment_id && (
-                <div className="flex items-center gap-2 text-sm text-muted-foreground premium-body">
-                  <CheckCircle className="w-4 h-4 text-green-500" />
-                  Currently assigned to:{" "}
-                  <span className="font-medium text-foreground">
-                    {modal.subscriber.recruiter_name}
-                  </span>
-                </div>
               )}
-
-              {/* Recruiter select */}
-              <div className="space-y-2">
-                <label className="text-sm font-medium text-foreground premium-heading">
-                  Select Recruiter *
-                </label>
-                {recruiters.length === 0 ? (
-                  <p className="text-sm text-red-500 premium-body">
-                    No recruiters available. Add users with role = 'recruiter' first.
-                  </p>
-                ) : (
-                  <Select
-                    value={modal.selectedRecruiterId}
-                    onValueChange={(val) =>
-                      setModal((prev) => ({ ...prev, selectedRecruiterId: val }))
-                    }
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Choose a recruiter..." />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {recruiters.map((rec) => (
-                        <SelectItem key={rec.id} value={rec.id}>
-                          {rec.name} ({rec.active_assignments} active)
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                )}
+              <div>
+                <label className="text-sm font-medium premium-heading">Select Recruiter *</label>
+                <Select value={assignModal.selectedRecruiterId} onValueChange={(v) => setAssignModal(p => ({ ...p, selectedRecruiterId: v }))}>
+                  <SelectTrigger className="mt-1"><SelectValue placeholder="Choose..." /></SelectTrigger>
+                  <SelectContent>
+                    {recruiters.filter(r => !r.suspended).map((r) => (
+                      <SelectItem key={r.id} value={r.id}>{r.name} ({n(r.active_assignments)} active)</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
-
-              {/* Notes */}
-              <div className="space-y-2">
-                <label className="text-sm font-medium text-foreground premium-heading">
-                  Notes (optional)
-                </label>
-                <textarea
-                  className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring resize-none premium-body"
-                  rows={3}
-                  placeholder="Any notes about this assignment..."
-                  value={modal.notes}
-                  onChange={(e) =>
-                    setModal((prev) => ({ ...prev, notes: e.target.value }))
-                  }
-                />
+              <div>
+                <label className="text-sm font-medium premium-heading">Notes (optional)</label>
+                <textarea className="w-full mt-1 rounded-md border border-input bg-background px-3 py-2 text-sm resize-none" rows={2} placeholder="Notes..." value={assignModal.notes} onChange={(e) => setAssignModal(p => ({ ...p, notes: e.target.value }))} />
               </div>
-
-              {/* Error */}
-              {modal.error && (
-                <div className="flex items-center gap-2 text-sm text-red-600 premium-body">
-                  <AlertCircle className="w-4 h-4 flex-shrink-0" />
-                  {modal.error}
-                </div>
-              )}
+              {assignModal.error && <p className="text-xs text-red-600 flex items-center gap-1"><AlertCircle className="w-3 h-3" />{assignModal.error}</p>}
             </div>
           )}
-
-          <DialogFooter className="gap-2">
-            <Button variant="outline" onClick={closeModal} disabled={modal.loading}>
-              Cancel
-            </Button>
-            <Button
-              onClick={handleAssign}
-              disabled={modal.loading || !modal.selectedRecruiterId}
-              className="bg-[#0A1A2F] hover:bg-[#132A47] text-white premium-heading"
-            >
-              {modal.loading
-                ? "Saving..."
-                : modal.subscriber?.assignment_id
-                ? "Reassign"
-                : "Assign Recruiter"}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setAssignModal(p => ({ ...p, open: false }))} disabled={assignModal.loading}>Cancel</Button>
+            <Button onClick={handleAssign} disabled={assignModal.loading || !assignModal.selectedRecruiterId} className="bg-[#0A1A2F] text-white">
+              {assignModal.loading ? "Saving..." : assignModal.subscriber?.assignment_id ? "Reassign" : "Assign"}
             </Button>
           </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* ════════════════════════════════════════════════════════ */}
+      {/* ── MODAL: User Action (role change / suspend) ──────── */}
+      {/* ════════════════════════════════════════════════════════ */}
+      <Dialog open={userActionModal.open} onOpenChange={(open) => !open && setUserActionModal(p => ({ ...p, open: false }))}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="premium-heading">
+              {userActionModal.action === "change_role" && "Change User Role"}
+              {userActionModal.action === "suspend" && "Suspend User"}
+              {userActionModal.action === "unsuspend" && "Unsuspend User"}
+            </DialogTitle>
+          </DialogHeader>
+          {userActionModal.user && (
+            <div className="space-y-4 py-2">
+              <div className="bg-muted/40 rounded-lg p-3">
+                <p className="font-semibold premium-heading">{userActionModal.user.name || "No name"}</p>
+                <p className="text-sm text-muted-foreground">{userActionModal.user.email}</p>
+                <Badge className={`text-xs mt-1 ${roleColor(userActionModal.user.role)}`}>{userActionModal.user.role}</Badge>
+              </div>
+
+              {userActionModal.action === "change_role" && (
+                <div>
+                  <label className="text-sm font-medium premium-heading">New Role</label>
+                  <Select value={userActionModal.role} onValueChange={(v) => setUserActionModal(p => ({ ...p, role: v }))}>
+                    <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="jobseeker">Job Seeker</SelectItem>
+                      <SelectItem value="recruiter">Recruiter</SelectItem>
+                      <SelectItem value="employer">Employer</SelectItem>
+                      <SelectItem value="admin">Admin</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  {userActionModal.user.role === "recruiter" && userActionModal.role !== "recruiter" && (
+                    <p className="text-xs text-orange-600 mt-2">Changing from recruiter will deactivate all their active assignments.</p>
+                  )}
+                </div>
+              )}
+
+              {userActionModal.action === "suspend" && (
+                <div>
+                  <label className="text-sm font-medium premium-heading">Reason (optional)</label>
+                  <textarea className="w-full mt-1 rounded-md border border-input bg-background px-3 py-2 text-sm resize-none" rows={2} placeholder="Reason for suspension..." value={userActionModal.reason} onChange={(e) => setUserActionModal(p => ({ ...p, reason: e.target.value }))} />
+                  <p className="text-xs text-red-600 mt-2">This will suspend the user and deactivate all their active assignments.</p>
+                </div>
+              )}
+
+              {userActionModal.action === "unsuspend" && (
+                <p className="text-sm text-muted-foreground">This will unsuspend <strong>{userActionModal.user.name}</strong> and allow them to access the platform again.</p>
+              )}
+
+              {userActionModal.error && <p className="text-xs text-red-600 flex items-center gap-1"><AlertCircle className="w-3 h-3" />{userActionModal.error}</p>}
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setUserActionModal(p => ({ ...p, open: false }))} disabled={userActionModal.loading}>Cancel</Button>
+            <Button onClick={handleUserAction} disabled={userActionModal.loading} className={userActionModal.action === "suspend" ? "bg-red-600 hover:bg-red-700 text-white" : "bg-[#0A1A2F] text-white"}>
+              {userActionModal.loading ? "Processing..." : userActionModal.action === "suspend" ? "Suspend User" : userActionModal.action === "unsuspend" ? "Unsuspend" : "Save Changes"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* ════════════════════════════════════════════════════════ */}
+      {/* ── MODAL: Add New User ────────────────────────────── */}
+      {/* ════════════════════════════════════════════════════════ */}
+      <Dialog open={addUserModal.open} onOpenChange={(open) => !open && setAddUserModal(p => ({ ...p, open: false, success: false }))}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="premium-heading">Add New User</DialogTitle>
+          </DialogHeader>
+          {addUserModal.success ? (
+            <div className="text-center py-6">
+              <CheckCircle className="w-12 h-12 text-green-500 mx-auto mb-3" />
+              <p className="font-semibold text-foreground premium-heading">User Created Successfully</p>
+              <p className="text-sm text-muted-foreground mt-1">{addUserModal.email} has been added as a {addUserModal.role}.</p>
+              <Button className="mt-4" onClick={() => setAddUserModal(p => ({ ...p, open: false, success: false }))}>Done</Button>
+            </div>
+          ) : (
+            <div className="space-y-4 py-2">
+              <div>
+                <label className="text-sm font-medium premium-heading">Full Name *</label>
+                <Input className="mt-1" placeholder="John Doe" value={addUserModal.name} onChange={(e) => setAddUserModal(p => ({ ...p, name: e.target.value }))} />
+              </div>
+              <div>
+                <label className="text-sm font-medium premium-heading">Email *</label>
+                <Input className="mt-1" type="email" placeholder="john@example.com" value={addUserModal.email} onChange={(e) => setAddUserModal(p => ({ ...p, email: e.target.value }))} />
+              </div>
+              <div>
+                <label className="text-sm font-medium premium-heading">Role *</label>
+                <Select value={addUserModal.role} onValueChange={(v) => setAddUserModal(p => ({ ...p, role: v }))}>
+                  <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="recruiter">Recruiter</SelectItem>
+                    <SelectItem value="jobseeker">Job Seeker</SelectItem>
+                    <SelectItem value="employer">Employer</SelectItem>
+                    <SelectItem value="admin">Admin</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              {addUserModal.error && <p className="text-xs text-red-600 flex items-center gap-1"><AlertCircle className="w-3 h-3" />{addUserModal.error}</p>}
+            </div>
+          )}
+          {!addUserModal.success && (
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setAddUserModal(p => ({ ...p, open: false }))} disabled={addUserModal.loading}>Cancel</Button>
+              <Button onClick={handleAddUser} disabled={addUserModal.loading} className="bg-[#0A1A2F] text-white">
+                {addUserModal.loading ? "Creating..." : "Create User"}
+              </Button>
+            </DialogFooter>
+          )}
         </DialogContent>
       </Dialog>
     </div>

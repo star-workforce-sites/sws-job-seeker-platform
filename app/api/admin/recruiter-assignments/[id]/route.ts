@@ -41,9 +41,9 @@ export async function GET(
         rs.plan_name,
         rs.status AS subscription_status
       FROM recruiter_assignments ra
-      JOIN users u  ON u.id = ra.user_id
+      JOIN users u  ON u.id = ra.client_id
       JOIN users r  ON r.id = ra.recruiter_id
-      JOIN recruiter_subscriptions rs ON rs.id = ra.subscription_id
+      LEFT JOIN subscriptions rs ON rs.id = ra.subscription_id
       WHERE ra.id = ${id}
     `
 
