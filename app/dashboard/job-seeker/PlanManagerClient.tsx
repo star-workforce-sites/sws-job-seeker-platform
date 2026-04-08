@@ -142,13 +142,16 @@ export default function PlanManagerClient({
         <div className="flex items-start gap-3 mb-4">
           <AlertTriangle className="w-6 h-6 text-orange-500 shrink-0 mt-0.5" />
           <div>
-            <h3 className="font-bold text-foreground text-base">Cancel your plan?</h3>
+            <h3 className="font-bold text-foreground text-base">
+              Cancel {currentPlanObj?.name} Plan?
+            </h3>
             <p className="text-sm text-muted-foreground mt-1">
-              Your recruiter will be <strong>unassigned immediately</strong>. Your plan stays active until{" "}
+              Your recruiter will be <strong>unassigned immediately</strong>. You keep{" "}
+              {currentPlanObj?.name} access until{" "}
               {renewalDate
                 ? new Date(renewalDate).toLocaleDateString("en-US", { month: "long", day: "numeric" })
                 : "the end of your billing period"}
-              , then you move to the free tier.
+              , then your account returns to the Free tier.
             </p>
           </div>
           <button onClick={() => setShowCancelModal(false)} className="shrink-0 text-gray-400 hover:text-gray-600">
@@ -272,44 +275,17 @@ export default function PlanManagerClient({
       {/* Plan Cards */}
       {showPlans && (
         <div className="mt-4 grid grid-cols-1 sm:grid-cols-3 gap-3">
-          {/* Free plan card — only show when user is on a paid plan */}
+          {/* Free plan info card — shows what users return to if they cancel */}
           {!isFreePlan && (
-            <div className="relative rounded-xl border-2 border-gray-200 bg-white p-4 transition hover:border-gray-300 sm:col-span-3">
-              {cancelDone ? (
-                <div className="flex items-center gap-3 text-sm text-green-700">
-                  <CheckCircle className="w-4 h-4 text-green-500 shrink-0" />
-                  <p>
-                    <strong>Plan cancelled.</strong> Your recruiter has been unassigned. You have access until{" "}
-                    {cancelActiveUntil
-                      ? new Date(cancelActiveUntil).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })
-                      : renewalDate
-                        ? new Date(renewalDate).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })
-                        : "the end of your billing period"}
-                    .
-                  </p>
-                </div>
-              ) : (
-                <div className="flex items-center justify-between gap-4">
-                  <div>
-                    <div className="flex items-center gap-2 mb-1">
-                      <Users className="w-4 h-4 text-gray-500" />
-                      <span className="text-sm font-bold text-foreground premium-heading">Free Plan</span>
-                      <Badge className="text-[9px] bg-gray-100 text-gray-600">$0/month</Badge>
-                    </div>
-                    <p className="text-[10px] text-muted-foreground">
-                      5 applications/week · Basic job search · Market snapshot · No recruiter assistance
-                    </p>
-                  </div>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    className="shrink-0 text-[10px] h-7 border-red-300 text-red-600 hover:bg-red-50 hover:border-red-400"
-                    onClick={() => setShowCancelModal(true)}
-                  >
-                    Cancel Plan
-                  </Button>
-                </div>
-              )}
+            <div className="relative rounded-xl border-2 border-gray-200 bg-white p-4 sm:col-span-3">
+              <div className="flex items-center gap-2 mb-1">
+                <Users className="w-4 h-4 text-gray-500" />
+                <span className="text-sm font-bold text-foreground premium-heading">Free Plan</span>
+                <Badge className="text-[9px] bg-gray-100 text-gray-600">$0/month</Badge>
+              </div>
+              <p className="text-[10px] text-muted-foreground">
+                5 applications/week · Basic job search · Market snapshot · No recruiter assistance
+              </p>
             </div>
           )}
           {PLANS.map((plan) => {
@@ -397,6 +373,42 @@ export default function PlanManagerClient({
               </div>
             )
           })}
+        </div>
+      )}
+
+      {/* Cancel subscription — shown below plan cards, only when on a paid plan */}
+      {!isFreePlan && showPlans && (
+        <div className="mt-4 pt-4 border-t border-gray-100">
+          {cancelDone ? (
+            <div className="flex items-center gap-2 text-sm text-green-700">
+              <CheckCircle className="w-4 h-4 text-green-500 shrink-0" />
+              <p>
+                <strong>Subscription cancelled.</strong> Your recruiter has been unassigned. You keep{" "}
+                {currentPlanObj?.name} access until{" "}
+                {cancelActiveUntil
+                  ? new Date(cancelActiveUntil).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })
+                  : renewalDate
+                    ? new Date(renewalDate).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })
+                    : "the end of your billing period"}
+                , then you move to Free.
+              </p>
+            </div>
+          ) : (
+            <div className="flex items-center justify-between">
+              <p className="text-[10px] text-muted-foreground">
+                Want to stop your <strong>{currentPlanObj?.name} Plan</strong>? Your recruiter will be
+                unassigned immediately and you&apos;ll keep access until your billing period ends.
+              </p>
+              <Button
+                size="sm"
+                variant="outline"
+                className="shrink-0 ml-4 text-[10px] h-7 border-red-300 text-red-600 hover:bg-red-50 hover:border-red-400"
+                onClick={() => setShowCancelModal(true)}
+              >
+                Cancel {currentPlanObj?.name} Plan
+              </Button>
+            </div>
+          )}
         </div>
       )}
 

@@ -72,7 +72,38 @@ function workModelLabel(model: string): { label: string; className: string } {
 function contractLabel(type: string | null): string {
   if (!type) return "Not specified"
   const map: Record<string, string> = { W2: "W2", C2C: "C2C", "1099": "1099", W2_OR_C2C: "W2 or C2C" }
-  return map[type] ?? type
+  return map[type] ?? type.replace(/_/g, " ")
+}
+
+// ── Company name quality filters ──────────────────────────────
+/**
+ * Returns true if a company name is suitable for public display.
+ * Filters out: spam/SES tools, AWS, all-caps abbreviations, generic names.
+ */
+function isDisplayableCompany(name: string | null): boolean {
+  if (!name || name.trim().length === 0) return false
+  const n = name.trim()
+  const lower = n.toLowerCase()
+
+  // Block known email marketing / SMTP / SES platforms masquerading as employers
+  const blocklist = [
+    "powerhouse", "prohires", "amazon web service", "amazon ses",
+    "sendgrid", "mailchimp", "constant contact",
+  ]
+  if (blocklist.some((b) => lower.includes(b))) return false
+
+  // Block plain generic names
+  const genericExact = [
+    "government agency", "agency", "company", "unknown", "n/a",
+    "employer", "client", "staffing", "recruiter",
+  ]
+  if (genericExact.includes(lower)) return false
+
+  // Block pure abbreviations: 2–7 uppercase letters/digits, no spaces
+  // e.g., DSOHF, IDOH, HCL — unknown to end users
+  if (/^[A-Z0-9]{2,7}$/.test(n)) return false
+
+  return true
 }
 
 function relativeTime(dateStr: string | null | undefined): string {
@@ -444,31 +475,43 @@ export default function CHRMJobSeekerPanel() {
               )}
 
               {/* Salary Benchmarks */}
-              {intelligence.salary_benchmarks && intelligence.salary_benchmarks.length > 0 && (
-                <div>
-                  <h3 className="text-sm font-semibold text-white/90 premium-heading mb-3 flex items-center gap-2">
-                    <DollarSign className="w-4 h-4 text-[#E8C547]" />
-                    Salary Benchmarks
-                  </h3>
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-                    {intelligence.salary_benchmarks.slice(0, 4).map((sb) => (
-                      <div key={sb.contract_type} className="bg-white/10 rounded-lg px-3 py-2">
-                        <p className="text-sm font-medium text-[#E8C547] premium-heading">
-                          ${(sb.avg_rate ?? 0).toLocaleString()}{sb.rate_type === "hourly" ? "/hr" : "/yr"}
-                        </p>
-                        <p className="text-xs text-white/60 premium-body">
-                          {sb.contract_type} avg · {sb.sample_size ?? 0} jobs
-                        </p>
-                        {sb.median_rate != null && (
-                          <p className="text-[10px] text-white/40">
-                            Median: ${sb.median_rate.toLocaleString()}{sb.rate_type === "hourly" ? "/hr" : "/yr"}
-                          </p>
-                        )}
-                      </div>
-                    ))}
+              {(() => {
+                // Only show benchmarks that have a real (>0) avg rate
+                const validBenchmarks = (intelligence.salary_benchmarks ?? []).filter(
+                  (sb) => sb.avg_rate != null && sb.avg_rate > 0
+                )
+                if (validBenchmarks.length === 0) return null
+                return (
+                  <div>
+                    <h3 className="text-sm font-semibold text-white/90 premium-heading mb-3 flex items-center gap-2">
+                      <DollarSign className="w-4 h-4 text-[#E8C547]" />
+                      Salary Benchmarks
+                    </h3>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                      {validBenchmarks.slice(0, 4).map((sb) => {
+                        // Human-readable contract type label (fixes W2_OR_C2C → W2 or C2C)
+                        const ctLabel = contractLabel(sb.contract_type ?? null)
+                        const rateSuffix = sb.rate_type === "hourly" ? "/hr" : sb.rate_type === "annual" ? "/yr" : ""
+                        return (
+                          <div key={sb.contract_type} className="bg-white/10 rounded-lg px-3 py-2">
+                            <p className="text-sm font-medium text-[#E8C547] premium-heading">
+                              ${(sb.avg_rate!).toLocaleString()}{rateSuffix}
+                            </p>
+                            <p className="text-xs text-white/60 premium-body">
+                              {ctLabel} avg · {sb.sample_size ?? 0} jobs
+                            </p>
+                            {sb.median_rate != null && sb.median_rate > 0 && (
+                              <p className="text-[10px] text-white/40">
+                                Median: ${sb.median_rate.toLocaleString()}{rateSuffix}
+                              </p>
+                            )}
+                          </div>
+                        )
+                      })}
+                    </div>
                   </div>
-                </div>
-              )}
+                )
+              })()}
 
               {/* Hiring Trends (8-week chart) */}
               {intelligence.hiring_trends && intelligence.hiring_trends.length > 0 && (
@@ -516,36 +559,45 @@ export default function CHRMJobSeekerPanel() {
               )}
 
               {/* Top Companies Hiring */}
-              {intelligence.company_analytics && intelligence.company_analytics.length > 0 && (
-                <div>
-                  <h3 className="text-sm font-semibold text-white/90 premium-heading mb-3 flex items-center gap-2">
-                    <Building2 className="w-4 h-4 text-[#E8C547]" />
-                    Top Companies Hiring
-                  </h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                    {intelligence.company_analytics.slice(0, 8).map((ca, idx) => (
-                      <div key={ca.company_name ?? idx} className="bg-white/10 rounded-lg px-3 py-2 flex items-center justify-between">
-                        <div>
-                          <p className="text-sm font-medium text-white premium-heading">{ca.company_name ?? "Unknown"}</p>
-                          <p className="text-xs text-white/60 premium-body">
-                            {ca.open_roles ?? 0} open role{(ca.open_roles ?? 0) !== 1 ? "s" : ""}
-                            {ca.avg_rate != null && ` · Avg $${ca.avg_rate.toLocaleString()}/hr`}
-                          </p>
-                        </div>
-                        {ca.top_skills && ca.top_skills.length > 0 && (
-                          <div className="flex gap-1">
-                            {ca.top_skills.slice(0, 2).map((sk) => (
-                              <span key={sk} className="text-[9px] bg-white/10 text-white/60 px-1.5 py-0.5 rounded">
-                                {sk}
-                              </span>
-                            ))}
+              {(() => {
+                // Filter: must have displayable name AND at least 1 open role
+                const validCompanies = (intelligence.company_analytics ?? []).filter(
+                  (ca) =>
+                    isDisplayableCompany(ca.company_name ?? null) &&
+                    (ca.open_roles ?? 0) > 0
+                )
+                if (validCompanies.length === 0) return null
+                return (
+                  <div>
+                    <h3 className="text-sm font-semibold text-white/90 premium-heading mb-3 flex items-center gap-2">
+                      <Building2 className="w-4 h-4 text-[#E8C547]" />
+                      Top Companies Hiring
+                    </h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                      {validCompanies.slice(0, 8).map((ca, idx) => (
+                        <div key={ca.company_name ?? idx} className="bg-white/10 rounded-lg px-3 py-2 flex items-center justify-between">
+                          <div>
+                            <p className="text-sm font-medium text-white premium-heading">{ca.company_name}</p>
+                            <p className="text-xs text-white/60 premium-body">
+                              {ca.open_roles} open role{ca.open_roles !== 1 ? "s" : ""}
+                              {ca.avg_rate != null && ca.avg_rate > 0 && ` · Avg $${ca.avg_rate.toLocaleString()}/hr`}
+                            </p>
                           </div>
-                        )}
-                      </div>
-                    ))}
+                          {ca.top_skills && ca.top_skills.length > 0 && (
+                            <div className="flex gap-1">
+                              {ca.top_skills.slice(0, 2).map((sk) => (
+                                <span key={sk} className="text-[9px] bg-white/10 text-white/60 px-1.5 py-0.5 rounded">
+                                  {sk}
+                                </span>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
                   </div>
-                </div>
-              )}
+                )
+              })()}
 
               {/* Industry Demand */}
               {intelligence.industry_demand && intelligence.industry_demand.length > 0 && (
