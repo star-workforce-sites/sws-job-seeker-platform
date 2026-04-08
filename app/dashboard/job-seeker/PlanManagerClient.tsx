@@ -134,7 +134,8 @@ export default function PlanManagerClient({
 
           {isFreePlan ? (
             <p className="text-xs text-muted-foreground premium-body">
-              Upgrade to get a dedicated recruiter applying to jobs on your behalf daily.
+              5 applications/week · Basic job search · Market snapshot.
+              Upgrade for a dedicated recruiter applying on your behalf daily.
             </p>
           ) : (
             <div className="space-y-1">
@@ -201,6 +202,26 @@ export default function PlanManagerClient({
       {/* Plan Cards */}
       {showPlans && (
         <div className="mt-4 grid grid-cols-1 sm:grid-cols-3 gap-3">
+          {/* Free plan card — only show when user is on a paid plan */}
+          {!isFreePlan && (
+            <div className="relative rounded-xl border-2 border-gray-200 bg-white p-4 transition hover:border-gray-300 sm:col-span-3">
+              <div className="flex items-center justify-between">
+                <div>
+                  <div className="flex items-center gap-2 mb-1">
+                    <Users className="w-4 h-4 text-gray-500" />
+                    <span className="text-sm font-bold text-foreground premium-heading">Free Plan</span>
+                    <Badge className="text-[9px] bg-gray-100 text-gray-600">$0/month</Badge>
+                  </div>
+                  <p className="text-[10px] text-muted-foreground">
+                    5 applications/week · Basic job search · Market snapshot · No recruiter assistance
+                  </p>
+                </div>
+                <p className="text-[10px] text-muted-foreground italic shrink-0 ml-4">
+                  Cancel your subscription in Stripe to return to Free
+                </p>
+              </div>
+            </div>
+          )}
           {PLANS.map((plan) => {
             const action = getPlanAction(plan)
             const PlanIcon = plan.icon

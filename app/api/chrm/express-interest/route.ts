@@ -45,6 +45,47 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    // Check free tier weekly limit (5/week)
+    // Users with an active recruiter subscription get unlimited
+    const subResult = await sql`
+      SELECT id FROM subscriptions
+      WHERE user_id = ${session.user.id}
+        AND status = 'active'
+        AND subscription_type LIKE 'recruiter_%'
+      LIMIT 1
+    `
+    const hasRecruiterPlan = subResult.rows.length > 0
+
+    if (!hasRecruiterPlan) {
+      const now = new Date()
+      const dayOfWeek = now.getDay()
+      const daysToMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1
+      const weekStart = new Date(now)
+      weekStart.setDate(now.getDate() - daysToMonday)
+      const weekStartStr = weekStart.toISOString().split("T")[0]
+
+      const weeklyCount = await sql`
+        SELECT COUNT(*) as total FROM chrm_activity_events
+        WHERE user_id = ${session.user.id}
+          AND event_type = 'candidate_submitted'
+          AND created_at >= ${weekStartStr}::date
+      `
+      const count = parseInt(weeklyCount.rows[0]?.total || "0")
+      const MAX_FREE_PER_WEEK = 5
+
+      if (count >= MAX_FREE_PER_WEEK) {
+        return NextResponse.json(
+          {
+            error: "Weekly application limit reached (5 per week on Free plan)",
+            limit: MAX_FREE_PER_WEEK,
+            used: count,
+            message: "Upgrade to a recruiter plan for unlimited applications.",
+          },
+          { status: 429 }
+        )
+      }
+    }
+
     // Record the application event
     const metadata = JSON.stringify({
       job_title,

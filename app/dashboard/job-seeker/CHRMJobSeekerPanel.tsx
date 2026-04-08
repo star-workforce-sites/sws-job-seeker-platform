@@ -330,6 +330,8 @@ export default function CHRMJobSeekerPanel() {
         if (res.status === 409) {
           setSubmittedJobIds((prev) => new Set(prev).add(job.job_id))
           showToast("You have already expressed interest in this job.", "info")
+        } else if (res.status === 429) {
+          showToast("Weekly limit reached (5/week on Free plan). Upgrade for unlimited applications!", "warning")
         } else {
           showToast(err.error || "Failed to submit interest. Please try again.", "error")
         }

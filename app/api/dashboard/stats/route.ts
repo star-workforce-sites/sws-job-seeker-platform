@@ -27,12 +27,12 @@ export async function GET(request: NextRequest) {
       WHERE "userId" = ${userId}
     `
 
-    // Get today's applications count
+    // Get this week's applications count (Mon-Sun)
     const todayApplicationsResult = await sql`
       SELECT COUNT(*) as total
       FROM applications
       WHERE "userId" = ${userId}
-      AND "appliedAt"::date = CURRENT_DATE
+      AND "appliedAt"::date >= date_trunc('week', CURRENT_DATE)
     `
 
     // Get interview count (applications with status 'interview')

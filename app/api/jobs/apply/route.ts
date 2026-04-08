@@ -88,26 +88,34 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Check daily application limit (free users: 5/day)
+    // Check weekly application limit (free users: 5/week)
     const isPremium = await checkPremiumStatus(userId);
 
     if (!isPremium) {
-      const today = new Date().toISOString().split('T')[0];
+      const now = new Date();
+      // Get start of current week (Monday)
+      const dayOfWeek = now.getDay(); // 0=Sun, 1=Mon, ...
+      const daysToMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
+      const weekStart = new Date(now);
+      weekStart.setDate(now.getDate() - daysToMonday);
+      const weekStartStr = weekStart.toISOString().split('T')[0];
+
       const countResult = await sql`
         SELECT COALESCE(SUM(count), 0) as total
         FROM application_limits
-        WHERE "userId" = ${userId} AND date = ${today}
+        WHERE "userId" = ${userId} AND date >= ${weekStartStr}
       `;
 
-      const dailyCount = parseInt(countResult.rows[0]?.total || '0');
-      const MAX_FREE_APPLICATIONS = 5;
+      const weeklyCount = parseInt(countResult.rows[0]?.total || '0');
+      const MAX_FREE_APPLICATIONS_PER_WEEK = 5;
 
-      if (dailyCount >= MAX_FREE_APPLICATIONS) {
+      if (weeklyCount >= MAX_FREE_APPLICATIONS_PER_WEEK) {
         return NextResponse.json(
           {
-            error: 'Daily application limit reached',
-            limit: MAX_FREE_APPLICATIONS,
-            message: 'Upgrade to premium for unlimited applications.',
+            error: 'Weekly application limit reached (5 per week)',
+            limit: MAX_FREE_APPLICATIONS_PER_WEEK,
+            used: weeklyCount,
+            message: 'Upgrade to a recruiter plan for unlimited applications.',
           },
           { status: 429 }
         );

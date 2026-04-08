@@ -281,7 +281,7 @@ export default function Jobs() {
             <div className="flex items-end">
               {session ? (
                 <div className="text-sm text-[#0A1A2F] bg-white px-4 py-2.5 rounded-lg border border-[#D1DAE6] w-full text-center">
-                  Applications today: <span className="font-bold">{applicationsToday}/{hasSubscription ? "Unlimited" : MAX_FREE_APPLICATIONS}</span>
+                  Applications this week: <span className="font-bold">{applicationsToday}/{hasSubscription ? "Unlimited" : MAX_FREE_APPLICATIONS}</span>
                 </div>
               ) : (
                 <Link href="/auth/signup?callbackUrl=/jobs" className="w-full">
