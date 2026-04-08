@@ -204,6 +204,9 @@ BLOB_READ_WRITE_TOKEN=...
 CRON_SECRET=...
 NEXT_PUBLIC_URL=https://www.starworkforcesolutions.com
 CHRM_API_KEY=...                     ← CHRM NEXUS API key (server-side only, used in x-api-key header)
+RESUMEBLAST_API_URL=...              ← ResumeBlast.ai base URL (e.g. https://resumeblast.ai/api/v1) — activates integration
+RESUMEBLAST_API_KEY=...              ← ResumeBlast.ai bearer token
+RESUMEBLAST_WEBHOOK_SECRET=...       ← HMAC secret for verifying ResumeBlast callbacks
 ```
 
 ---
@@ -231,29 +234,38 @@ CHRM_API_KEY=...                     ← CHRM NEXUS API key (server-side only, u
 8. ✅ Privacy Cron — daily auto-delete of uploads after 30 days
 9. ✅ Google Analytics — gtag.js in layout, page view tracking, conversion events on all purchase flows
 10. ✅ SEO — Comprehensive: long-tail keywords on all pages, JSON-LD schemas (Organization, WebSite, SoftwareApplication, FAQPage), OpenGraph + Twitter Cards, canonical URLs, metadataBase
-11. ✅ DIY Job Search / Job Board — Redesigned for free user visibility, "Register Free to Apply" CTA, styled filter bar, colorful job badges
+11. ✅ DIY Job Search / Job Board — CHRM API jobs + manual jobs on /jobs; CHRM = view-only; manual = register-to-apply
 12. ✅ GA Conversion Tracking — begin_checkout + purchase events on all 5 payment flows
 13. ✅ CHRM NEXUS Integration — Recruiter Job Board tab on /dashboard/recruiter + Job Seeker dashboard enhancements (market intelligence, hot jobs, job feed, visa filter, activity tracking)
 14. ✅ Favicon — Proper favicon.ico + PNG icons generated from gold star SVG, webmanifest updated
 15. ✅ Button Visibility — Fixed white-on-white buttons across site with gold accent styling
 16. ✅ Signup Page OAuth — Fixed Google/LinkedIn OAuth buttons (signIn from next-auth/react)
 17. ✅ Job Seeker Dashboard Redesign — 3-column layout (Plan + Recruiter + Market Intel), 48h timer badges, redesigned filter bar
+18. ✅ Auth Redirect — Logged-in users auto-redirect to /dashboard when visiting /auth/login
+19. ✅ Dashboard Support Tab — Collapsible support form embedded in job seeker dashboard (no external navigation)
+20. ✅ Recruiter Notification Forms — Screening Request + Interview Confirmation forms in recruiter dashboard; emails job seeker + CC recruiter, updates application_tracking status
+21. ✅ Contact Form Spam Protection — Honeypot field + 3-second timing check + in-memory IP rate limit (5/hr)
+22. ✅ Subscription Cancel Flow — Cancel button in plan manager triggers immediate recruiter unassign + Stripe cancel_at_period_end + admin email
+23. ✅ CHRM Company/Salary Fixes — Filter out 0-role companies, abbreviations, generic names; hide $0 salary benchmarks; fix W2_OR_C2C display
+24. ✅ Admin Purchase Notifications — Stripe webhook sends email to Srikanth@startekk.net on every one-time purchase (ATS, Cover Letter, Interview Prep, Resume Distribution)
+25. ✅ ResumeBlast.ai Integration (feature-flagged) — lib/resumeblast.ts + webhook receiver at /api/resume-distribution-webhook; auto-activates when RESUMEBLAST_API_URL + RESUMEBLAST_API_KEY + RESUMEBLAST_WEBHOOK_SECRET are set in Vercel env
 
 ---
 
 ## Remaining / Pending Work
 
 ### High Priority
-- **ResumeBlast.ai Integration** — After payment, Career Accel must call ResumeBlast.ai API to trigger distribution. Currently manual. See `ResumeBlast_Integration_Spec.md` and `ResumeBlast_Claude_Prompt.md` in the project root for full spec.
-  - Career Accel side: update `/api/resume-distribution-success/route.ts` with API call
-  - ResumeBlast.ai side: needs `POST /api/v1/distribute` endpoint + API key
+- **ResumeBlast.ai Integration** — Career Accel side is DONE. To activate:
+  1. Build `POST /api/v1/distribute` on ResumeBlast.ai (see `ResumeBlast_Integration_Spec.md`)
+  2. Add 3 env vars to Vercel: `RESUMEBLAST_API_URL`, `RESUMEBLAST_API_KEY`, `RESUMEBLAST_WEBHOOK_SECRET`
+  3. Integration auto-activates — no code changes needed
+  - Webhook receiver: `/api/resume-distribution-webhook` (verifies HMAC, emails Srikanth on completion/failure)
 
 ### Medium Priority
 - **DIY Job Search** — Build actual 3rd-party job aggregation from niche APIs
 - **ATS Deferred Features:**
   - Salary estimates based on resume skills
   - Hiring companies matched to skill set
-- **Admin Notification Emails** — Send email to Srikanth@startekk.net on new purchases (TODO in success handlers)
 
 ### Future Revenue Features (from recommendations doc)
 - Resume Rewrite Service ($49–99)
