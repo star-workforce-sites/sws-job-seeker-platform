@@ -48,6 +48,7 @@ import type {
   CHRMJob,
   CHRMIntelligenceData,
 } from "@/types/chrm-nexus"
+import ApplyModal from "./ApplyModal"
 
 // ── Helpers ──────────────────────────────────────────────────
 function formatRate(job: CHRMJob): string {
@@ -193,6 +194,10 @@ export default function CHRMJobSeekerPanel() {
   const [savedJobIds, setSavedJobIds] = useState<Set<string>>(new Set())
   const [submittedJobIds, setSubmittedJobIds] = useState<Set<string>>(new Set())
   const [selectedJob, setSelectedJob] = useState<CHRMJob | null>(null)
+
+  // Apply modal
+  const [applyModalJob, setApplyModalJob] = useState<CHRMJob | null>(null)
+  const [applyModalOpen, setApplyModalOpen] = useState(false)
 
   // Filters
   const [filterSkills, setFilterSkills] = useState("")
@@ -352,49 +357,17 @@ export default function CHRMJobSeekerPanel() {
     } catch {}
   }, [])
 
-  // ── Express Interest (apply) ──────────────────────────────
-  const [applyingJobId, setApplyingJobId] = useState<string | null>(null)
-  const handleExpressInterest = useCallback(async (job: CHRMJob) => {
+  // ── Apply (opens modal) ───────────────────────────────────
+  const handleApply = useCallback((job: CHRMJob) => {
     if (submittedJobIds.has(job.job_id)) return
-    setApplyingJobId(job.job_id)
-    try {
-      const rateInfo = job.rate_min && job.rate_max
-        ? `$${job.rate_min}-$${job.rate_max}/${job.rate_type || "hr"}`
-        : job.rate_min
-          ? `$${job.rate_min}/${job.rate_type || "hr"}`
-          : null
-      const res = await fetch("/api/chrm/express-interest", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          job_id: job.job_id,
-          job_title: job.title,
-          company: job.company_name || job.description?.split("\n")[0]?.substring(0, 100) || "See description",
-          location: `${job.city}, ${job.state}`,
-          work_model: job.work_model,
-          rate_info: rateInfo,
-        }),
-      })
-      if (res.ok) {
-        setSubmittedJobIds((prev) => new Set(prev).add(job.job_id))
-        showToast("Interest submitted! Our team will review and follow up with you.", "success")
-      } else {
-        const err = await res.json()
-        if (res.status === 409) {
-          setSubmittedJobIds((prev) => new Set(prev).add(job.job_id))
-          showToast("You have already expressed interest in this job.", "info")
-        } else if (res.status === 429) {
-          showToast("Weekly limit reached (5/week on Free plan). Upgrade for unlimited applications!", "warning")
-        } else {
-          showToast(err.error || "Failed to submit interest. Please try again.", "error")
-        }
-      }
-    } catch {
-      showToast("Network error. Please try again.", "error")
-    } finally {
-      setApplyingJobId(null)
-    }
-  }, [submittedJobIds, showToast])
+    setApplyModalJob(job)
+    setApplyModalOpen(true)
+  }, [submittedJobIds])
+
+  // Called by ApplyModal on successful submission
+  const handleApplySuccess = useCallback((jobId: string) => {
+    setSubmittedJobIds((prev) => new Set(prev).add(jobId))
+  }, [])
 
   // Pagination
   const totalPages = Math.ceil(total / LIMIT)
@@ -1028,13 +1001,13 @@ export default function CHRMJobSeekerPanel() {
                     <Button
                       size="sm"
                       className="bg-[#E8C547] hover:bg-[#D4AF37] text-[#0A1A2F] text-[10px] h-7 px-2.5 font-bold disabled:opacity-50"
-                      disabled={submittedJobIds.has(job.job_id) || applyingJobId === job.job_id}
+                      disabled={submittedJobIds.has(job.job_id)}
                       onClick={(e) => {
                         e.stopPropagation()
-                        handleExpressInterest(job)
+                        handleApply(job)
                       }}
                     >
-                      {submittedJobIds.has(job.job_id) ? "Applied" : "Apply"}
+                      {submittedJobIds.has(job.job_id) ? "Applied ✓" : "Apply Now"}
                     </Button>
                     <Button
                       size="sm"
@@ -1081,6 +1054,17 @@ export default function CHRMJobSeekerPanel() {
           </div>
         )}
       </Card>
+
+      {/* ── Apply Modal ────────────────────────────────────── */}
+      <ApplyModal
+        job={applyModalJob}
+        open={applyModalOpen}
+        onOpenChange={(open) => {
+          setApplyModalOpen(open)
+          if (!open) setApplyModalJob(null)
+        }}
+        onSuccess={handleApplySuccess}
+      />
 
       {/* ── Job Detail Dialog ───────────────────────────────── */}
       <Dialog open={!!selectedJob} onOpenChange={(open) => { if (!open) setSelectedJob(null) }}>
@@ -1210,15 +1194,11 @@ export default function CHRMJobSeekerPanel() {
                 <div className="flex items-center gap-3">
                   <Button
                     className="bg-[#E8C547] hover:bg-[#D4AF37] text-[#0A1A2F] font-bold flex items-center gap-2 disabled:opacity-50"
-                    disabled={submittedJobIds.has(selectedJob.job_id) || applyingJobId === selectedJob.job_id}
-                    onClick={() => handleExpressInterest(selectedJob)}
+                    disabled={submittedJobIds.has(selectedJob.job_id)}
+                    onClick={() => handleApply(selectedJob)}
                   >
-                    {applyingJobId === selectedJob.job_id ? (
-                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-[#0A1A2F]" />
-                    ) : (
-                      <ExternalLink className="w-4 h-4" />
-                    )}
-                    {submittedJobIds.has(selectedJob.job_id) ? "Interest Submitted" : applyingJobId === selectedJob.job_id ? "Submitting..." : "Express Interest"}
+                    <ExternalLink className="w-4 h-4" />
+                    {submittedJobIds.has(selectedJob.job_id) ? "Applied ✓" : "Apply Now"}
                   </Button>
                   <Button
                     variant="outline"
