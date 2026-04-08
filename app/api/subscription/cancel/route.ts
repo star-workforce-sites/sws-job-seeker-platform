@@ -25,11 +25,11 @@ export async function POST(request: NextRequest) {
 
     const userId = session.user.id
 
-    // Get the active subscription
+    // Get the active subscription (cast to uuid to match column type)
     const subResult = await sql`
       SELECT id, stripe_subscription_id, subscription_type, current_period_end
       FROM subscriptions
-      WHERE user_id = ${userId}
+      WHERE user_id = ${userId}::uuid
         AND status = 'active'
         AND subscription_type LIKE 'recruiter_%'
       ORDER BY created_at DESC
@@ -60,10 +60,11 @@ export async function POST(request: NextRequest) {
     }
 
     // 2. Immediately unassign recruiter in recruiter_assignments
+    // Note: recruiter_assignments has no updated_at column — only status, paused_at, completed_at
     const unassignResult = await sql`
       UPDATE recruiter_assignments
-      SET status = 'inactive', updated_at = NOW()
-      WHERE client_id = ${userId}
+      SET status = 'inactive', completed_at = NOW()
+      WHERE client_id = ${userId}::uuid
         AND status = 'active'
       RETURNING id, recruiter_id
     `
