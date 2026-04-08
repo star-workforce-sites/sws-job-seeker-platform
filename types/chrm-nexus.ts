@@ -61,29 +61,29 @@ export interface CHRMIntelligenceStats {
 
 export interface CHRMSalaryBenchmark {
   contract_type: string
-  avg_rate: number
-  median_rate: number
-  rate_type: "hourly" | "annual"
-  sample_size: number
+  avg_rate: number | null
+  median_rate: number | null
+  rate_type: "hourly" | "annual" | null
+  sample_size: number | null
 }
 
 export interface CHRMHiringTrend {
-  week: string
-  new_jobs: number
-  expired_jobs: number
-  net_growth: number
+  week: string | null
+  new_jobs: number | null
+  expired_jobs: number | null
+  net_growth: number | null
 }
 
 export interface CHRMCompanyAnalytics {
-  company_name: string
-  open_roles: number
+  company_name: string | null
+  open_roles: number | null
   avg_rate: number | null
-  top_skills: string[]
+  top_skills: string[] | null
 }
 
 export interface CHRMIndustryDemand {
-  industry: string
-  job_count: number
+  industry: string | null
+  job_count: number | null
   avg_rate: number | null
   growth_pct: number | null
 }

@@ -452,14 +452,16 @@ export default function CHRMJobSeekerPanel() {
                     {intelligence.salary_benchmarks.slice(0, 4).map((sb) => (
                       <div key={sb.contract_type} className="bg-white/10 rounded-lg px-3 py-2">
                         <p className="text-sm font-medium text-[#E8C547] premium-heading">
-                          ${sb.avg_rate.toLocaleString()}{sb.rate_type === "hourly" ? "/hr" : "/yr"}
+                          ${(sb.avg_rate ?? 0).toLocaleString()}{sb.rate_type === "hourly" ? "/hr" : "/yr"}
                         </p>
                         <p className="text-xs text-white/60 premium-body">
-                          {sb.contract_type} avg · {sb.sample_size} jobs
+                          {sb.contract_type} avg · {sb.sample_size ?? 0} jobs
                         </p>
-                        <p className="text-[10px] text-white/40">
-                          Median: ${sb.median_rate.toLocaleString()}{sb.rate_type === "hourly" ? "/hr" : "/yr"}
-                        </p>
+                        {sb.median_rate != null && (
+                          <p className="text-[10px] text-white/40">
+                            Median: ${sb.median_rate.toLocaleString()}{sb.rate_type === "hourly" ? "/hr" : "/yr"}
+                          </p>
+                        )}
                       </div>
                     ))}
                   </div>
@@ -476,31 +478,37 @@ export default function CHRMJobSeekerPanel() {
                   <div className="bg-white/5 rounded-lg p-3">
                     <div className="flex items-end gap-1 h-20">
                       {intelligence.hiring_trends.map((ht, idx) => {
-                        const maxJobs = Math.max(...intelligence.hiring_trends!.map((h) => h.new_jobs))
-                        const heightPct = maxJobs > 0 ? (ht.new_jobs / maxJobs) * 100 : 10
+                        const newJobs = ht.new_jobs ?? 0
+                        const netGrowth = ht.net_growth ?? 0
+                        const maxJobs = Math.max(...intelligence.hiring_trends!.map((h) => h.new_jobs ?? 0))
+                        const heightPct = maxJobs > 0 ? (newJobs / maxJobs) * 100 : 10
                         return (
                           <div key={idx} className="flex-1 flex flex-col items-center gap-1">
-                            <span className="text-[9px] text-white/50">{ht.new_jobs}</span>
+                            <span className="text-[9px] text-white/50">{newJobs}</span>
                             <div
-                              className={`w-full rounded-t ${ht.net_growth >= 0 ? "bg-green-400/60" : "bg-red-400/60"}`}
+                              className={`w-full rounded-t ${netGrowth >= 0 ? "bg-green-400/60" : "bg-red-400/60"}`}
                               style={{ height: `${Math.max(heightPct, 5)}%` }}
                             />
                             <span className="text-[8px] text-white/40 truncate w-full text-center">
-                              {ht.week.slice(5)}
+                              {(ht.week ?? "").slice(5)}
                             </span>
                           </div>
                         )
                       })}
                     </div>
-                    <div className="flex justify-between mt-2 text-[10px] text-white/50">
-                      <span>
-                        Net growth:{" "}
-                        <span className={intelligence.hiring_trends.reduce((s, h) => s + h.net_growth, 0) >= 0 ? "text-green-400" : "text-red-400"}>
-                          {intelligence.hiring_trends.reduce((s, h) => s + h.net_growth, 0) >= 0 ? "+" : ""}
-                          {intelligence.hiring_trends.reduce((s, h) => s + h.net_growth, 0).toLocaleString()} jobs
-                        </span>
-                      </span>
-                    </div>
+                    {(() => {
+                      const totalNet = intelligence.hiring_trends!.reduce((s, h) => s + (h.net_growth ?? 0), 0)
+                      return (
+                        <div className="flex justify-between mt-2 text-[10px] text-white/50">
+                          <span>
+                            Net growth:{" "}
+                            <span className={totalNet >= 0 ? "text-green-400" : "text-red-400"}>
+                              {totalNet >= 0 ? "+" : ""}{totalNet.toLocaleString()} jobs
+                            </span>
+                          </span>
+                        </div>
+                      )
+                    })()}
                   </div>
                 </div>
               )}
@@ -513,12 +521,12 @@ export default function CHRMJobSeekerPanel() {
                     Top Companies Hiring
                   </h3>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                    {intelligence.company_analytics.slice(0, 8).map((ca) => (
-                      <div key={ca.company_name} className="bg-white/10 rounded-lg px-3 py-2 flex items-center justify-between">
+                    {intelligence.company_analytics.slice(0, 8).map((ca, idx) => (
+                      <div key={ca.company_name ?? idx} className="bg-white/10 rounded-lg px-3 py-2 flex items-center justify-between">
                         <div>
-                          <p className="text-sm font-medium text-white premium-heading">{ca.company_name}</p>
+                          <p className="text-sm font-medium text-white premium-heading">{ca.company_name ?? "Unknown"}</p>
                           <p className="text-xs text-white/60 premium-body">
-                            {ca.open_roles} open role{ca.open_roles !== 1 ? "s" : ""}
+                            {ca.open_roles ?? 0} open role{(ca.open_roles ?? 0) !== 1 ? "s" : ""}
                             {ca.avg_rate != null && ` · Avg $${ca.avg_rate.toLocaleString()}/hr`}
                           </p>
                         </div>
@@ -545,11 +553,11 @@ export default function CHRMJobSeekerPanel() {
                     Hottest Industries
                   </h3>
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-                    {intelligence.industry_demand.slice(0, 8).map((id) => (
-                      <div key={id.industry} className="bg-white/10 rounded-lg px-3 py-2">
-                        <p className="text-sm font-medium text-white premium-heading truncate">{id.industry}</p>
+                    {intelligence.industry_demand.slice(0, 8).map((id, idx) => (
+                      <div key={id.industry ?? idx} className="bg-white/10 rounded-lg px-3 py-2">
+                        <p className="text-sm font-medium text-white premium-heading truncate">{id.industry ?? "Other"}</p>
                         <p className="text-xs text-white/60 premium-body">
-                          {id.job_count.toLocaleString()} jobs
+                          {(id.job_count ?? 0).toLocaleString()} jobs
                           {id.avg_rate != null && ` · $${id.avg_rate.toLocaleString()}/hr`}
                         </p>
                         {id.growth_pct != null && (
