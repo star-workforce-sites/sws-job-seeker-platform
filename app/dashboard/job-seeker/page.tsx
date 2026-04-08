@@ -93,9 +93,10 @@ export default async function JobSeekerDashboard() {
   // ── Get active recruiter subscription ─────────────────────
   let subscription: any = null
   let hasRecruiterSubscription = false
+  let cancelAtPeriodEnd = false
   try {
     const subResult = await sql`
-      SELECT subscription_type, status, current_period_end
+      SELECT subscription_type, status, current_period_end, cancel_at_period_end
       FROM subscriptions
       WHERE user_id = ${user.id}
         AND status = 'active'
@@ -105,7 +106,10 @@ export default async function JobSeekerDashboard() {
     `
     if (subResult.rows.length > 0) {
       subscription = subResult.rows[0]
-      hasRecruiterSubscription = true
+      cancelAtPeriodEnd = !!subscription.cancel_at_period_end
+      // If user cancelled, treat them as free-plan immediately for feature access.
+      // The subscription object is still passed to PlanManagerClient for display + reactivate.
+      hasRecruiterSubscription = !cancelAtPeriodEnd
     }
   } catch (error) {
     console.error("[JobSeekerDashboard] subscription fetch error:", error)
@@ -223,6 +227,8 @@ export default async function JobSeekerDashboard() {
           <PlanManagerClient
             currentPlan={hasRecruiterSubscription ? subscription?.subscription_type : null}
             renewalDate={subscription?.current_period_end || null}
+            cancelAtPeriodEnd={cancelAtPeriodEnd}
+            pendingCancelPlanName={cancelAtPeriodEnd ? subscription?.subscription_type : null}
             assignedRecruiter={assignedRecruiter}
             isAssigned={!!assignedRecruiter}
           />
@@ -408,7 +414,7 @@ export default async function JobSeekerDashboard() {
             </Card>
           </Link>
 
-          <Link href="/jobs">
+          <a href="#job-feed" onClick={(e) => { e.preventDefault(); document.getElementById('job-feed')?.scrollIntoView({ behavior: 'smooth' }) }}>
             <Card className="p-6 hover:shadow-lg transition cursor-pointer">
               <Briefcase className="w-8 h-8 text-primary mb-3" />
               <h3 className="text-lg font-semibold text-foreground mb-2 premium-heading">Browse Jobs</h3>
@@ -416,11 +422,11 @@ export default async function JobSeekerDashboard() {
                 Search and apply to consulting roles
               </p>
             </Card>
-          </Link>
+          </a>
         </div>
 
-        {/* ── CHRM NEXUS Job Feed, Market Intelligence & Hot Jobs ── */}
-        <div className="mt-8">
+        {/* ── Job Feed, Market Intelligence & Hot Jobs ── */}
+        <div id="job-feed" className="mt-8">
           <CHRMJobSeekerPanel />
         </div>
 

@@ -75,6 +75,21 @@ function contractLabel(type: string | null): string {
   return map[type] ?? type.replace(/_/g, " ")
 }
 
+/**
+ * Formats an avg_rate from industry_demand or company_analytics, which have no rate_type.
+ * Heuristic: values > 500 are annual salaries; ≤ 500 are hourly rates.
+ * Large annual values are shown with K notation.
+ */
+function formatIntelRate(rate: number | null): string {
+  if (rate == null || rate <= 0) return ""
+  if (rate > 500) {
+    // Annual salary — format as $XK/yr
+    const k = rate / 1000
+    return `$${k >= 10 ? Math.round(k) : k.toFixed(1)}K/yr`
+  }
+  return `$${rate.toLocaleString()}/hr`
+}
+
 // ── Company name quality filters ──────────────────────────────
 /**
  * Returns true if a company name is suitable for public display.
@@ -513,50 +528,102 @@ export default function CHRMJobSeekerPanel() {
                 )
               })()}
 
-              {/* Hiring Trends (8-week chart) */}
-              {intelligence.hiring_trends && intelligence.hiring_trends.length > 0 && (
-                <div>
-                  <h3 className="text-sm font-semibold text-white/90 premium-heading mb-3 flex items-center gap-2">
-                    <TrendingUp className="w-4 h-4 text-[#E8C547]" />
-                    Hiring Trends (Last {intelligence.hiring_trends.length} Weeks)
-                  </h3>
-                  <div className="bg-white/5 rounded-lg p-3">
-                    <div className="flex items-end gap-1 h-20">
-                      {intelligence.hiring_trends.map((ht, idx) => {
-                        const newJobs = ht.new_jobs ?? 0
-                        const netGrowth = ht.net_growth ?? 0
-                        const maxJobs = Math.max(...intelligence.hiring_trends!.map((h) => h.new_jobs ?? 0))
-                        const heightPct = maxJobs > 0 ? (newJobs / maxJobs) * 100 : 10
-                        return (
-                          <div key={idx} className="flex-1 flex flex-col items-center gap-1">
-                            <span className="text-[9px] text-white/50">{newJobs}</span>
-                            <div
-                              className={`w-full rounded-t ${netGrowth >= 0 ? "bg-green-400/60" : "bg-red-400/60"}`}
-                              style={{ height: `${Math.max(heightPct, 5)}%` }}
-                            />
-                            <span className="text-[8px] text-white/40 truncate w-full text-center">
-                              {(ht.week ?? "").slice(5)}
-                            </span>
-                          </div>
-                        )
-                      })}
-                    </div>
-                    {(() => {
-                      const totalNet = intelligence.hiring_trends!.reduce((s, h) => s + (h.net_growth ?? 0), 0)
-                      return (
-                        <div className="flex justify-between mt-2 text-[10px] text-white/50">
-                          <span>
-                            Net growth:{" "}
-                            <span className={totalNet >= 0 ? "text-green-400" : "text-red-400"}>
-                              {totalNet >= 0 ? "+" : ""}{totalNet.toLocaleString()} jobs
-                            </span>
-                          </span>
+              {/* Hiring Trends — uses API data when available, otherwise sector distribution */}
+              {(() => {
+                const apiTrends = intelligence.hiring_trends ?? []
+                const apiHasData = apiTrends.some((ht) => (ht.new_jobs ?? 0) > 0)
+
+                if (apiHasData) {
+                  // ── API-provided weekly trend chart ────────────────────────
+                  return (
+                    <div>
+                      <h3 className="text-sm font-semibold text-white/90 premium-heading mb-3 flex items-center gap-2">
+                        <TrendingUp className="w-4 h-4 text-[#E8C547]" />
+                        Hiring Trends (Last {apiTrends.length} Weeks)
+                      </h3>
+                      <div className="bg-white/5 rounded-lg p-3">
+                        <div className="flex items-end gap-1 h-20">
+                          {apiTrends.map((ht, idx) => {
+                            const newJobs = ht.new_jobs ?? 0
+                            const netGrowth = ht.net_growth ?? 0
+                            const maxJobs = Math.max(...apiTrends.map((h) => h.new_jobs ?? 0))
+                            const heightPct = maxJobs > 0 ? (newJobs / maxJobs) * 100 : 10
+                            return (
+                              <div key={idx} className="flex-1 flex flex-col items-center gap-1">
+                                <span className="text-[9px] text-white/50">{newJobs}</span>
+                                <div
+                                  className={`w-full rounded-t ${netGrowth >= 0 ? "bg-green-400/60" : "bg-red-400/60"}`}
+                                  style={{ height: `${Math.max(heightPct, 5)}%` }}
+                                />
+                                <span className="text-[8px] text-white/40 truncate w-full text-center">
+                                  {(ht.week ?? "").slice(5)}
+                                </span>
+                              </div>
+                            )
+                          })}
                         </div>
-                      )
-                    })()}
+                        {(() => {
+                          const totalNet = apiTrends.reduce((s, h) => s + (h.net_growth ?? 0), 0)
+                          return (
+                            <div className="flex justify-between mt-2 text-[10px] text-white/50">
+                              <span>Net growth:{" "}
+                                <span className={totalNet >= 0 ? "text-green-400" : "text-red-400"}>
+                                  {totalNet >= 0 ? "+" : ""}{totalNet.toLocaleString()} jobs
+                                </span>
+                              </span>
+                            </div>
+                          )
+                        })()}
+                      </div>
+                    </div>
+                  )
+                }
+
+                // ── Fallback: sector-based hiring activity from industry_demand ──
+                const sectors = (intelligence.industry_demand ?? [])
+                  .filter((id) => (id.job_count ?? 0) > 0)
+                  .slice(0, 8)
+                if (sectors.length === 0) return null
+                const maxCount = Math.max(...sectors.map((id) => id.job_count ?? 0))
+                return (
+                  <div>
+                    <h3 className="text-sm font-semibold text-white/90 premium-heading mb-3 flex items-center gap-2">
+                      <TrendingUp className="w-4 h-4 text-[#E8C547]" />
+                      Hiring Activity by Sector
+                    </h3>
+                    <div className="bg-white/5 rounded-lg p-3">
+                      <div className="flex items-end gap-1 h-20">
+                        {sectors.map((id, idx) => {
+                          const count = id.job_count ?? 0
+                          const heightPct = maxCount > 0 ? (count / maxCount) * 100 : 10
+                          const growing = (id.growth_pct ?? 0) >= 0
+                          return (
+                            <div key={id.industry ?? idx} className="flex-1 flex flex-col items-center gap-1">
+                              <span className="text-[9px] text-white/50">{count}</span>
+                              <div
+                                className={`w-full rounded-t ${growing ? "bg-green-400/60" : "bg-red-400/60"}`}
+                                style={{ height: `${Math.max(heightPct, 5)}%` }}
+                              />
+                              <span className="text-[8px] text-white/40 truncate w-full text-center">
+                                {(id.industry ?? "Other").slice(0, 5)}
+                              </span>
+                            </div>
+                          )
+                        })}
+                      </div>
+                      <div className="flex justify-between mt-2 text-[10px] text-white/50">
+                        <span>
+                          Total active:{" "}
+                          <span className="text-green-400">
+                            {intelligence.stats.total_active.toLocaleString()} jobs
+                          </span>
+                        </span>
+                        <span className="text-white/30">Current snapshot</span>
+                      </div>
+                    </div>
                   </div>
-                </div>
-              )}
+                )
+              })()}
 
               {/* Top Companies Hiring */}
               {(() => {
@@ -580,7 +647,7 @@ export default function CHRMJobSeekerPanel() {
                             <p className="text-sm font-medium text-white premium-heading">{ca.company_name}</p>
                             <p className="text-xs text-white/60 premium-body">
                               {ca.open_roles} open role{ca.open_roles !== 1 ? "s" : ""}
-                              {ca.avg_rate != null && ca.avg_rate > 0 && ` · Avg $${ca.avg_rate.toLocaleString()}/hr`}
+                              {ca.avg_rate != null && ca.avg_rate > 0 && ` · Avg ${formatIntelRate(ca.avg_rate)}`}
                             </p>
                           </div>
                           {ca.top_skills && ca.top_skills.length > 0 && (
@@ -612,7 +679,7 @@ export default function CHRMJobSeekerPanel() {
                         <p className="text-sm font-medium text-white premium-heading truncate">{id.industry ?? "Other"}</p>
                         <p className="text-xs text-white/60 premium-body">
                           {(id.job_count ?? 0).toLocaleString()} jobs
-                          {id.avg_rate != null && ` · $${id.avg_rate.toLocaleString()}/hr`}
+                          {id.avg_rate != null && id.avg_rate > 0 && ` · ${formatIntelRate(id.avg_rate)}`}
                         </p>
                         {id.growth_pct != null && (
                           <p className={`text-[10px] ${id.growth_pct >= 0 ? "text-green-400" : "text-red-400"}`}>

@@ -23,6 +23,10 @@ import {
 interface PlanManagerProps {
   currentPlan: string | null // null = free, "recruiter_basic", "recruiter_standard", "recruiter_pro"
   renewalDate: string | null
+  /** True when subscription exists but cancel_at_period_end=true — user is on free plan immediately */
+  cancelAtPeriodEnd?: boolean
+  /** The plan name of the pending-cancel subscription (for reactivation display) */
+  pendingCancelPlanName?: string | null
   assignedRecruiter: { name: string; email: string } | null
   isAssigned: boolean
 }
@@ -73,6 +77,8 @@ const PLANS = [
 export default function PlanManagerClient({
   currentPlan,
   renewalDate,
+  cancelAtPeriodEnd = false,
+  pendingCancelPlanName = null,
   assignedRecruiter,
   isAssigned,
 }: PlanManagerProps) {
@@ -82,9 +88,31 @@ export default function PlanManagerClient({
   const [cancelling, setCancelling] = useState(false)
   const [cancelDone, setCancelDone] = useState(false)
   const [cancelActiveUntil, setCancelActiveUntil] = useState<string | null>(null)
+  const [reactivating, setReactivating] = useState(false)
+  const [reactivateDone, setReactivateDone] = useState(false)
 
-  const isFreePlan = !currentPlan
+  // cancelAtPeriodEnd = user cancelled; they are on free plan immediately
+  // pendingCancelPlanName = which plan is expiring (for display)
+  const isFreePlan = !currentPlan && !cancelAtPeriodEnd
+  const pendingCancelPlanObj = PLANS.find((p) => p.id === pendingCancelPlanName)
   const currentPlanObj = PLANS.find((p) => p.id === currentPlan)
+
+  const handleReactivate = async () => {
+    setReactivating(true)
+    try {
+      const res = await fetch("/api/subscription/reactivate", { method: "POST" })
+      const data = await res.json()
+      if (res.ok) {
+        setReactivateDone(true)
+      } else {
+        alert(data.error || "Failed to reactivate. Please contact support.")
+      }
+    } catch {
+      alert("Network error. Please try again or contact support.")
+    } finally {
+      setReactivating(false)
+    }
+  }
 
   const handleCheckout = async (planId: string) => {
     setLoadingPlan(planId)
@@ -185,27 +213,71 @@ export default function PlanManagerClient({
     <>
     {showCancelModal && <CancelModal />}
     <Card className="p-5 border-2 border-[#E8C547] col-span-1 lg:col-span-2">
+
+      {/* ── Cancellation-pending notice (shown when cancel_at_period_end=true) ── */}
+      {cancelAtPeriodEnd && !cancelDone && (
+        <div className="mb-4 p-3 bg-orange-50 border border-orange-200 rounded-lg">
+          {reactivateDone ? (
+            <div className="flex items-center gap-2 text-sm text-green-700">
+              <CheckCircle className="w-4 h-4 text-green-500 shrink-0" />
+              <span>
+                <strong>{pendingCancelPlanObj?.name ?? "Your"} Plan reactivated!</strong> A recruiter will be reassigned within 48 hours.
+                Refresh the page to see your updated plan.
+              </span>
+            </div>
+          ) : (
+            <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+              <AlertTriangle className="w-4 h-4 text-orange-500 shrink-0" />
+              <div className="flex-1 min-w-0">
+                <p className="text-xs font-semibold text-orange-800">
+                  You&apos;re now on the <strong>Free Plan</strong>
+                </p>
+                <p className="text-[11px] text-orange-700 mt-0.5">
+                  Your <strong>{pendingCancelPlanObj?.name ?? "subscription"}</strong> remains active until{" "}
+                  {renewalDate
+                    ? new Date(renewalDate).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })
+                    : "the end of your billing period"}
+                  , after which no further charges will occur.
+                </p>
+              </div>
+              <Button
+                size="sm"
+                className="shrink-0 text-[10px] h-7 bg-[#0A1A2F] hover:bg-[#1a2f4f] text-white font-semibold"
+                onClick={handleReactivate}
+                disabled={reactivating}
+              >
+                {reactivating ? (
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                ) : (
+                  <>Reactivate {pendingCancelPlanObj?.name} Plan</>
+                )}
+              </Button>
+            </div>
+          )}
+        </div>
+      )}
+
       {/* Top Section: Current plan summary + Recruiter status */}
       <div className="flex flex-col sm:flex-row sm:items-start gap-4">
         {/* Left: Plan info */}
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 mb-1">
-            {isFreePlan ? (
+            {isFreePlan || cancelAtPeriodEnd ? (
               <Users className="w-5 h-5 text-[#E8C547] shrink-0" />
             ) : (
               <UserCheck className="w-5 h-5 text-[#E8C547] shrink-0" />
             )}
             <h3 className="text-sm font-bold text-foreground premium-heading">
-              {isFreePlan ? "Free Plan" : currentPlanObj?.name + " Plan"}
+              {cancelAtPeriodEnd ? "Free Plan (Subscription Ending)" : isFreePlan ? "Free Plan" : currentPlanObj?.name + " Plan"}
             </h3>
-            {!isFreePlan && (
+            {!isFreePlan && !cancelAtPeriodEnd && (
               <Badge className="bg-[#E8C547]/20 text-[#0A1A2F] border-[#E8C547] text-[10px]">
                 {currentPlanObj?.appsPerDay}
               </Badge>
             )}
           </div>
 
-          {isFreePlan ? (
+          {isFreePlan || cancelAtPeriodEnd ? (
             <p className="text-xs text-muted-foreground premium-body">
               5 applications/week · Basic job search · Market snapshot.
               Upgrade for a dedicated recruiter applying on your behalf daily.
@@ -220,8 +292,8 @@ export default function PlanManagerClient({
           )}
         </div>
 
-        {/* Right: Recruiter status (when subscribed) */}
-        {!isFreePlan && (
+        {/* Right: Recruiter status (when actively subscribed, not pending cancel) */}
+        {!isFreePlan && !cancelAtPeriodEnd && (
           <div className="shrink-0 text-right sm:text-left">
             {isAssigned && assignedRecruiter ? (
               <div className="space-y-0.5">
@@ -258,7 +330,7 @@ export default function PlanManagerClient({
               <ChevronUp className="w-3.5 h-3.5 mr-1.5" />
               Hide Plans
             </>
-          ) : isFreePlan ? (
+          ) : (isFreePlan || cancelAtPeriodEnd) ? (
             <>
               <ArrowRight className="w-3.5 h-3.5 mr-1.5" />
               View Recruiter Plans
@@ -376,8 +448,8 @@ export default function PlanManagerClient({
         </div>
       )}
 
-      {/* Cancel subscription — shown below plan cards, only when on a paid plan */}
-      {!isFreePlan && showPlans && (
+      {/* Cancel subscription — shown below plan cards, only when on an active paid plan */}
+      {!isFreePlan && !cancelAtPeriodEnd && showPlans && (
         <div className="mt-4 pt-4 border-t border-gray-100">
           {cancelDone ? (
             <div className="flex items-center gap-2 text-sm text-green-700">

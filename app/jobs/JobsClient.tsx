@@ -399,7 +399,7 @@ export default function Jobs() {
             </p>
             {chrmJobs.length > 0 && (
               <p className="text-xs text-muted-foreground mt-0.5">
-                Includes {chrmJobs.filter(j => filteredJobs.some(f => f.id === j.id)).length} live CHRM NEXUS listings
+                Includes {chrmJobs.filter(j => filteredJobs.some(f => f.id === j.id)).length} Nexus Hot Jobs (Posted Recently)
               </p>
             )}
           </div>
@@ -448,7 +448,7 @@ export default function Jobs() {
                           </h3>
                           <Badge className="bg-blue-100 text-blue-700 text-[10px] shrink-0">
                             <Zap className="h-2.5 w-2.5 mr-1" />
-                            CHRM NEXUS
+                            Nexus Hot Job
                           </Badge>
                         </div>
                         <p className="text-muted-foreground premium-body text-sm">
@@ -525,7 +525,7 @@ export default function Jobs() {
                         </Link>
                       )}
                       <p className="text-[10px] text-muted-foreground italic">
-                        Live listing from CHRM NEXUS — view-only
+                        Hot listing — recently posted, apply through your dashboard
                       </p>
                     </div>
                   </Card>
