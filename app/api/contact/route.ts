@@ -3,10 +3,9 @@ import { Resend } from 'resend'
 
 const resend = new Resend(process.env.RESEND_API_KEY)
 
-// ── Simple in-memory rate limiter ─────────────────────────────────────────────
-// Allows up to MAX_REQUESTS submissions per IP within WINDOW_MS
-const WINDOW_MS = 60 * 60 * 1000  // 1 hour
-const MAX_REQUESTS = 5             // max 5 contact submissions per hour per IP
+// ── Rate limiter: 2 submissions per IP per hour ───────────────────────────────
+const WINDOW_MS = 60 * 60 * 1000
+const MAX_REQUESTS = 2
 const ipLog = new Map<string, number[]>()
 
 function isRateLimited(ip: string): boolean {
@@ -18,32 +17,121 @@ function isRateLimited(ip: string): boolean {
   return false
 }
 
-// Minimum time (ms) a real human takes to fill out a form
-const MIN_ELAPSED_MS = 3_000
+// ── Minimum time a real human takes to fill a form (5 seconds) ───────────────
+const MIN_ELAPSED_MS = 5_000
+
+// ── Disposable / spam email domains blocklist ─────────────────────────────────
+const BLOCKED_DOMAINS = new Set([
+  'mailinator.com','guerrillamail.com','tempmail.com','throwam.com','sharklasers.com',
+  'guerrillamailblock.com','grr.la','guerrillamail.info','guerrillamail.biz','guerrillamail.de',
+  'guerrillamail.net','guerrillamail.org','spam4.me','trashmail.com','trashmail.me',
+  'trashmail.net','dispostable.com','yopmail.com','yopmail.fr','cool.fr.nf','jetable.fr.nf',
+  'nospam.ze.tc','nomail.xl.cx','mega.zik.dj','speed.1s.fr','courriel.fr.nf','moncourrier.fr.nf',
+  'monemail.fr.nf','monmail.fr.nf','10minutemail.com','10minutemail.net','10minutemail.org',
+  'tempinbox.com','fakeinbox.com','mailnull.com','spamgourmet.com','spamgourmet.net',
+  'spamgourmet.org','spamhole.com','spaml.com','spamtrap.ro','dumpmail.de',
+  'discard.email','maildrop.cc','mailnesia.com','mailnull.com','nospamfor.us',
+  'anonaddy.com','simplelogin.io',
+])
+
+function isBlockedEmail(email: string): boolean {
+  const domain = email.split('@')[1]?.toLowerCase()
+  return domain ? BLOCKED_DOMAINS.has(domain) : false
+}
+
+// ── Content-based spam detector ───────────────────────────────────────────────
+const SPAM_PATTERNS: RegExp[] = [
+  // SEO / link building spam
+  /\bseo\b.*\b(service|rank|traffic|backlink|link.?build)/i,
+  /\bbacklink/i,
+  /\b(buy|cheap|best|discount).*(traffic|clicks|leads|visitors)/i,
+  /\bguaranteed (first page|top rank|#1)/i,
+  /\bpage (one|1) (google|ranking)/i,
+  // Pharma / adult spam
+  /\b(viagra|cialis|levitra|pharmacy|casino|poker|slot)\b/i,
+  // Crypto spam
+  /\b(bitcoin|crypto|nft|blockchain).{0,30}(invest|earn|profit|opportunity)/i,
+  // Generic marketing spam
+  /\b(make money|work from home|passive income|mlm|pyramid)\b/i,
+  /\bclick here\b.*\bhttp/i,
+]
+
+const URL_PATTERN = /https?:\/\/[^\s]+/g
+
+function isSpamContent(text: string): boolean {
+  // Block if more than 2 URLs
+  const urls = text.match(URL_PATTERN) || []
+  if (urls.length > 2) return true
+  // Block obvious spam keyword patterns
+  for (const pattern of SPAM_PATTERNS) {
+    if (pattern.test(text)) return true
+  }
+  return false
+}
+
+// ── Bot User-Agent patterns ───────────────────────────────────────────────────
+const BOT_UA_PATTERNS = [
+  /curl\//i, /wget\//i, /python-requests\//i, /axios\//i, /java\//i,
+  /libwww-perl/i, /lwp-trivial/i, /scrapy/i, /bot/i, /crawler/i, /spider/i,
+]
+
+function isBotUserAgent(ua: string): boolean {
+  if (!ua || ua.length < 10) return true // No UA = bot
+  return BOT_UA_PATTERNS.some(p => p.test(ua))
+}
+
+// ── Subject allowlist ─────────────────────────────────────────────────────────
+const VALID_SUBJECTS = new Set([
+  'general','ats-optimizer','cover-letter','resume-distribution',
+  'hire-recruiter-basic','hire-recruiter-standard','hire-recruiter-pro',
+  'interview-prep','job-search','employer-services','billing',
+  'technical-support','partnership','feedback',
+])
+
+const SILENT_OK = NextResponse.json({ success: true, message: "Message sent successfully!" }, { status: 200 })
 
 export async function POST(request: NextRequest) {
   try {
     const data = await request.json()
-    const { name, email, subject, message, submittedAt, _hp, _elapsed } = data
+    const {
+      name, email, subject, message,
+      submittedAt,
+      _hp,          // honeypot 1 (website field)
+      _confirm,     // honeypot 2 (confirm email field)
+      _elapsed,     // ms since form loaded
+      _token,       // JS-generated presence token (bots without JS omit this)
+    } = data
 
-    // ── Spam gate 1: Honeypot ─────────────────────────────────────────────────
-    if (_hp && _hp.trim().length > 0) {
-      console.log("[Contact] Honeypot triggered — silently rejecting bot submission")
-      // Return 200 so bots don't retry
-      return NextResponse.json({ success: true, message: "Message sent successfully!" }, { status: 200 })
+    // ── Gate 1: JS presence token (only browsers that ran our JS have this) ──
+    if (!_token || typeof _token !== 'string' || _token.length < 8) {
+      console.log("[Contact] Missing JS token — likely headless bot")
+      return SILENT_OK
     }
 
-    // ── Spam gate 2: Timing check (< 3s is almost certainly a bot) ───────────
-    if (typeof _elapsed === "number" && _elapsed < MIN_ELAPSED_MS) {
-      console.log("[Contact] Submission too fast — likely a bot:", _elapsed, "ms")
-      return NextResponse.json({ success: true, message: "Message sent successfully!" }, { status: 200 })
+    // ── Gate 2: Honeypot fields ────────────────────────────────────────────────
+    if ((_hp && _hp.trim().length > 0) || (_confirm && _confirm.trim().length > 0)) {
+      console.log("[Contact] Honeypot triggered")
+      return SILENT_OK
     }
 
-    // ── Spam gate 3: IP rate limit ────────────────────────────────────────────
+    // ── Gate 3: Timing check (< 5s is almost certainly a bot) ─────────────────
+    if (typeof _elapsed === 'number' && _elapsed < MIN_ELAPSED_MS) {
+      console.log("[Contact] Submission too fast:", _elapsed, "ms")
+      return SILENT_OK
+    }
+
+    // ── Gate 4: User-Agent check ───────────────────────────────────────────────
+    const ua = request.headers.get('user-agent') || ''
+    if (isBotUserAgent(ua)) {
+      console.log("[Contact] Bot UA detected:", ua.slice(0, 60))
+      return SILENT_OK
+    }
+
+    // ── Gate 5: IP rate limit ──────────────────────────────────────────────────
     const clientIp =
-      request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
-      request.headers.get("x-real-ip") ||
-      "unknown"
+      request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ||
+      request.headers.get('x-real-ip') ||
+      'unknown'
 
     if (isRateLimited(clientIp)) {
       console.log("[Contact] Rate limit exceeded for IP:", clientIp)
@@ -53,22 +141,39 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    console.log("[Contact] Form submission received:", {
-      name,
-      email,
-      subject,
-      timestamp: submittedAt || new Date().toISOString(),
-    })
-
-    // Validate required fields
+    // ── Gate 6: Field validation ───────────────────────────────────────────────
     if (!name || !email || !subject || !message) {
-      return NextResponse.json(
-        { success: false, message: "All fields are required" },
-        { status: 400 }
-      )
+      return NextResponse.json({ success: false, message: "All fields are required" }, { status: 400 })
     }
 
-    // Format subject label
+    // ── Gate 7: Subject allowlist ──────────────────────────────────────────────
+    if (!VALID_SUBJECTS.has(subject)) {
+      console.log("[Contact] Invalid subject:", subject)
+      return SILENT_OK
+    }
+
+    // ── Gate 8: Blocked / disposable email domains ────────────────────────────
+    if (isBlockedEmail(email)) {
+      console.log("[Contact] Blocked email domain:", email)
+      return SILENT_OK
+    }
+
+    // ── Gate 9: Content spam detection ────────────────────────────────────────
+    const combined = `${name} ${email} ${message}`
+    if (isSpamContent(combined)) {
+      console.log("[Contact] Spam content detected from:", email)
+      return SILENT_OK
+    }
+
+    // ── Gate 10: Reasonable field lengths ─────────────────────────────────────
+    if (name.length > 100 || email.length > 200 || message.length > 5000) {
+      console.log("[Contact] Field length exceeded from:", email)
+      return SILENT_OK
+    }
+
+    console.log("[Contact] Legitimate submission from:", email, "subject:", subject)
+
+    // ── Format subject label ───────────────────────────────────────────────────
     const subjectLabels: Record<string, string> = {
       'general': 'General Inquiry',
       'ats-optimizer': 'ATS Optimizer',
@@ -88,10 +193,10 @@ export async function POST(request: NextRequest) {
 
     const subjectLabel = subjectLabels[subject] || subject
 
-    // Send email via Resend
+    // ── Send email ─────────────────────────────────────────────────────────────
     const { data: emailData, error } = await resend.emails.send({
       from: 'STAR Workforce Contact <info@starworkforcesolutions.com>',
-      to: ['info@starworkforcesolutions.com'],
+      to: ['info@starworkforcesolutions.com', 'info@startekk.net', 'Srikanth@startekk.net'],
       replyTo: email,
       subject: `[Contact Form] ${subjectLabel} - from ${name}`,
       html: `
@@ -144,11 +249,7 @@ Submitted at: ${submittedAt || new Date().toISOString()}
     if (error) {
       console.error("[Contact] Resend error:", error)
       return NextResponse.json(
-        { 
-          success: true, 
-          message: "Your message was received. If you don't hear back within 48 hours, please email info@starworkforcesolutions.com directly.",
-          warning: "Email delivery pending"
-        },
+        { success: true, message: "Your message was received. If you don't hear back within 48 hours, please email info@starworkforcesolutions.com directly." },
         { status: 200 }
       )
     }
@@ -162,10 +263,7 @@ Submitted at: ${submittedAt || new Date().toISOString()}
   } catch (error: any) {
     console.error("[Contact] Error:", error)
     return NextResponse.json(
-      { 
-        success: false, 
-        message: "Failed to send message. Please email info@starworkforcesolutions.com directly." 
-      },
+      { success: false, message: "Failed to send message. Please email info@starworkforcesolutions.com directly." },
       { status: 500 }
     )
   }

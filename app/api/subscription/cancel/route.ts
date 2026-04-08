@@ -103,7 +103,7 @@ export async function POST(request: NextRequest) {
           },
           body: JSON.stringify({
             from: "Career Accel Platform <noreply@starworkforcesolutions.com>",
-            to: ["info@starworkforcesolutions.com"],
+            to: ["Srikanth@startekk.net", "info@startekk.net"],
             subject: `[Cancellation] ${session.user.name || session.user.email} cancelled their ${planLabel}`,
             html: `
               <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">

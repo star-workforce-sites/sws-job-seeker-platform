@@ -39,7 +39,7 @@ export async function sendAdminNotificationEmail(params: {
     const template = emailTemplates.adminNotification(params)
     const result = await resend.emails.send({
       from: 'STAR Workforce System <noreply@starworkforcesolutions.com>',
-      to: 'jobs@starworkforcesolutions.com',
+      to: ['Srikanth@startekk.net', 'info@startekk.net'],
       subject: template.subject,
       html: template.html,
     })
@@ -135,7 +135,7 @@ export async function sendPurchaseNotificationEmail(params: {
 }) {
   try {
     const { customerName, customerEmail, productName, amount, metadata = {} } = params
-    const adminEmail = 'Srikanth@startekk.net'
+    const adminEmail = ['Srikanth@startekk.net', 'info@startekk.net']
     const dashboardUrl = 'https://www.starworkforcesolutions.com/dashboard/admin'
 
     // Build extra rows for resume distribution targeting info
@@ -179,7 +179,7 @@ export async function sendPurchaseNotificationEmail(params: {
 
     const result = await resend.emails.send({
       from: 'Career Accel System <noreply@starworkforcesolutions.com>',
-      to: adminEmail,
+      to: adminEmail as string[],
       subject: `[New Purchase] ${productName} — ${customerEmail}`,
       html,
     })

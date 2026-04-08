@@ -115,7 +115,7 @@ export async function POST(request: NextRequest) {
           },
           body: JSON.stringify({
             from: "Career Accel <noreply@starworkforcesolutions.com>",
-            to: ["Srikanth@startekk.net"],
+            to: ["Srikanth@startekk.net", "info@startekk.net"],
             subject: `New Job Interest: ${session.user.name || session.user.email} → ${job_title}`,
             html: `
               <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">

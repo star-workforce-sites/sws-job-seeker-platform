@@ -75,7 +75,7 @@ export async function POST(request: NextRequest) {
           },
           body: JSON.stringify({
             from: "Career Accel System <noreply@starworkforcesolutions.com>",
-            to: ["Srikanth@startekk.net"],
+            to: ["Srikanth@startekk.net", "info@startekk.net"],
             subject: `[ResumeBlast] Campaign ${isComplete ? "✅ Completed" : "❌ Failed"} — ${customerEmail}`,
             html: `
               <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;">

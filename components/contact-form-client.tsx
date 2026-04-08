@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
@@ -24,6 +24,14 @@ const SUBJECT_OPTIONS = [
   { value: 'feedback', label: 'Feedback & Suggestions' },
 ]
 
+/** Generates a JS-presence token the server uses to confirm the browser ran JS.
+ *  Bots that POST directly (without executing JS) will never have this. */
+function generateToken(): string {
+  const ts = Date.now().toString(36)
+  const rand = Math.random().toString(36).slice(2, 10)
+  return `${ts}-${rand}`
+}
+
 export default function ContactFormClient() {
   const searchParams = useSearchParams()
   const initialSubject = searchParams.get('subject') || 'general'
@@ -37,13 +45,31 @@ export default function ContactFormClient() {
   const [loading, setLoading] = useState(false)
   const [success, setSuccess] = useState(false)
   const [error, setError] = useState('')
-  // Honeypot field — real users never fill this in
+
+  // Honeypot 1 — labelled "Website", invisible to real users
   const [honeypot, setHoneypot] = useState('')
-  // Track when the form was first rendered to catch instant bot submissions
+  // Honeypot 2 — labelled "Confirm Email", invisible to real users
+  const [confirmHoneypot, setConfirmHoneypot] = useState('')
+
+  // JS-presence token: only set after JS has run (proves real browser)
+  const [jsToken] = useState<string>(() => generateToken())
+
+  // Track when the form first rendered for timing check
   const [formLoadTime] = useState(() => Date.now())
+
+  // Extra interaction signal: did the user actually focus/type in real fields?
+  const [hasInteracted, setHasInteracted] = useState(false)
+
+  // Delay submission button availability — another bot hurdle
+  const [submitReady, setSubmitReady] = useState(false)
+  useEffect(() => {
+    const t = setTimeout(() => setSubmitReady(true), 5_000)
+    return () => clearTimeout(t)
+  }, [])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    if (!submitReady) return  // guard against race
     setLoading(true)
     setError('')
 
@@ -54,8 +80,11 @@ export default function ContactFormClient() {
         body: JSON.stringify({
           ...formData,
           submittedAt: new Date().toISOString(),
-          _hp: honeypot,                         // honeypot value
-          _elapsed: Date.now() - formLoadTime,   // ms since form loaded
+          _hp: honeypot,                        // honeypot 1
+          _confirm: confirmHoneypot,             // honeypot 2
+          _elapsed: Date.now() - formLoadTime,  // ms since form rendered
+          _token: jsToken,                      // JS-presence proof
+          _interacted: hasInteracted,           // did user actually type?
         }),
       })
 
@@ -67,7 +96,7 @@ export default function ContactFormClient() {
       } else {
         setError(data.message || 'Failed to send message. Please try again.')
       }
-    } catch (err) {
+    } catch {
       setError('An error occurred. Please email info@starworkforcesolutions.com directly.')
     } finally {
       setLoading(false)
@@ -95,15 +124,25 @@ export default function ContactFormClient() {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
-      {/* Honeypot — hidden from real users, bots fill it in */}
-      <div style={{ display: 'none' }} aria-hidden="true">
-        <label htmlFor="website">Website</label>
+      {/* ── Honeypot traps — completely hidden, bots fill these in ── */}
+      <div style={{ position: 'absolute', left: '-9999px', top: '-9999px', opacity: 0 }} aria-hidden="true">
+        <label htmlFor="hp_website">Website</label>
         <input
-          id="website"
+          id="hp_website"
           name="website"
           type="text"
           value={honeypot}
           onChange={(e) => setHoneypot(e.target.value)}
+          tabIndex={-1}
+          autoComplete="off"
+        />
+        <label htmlFor="hp_confirm">Confirm Email</label>
+        <input
+          id="hp_confirm"
+          name="confirm_email"
+          type="email"
+          value={confirmHoneypot}
+          onChange={(e) => setConfirmHoneypot(e.target.value)}
           tabIndex={-1}
           autoComplete="off"
         />
@@ -124,7 +163,7 @@ export default function ContactFormClient() {
             id="name"
             type="text"
             value={formData.name}
-            onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+            onChange={(e) => { setFormData({ ...formData, name: e.target.value }); setHasInteracted(true) }}
             placeholder="John Doe"
             required
             className="w-full"
@@ -139,7 +178,7 @@ export default function ContactFormClient() {
             id="email"
             type="email"
             value={formData.email}
-            onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+            onChange={(e) => { setFormData({ ...formData, email: e.target.value }); setHasInteracted(true) }}
             placeholder="john@example.com"
             required
             className="w-full"
@@ -175,7 +214,7 @@ export default function ContactFormClient() {
         <Textarea
           id="message"
           value={formData.message}
-          onChange={(e) => setFormData({ ...formData, message: e.target.value })}
+          onChange={(e) => { setFormData({ ...formData, message: e.target.value }); setHasInteracted(true) }}
           placeholder="How can we help you?"
           rows={5}
           required
@@ -185,7 +224,7 @@ export default function ContactFormClient() {
 
       <Button
         type="submit"
-        disabled={loading}
+        disabled={loading || !submitReady}
         className="w-full bg-[#E8C547] hover:bg-[#D4AF37] text-[#0A1A2F] font-semibold py-3"
       >
         {loading ? 'Sending...' : 'Send Message'}

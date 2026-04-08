@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useMemo } from "react"
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -32,6 +32,8 @@ export default function DashboardSupportCard({
   const [error, setError] = useState("")
   const [honeypot, setHoneypot] = useState("")
   const [formLoadTime] = useState(() => Date.now())
+  // JS-presence token — confirms a real browser rendered the form
+  const jsToken = useMemo(() => `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`, [])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -51,6 +53,7 @@ export default function DashboardSupportCard({
           submittedAt: new Date().toISOString(),
           _hp: honeypot,
           _elapsed: Date.now() - formLoadTime,
+          _token: jsToken,
         }),
       })
       const data = await res.json()
