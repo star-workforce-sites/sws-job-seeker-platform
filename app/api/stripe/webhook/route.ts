@@ -3,6 +3,7 @@ import Stripe from "stripe"
 import { sql } from "@vercel/postgres"
 import { neon } from "@neondatabase/serverless"
 import { sendSubscriptionConfirmationEmail, sendAdminNotificationEmail, sendPurchaseNotificationEmail, getPlanDetails } from "@/lib/send-recruiter-emails"
+import { triggerResumeDistribution } from "@/lib/resumeblast"
 import { getDbUrl } from "@/lib/db"
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || "", {
@@ -169,6 +170,24 @@ export async function POST(request: NextRequest) {
           })
         } catch (emailErr) {
           console.error("[Webhook] Purchase notification email failed:", emailErr)
+        }
+
+        // ResumeBlast.ai integration — only fires if RESUMEBLAST_API_URL + RESUMEBLAST_API_KEY are set
+        if (product === "resume-distribution") {
+          try {
+            await triggerResumeDistribution({
+              resumeId: metadata.resumeId || "",
+              email: customerEmail,
+              customerName,
+              targetRoles: metadata.targetRoles || "",
+              targetLocations: metadata.targetLocations || "",
+              industry: metadata.industry || "",
+              experience: metadata.experience || "",
+              stripePaymentId: session.id,
+            })
+          } catch (rbErr) {
+            console.error("[Webhook] ResumeBlast trigger failed:", rbErr)
+          }
         }
 
         console.log("[Webhook] One-time payment processed:", product, "for", customerEmail)
