@@ -125,6 +125,72 @@ export async function sendWelcomeEmail(params: {
   }
 }
 
+// ── Purchase notification → Admin (Srikanth@startekk.net) ────
+export async function sendPurchaseNotificationEmail(params: {
+  customerName: string
+  customerEmail: string
+  productName: string
+  amount: string
+  metadata?: Record<string, string>
+}) {
+  try {
+    const { customerName, customerEmail, productName, amount, metadata = {} } = params
+    const adminEmail = 'Srikanth@startekk.net'
+    const dashboardUrl = 'https://www.starworkforcesolutions.com/dashboard/admin'
+
+    // Build extra rows for resume distribution targeting info
+    const extraRows = [
+      metadata.targetRoles && `<tr><td style="padding:6px 0;color:#666;width:160px;">Target Roles:</td><td style="padding:6px 0;font-weight:500;">${metadata.targetRoles}</td></tr>`,
+      metadata.targetLocations && `<tr><td style="padding:6px 0;color:#666;">Locations:</td><td style="padding:6px 0;font-weight:500;">${metadata.targetLocations}</td></tr>`,
+      metadata.industry && `<tr><td style="padding:6px 0;color:#666;">Industry:</td><td style="padding:6px 0;">${metadata.industry}</td></tr>`,
+      metadata.experience && `<tr><td style="padding:6px 0;color:#666;">Experience:</td><td style="padding:6px 0;">${metadata.experience} yrs</td></tr>`,
+    ].filter(Boolean).join('\n')
+
+    const html = `
+      <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;">
+        <div style="background:#0A1A2F;color:white;padding:20px;border-radius:8px 8px 0 0;">
+          <h2 style="margin:0;color:#E8C547;">💰 New Purchase — Career Accel</h2>
+        </div>
+        <div style="padding:20px;border:1px solid #e5e7eb;border-top:none;border-radius:0 0 8px 8px;">
+          <p style="margin:0 0 16px;color:#374151;">A new purchase was just completed on the platform.</p>
+          <table style="width:100%;border-collapse:collapse;">
+            <tr><td style="padding:6px 0;color:#666;width:160px;">Customer:</td><td style="padding:6px 0;font-weight:bold;">${customerName}</td></tr>
+            <tr><td style="padding:6px 0;color:#666;">Email:</td><td style="padding:6px 0;"><a href="mailto:${customerEmail}" style="color:#0A1A2F;">${customerEmail}</a></td></tr>
+            <tr><td style="padding:6px 0;color:#666;">Product:</td><td style="padding:6px 0;font-weight:bold;color:#059669;">${productName}</td></tr>
+            <tr><td style="padding:6px 0;color:#666;">Amount:</td><td style="padding:6px 0;font-weight:bold;font-size:16px;">$${amount}</td></tr>
+            <tr><td style="padding:6px 0;color:#666;">Time:</td><td style="padding:6px 0;">${new Date().toLocaleString('en-US', { timeZone: 'America/Chicago', dateStyle: 'full', timeStyle: 'short' })} CT</td></tr>
+            ${extraRows}
+          </table>
+          ${metadata.product === 'resume-distribution' ? `
+          <div style="margin-top:16px;padding:12px;background:#fef3c7;border-radius:6px;border-left:4px solid #f59e0b;">
+            <p style="margin:0;font-size:13px;color:#92400e;">
+              <strong>Action needed:</strong> Manually fulfill the resume distribution for ${customerEmail}
+              (or wait for ResumeBlast.ai API to be connected for automatic fulfillment).
+            </p>
+          </div>` : ''}
+          <div style="margin-top:20px;text-align:center;">
+            <a href="${dashboardUrl}" style="display:inline-block;background:#0A1A2F;color:#E8C547;padding:10px 24px;border-radius:6px;text-decoration:none;font-weight:bold;">
+              View Admin Dashboard
+            </a>
+          </div>
+        </div>
+      </div>
+    `
+
+    const result = await resend.emails.send({
+      from: 'Career Accel System <noreply@starworkforcesolutions.com>',
+      to: adminEmail,
+      subject: `[New Purchase] ${productName} — ${customerEmail}`,
+      html,
+    })
+    console.log('[Email] Purchase notification sent to admin for:', customerEmail, productName)
+    return { success: true, result }
+  } catch (error) {
+    console.error('[Email] Failed to send purchase notification:', error)
+    return { success: false, error }
+  }
+}
+
 // ── Plan details helper ───────────────────────────────────────
 export function getPlanDetails(subscriptionType: string): {
   name: string

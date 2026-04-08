@@ -2,7 +2,7 @@ import { type NextRequest, NextResponse } from "next/server"
 import Stripe from "stripe"
 import { sql } from "@vercel/postgres"
 import { neon } from "@neondatabase/serverless"
-import { sendSubscriptionConfirmationEmail, sendAdminNotificationEmail, getPlanDetails } from "@/lib/send-recruiter-emails"
+import { sendSubscriptionConfirmationEmail, sendAdminNotificationEmail, sendPurchaseNotificationEmail, getPlanDetails } from "@/lib/send-recruiter-emails"
 import { getDbUrl } from "@/lib/db"
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || "", {
@@ -138,6 +138,40 @@ export async function POST(request: NextRequest) {
 
           console.log("[Webhook] Email notifications sent")
         }
+      }
+    }
+
+    // Handle one-time payment admin notifications
+    if (event.type === "checkout.session.completed") {
+      const session = event.data.object as Stripe.Checkout.Session
+      if (session.mode === "payment") {
+        const metadata = (session.metadata || {}) as Record<string, string>
+        const product = metadata.product || "unknown"
+        const customerEmail = session.customer_details?.email || metadata.email || ""
+        const customerName = session.customer_details?.name || customerEmail
+        const amountTotal = session.amount_total ? (session.amount_total / 100).toFixed(2) : "0.00"
+
+        const productNames: Record<string, string> = {
+          "ATS_OPTIMIZER":       "ATS Resume Optimizer",
+          "COVER_LETTER":        "Cover Letter Generator",
+          "interview-prep":      "Interview Prep",
+          "resume-distribution": "Resume Distribution",
+        }
+        const productName = `${productNames[product] || product} ($${amountTotal})`
+
+        try {
+          await sendPurchaseNotificationEmail({
+            customerName,
+            customerEmail,
+            productName,
+            amount: amountTotal,
+            metadata,
+          })
+        } catch (emailErr) {
+          console.error("[Webhook] Purchase notification email failed:", emailErr)
+        }
+
+        console.log("[Webhook] One-time payment processed:", product, "for", customerEmail)
       }
     }
 

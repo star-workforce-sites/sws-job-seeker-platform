@@ -18,8 +18,9 @@ export async function GET(request: NextRequest) {
 
       console.log(`[Resume-Distribution-Success] Premium access granted for ${email}`)
 
-      // TODO: Send admin notification email for manual fulfillment
-      // TODO: Future - trigger ResumeBlast.ai API or similar service
+      // Note: Admin notification is sent via the Stripe webhook (checkout.session.completed).
+      // This success route fires as a fallback on redirect; the webhook is the primary notification path.
+      // TODO: When RESUMEBLAST_API_KEY is configured, call ResumeBlast.ai API here to trigger distribution.
     }
 
     return NextResponse.redirect(
