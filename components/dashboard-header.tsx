@@ -18,7 +18,7 @@ export default function DashboardHeader() {
                 <Star className="w-5 h-5 text-[#0A1A2F] fill-current" />
               </div>
               <span className="hidden sm:inline text-white font-bold text-sm tracking-wider">
-                STAR Workforce
+                Career Accel Platform
               </span>
             </Link>
             <Link

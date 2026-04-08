@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect, useCallback } from "react"
+import { useToast } from "@/components/toast-provider"
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -38,6 +39,10 @@ import {
   Filter,
   ExternalLink,
   Timer,
+  Building2,
+  Users,
+  Sparkles,
+  GraduationCap,
 } from "lucide-react"
 import type {
   CHRMJob,
@@ -70,15 +75,20 @@ function contractLabel(type: string | null): string {
   return map[type] ?? type
 }
 
-function relativeTime(dateStr: string): string {
-  const diffMs = Date.now() - new Date(dateStr).getTime()
+function relativeTime(dateStr: string | null | undefined): string {
+  if (!dateStr) return "Recently posted"
+  const then = new Date(dateStr).getTime()
+  if (isNaN(then)) return "Recently posted"
+  const diffMs = Date.now() - then
+  if (diffMs < 0) return "Just posted"
   const diffHours = Math.floor(diffMs / (1000 * 60 * 60))
   if (diffHours < 1) return "Just now"
   if (diffHours < 24) return `${diffHours}h ago`
   const diffDays = Math.floor(diffHours / 24)
   if (diffDays === 1) return "1 day ago"
   if (diffDays < 7) return `${diffDays} days ago`
-  return `${Math.floor(diffDays / 7)} weeks ago`
+  const diffWeeks = Math.floor(diffDays / 7)
+  return diffWeeks === 1 ? "1 week ago" : `${diffWeeks} weeks ago`
 }
 
 function timeRemaining(expiresAt: string | null | undefined): string {
@@ -109,6 +119,8 @@ const VISA_TYPES = [
 
 // ── Main Component ───────────────────────────────────────────
 export default function CHRMJobSeekerPanel() {
+  const { showToast } = useToast()
+
   // Intelligence data
   const [intelligence, setIntelligence] = useState<CHRMIntelligenceData | null>(null)
   const [intelLoading, setIntelLoading] = useState(true)
@@ -220,6 +232,7 @@ export default function CHRMJobSeekerPanel() {
       const params = new URLSearchParams()
       params.set("limit", String(LIMIT))
       params.set("offset", String(newOffset))
+      params.set("sort_by", "posted_date")
       if (filterSkills.trim()) params.set("skills", filterSkills.trim())
       if (filterState && filterState !== "all") params.set("state", filterState)
 
@@ -303,7 +316,7 @@ export default function CHRMJobSeekerPanel() {
         body: JSON.stringify({
           job_id: job.job_id,
           job_title: job.title,
-          company: job.description?.split("\n")[0]?.substring(0, 100) || "See description",
+          company: job.company_name || job.description?.split("\n")[0]?.substring(0, 100) || "See description",
           location: `${job.city}, ${job.state}`,
           work_model: job.work_model,
           rate_info: rateInfo,
@@ -311,22 +324,22 @@ export default function CHRMJobSeekerPanel() {
       })
       if (res.ok) {
         setSubmittedJobIds((prev) => new Set(prev).add(job.job_id))
-        alert("Interest submitted! Our team will review and follow up with you.")
+        showToast("Interest submitted! Our team will review and follow up with you.", "success")
       } else {
         const err = await res.json()
         if (res.status === 409) {
           setSubmittedJobIds((prev) => new Set(prev).add(job.job_id))
-          alert("You have already expressed interest in this job.")
+          showToast("You have already expressed interest in this job.", "info")
         } else {
-          alert(err.error || "Failed to submit interest. Please try again.")
+          showToast(err.error || "Failed to submit interest. Please try again.", "error")
         }
       }
     } catch {
-      alert("Network error. Please try again.")
+      showToast("Network error. Please try again.", "error")
     } finally {
       setApplyingJobId(null)
     }
-  }, [submittedJobIds])
+  }, [submittedJobIds, showToast])
 
   // Pagination
   const totalPages = Math.ceil(total / LIMIT)
@@ -422,6 +435,128 @@ export default function CHRMJobSeekerPanel() {
                         <p className="text-xs text-white/60 premium-body">
                           {ch.roles} roles · Score {ch.score}
                         </p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Salary Benchmarks */}
+              {intelligence.salary_benchmarks && intelligence.salary_benchmarks.length > 0 && (
+                <div>
+                  <h3 className="text-sm font-semibold text-white/90 premium-heading mb-3 flex items-center gap-2">
+                    <DollarSign className="w-4 h-4 text-[#E8C547]" />
+                    Salary Benchmarks
+                  </h3>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                    {intelligence.salary_benchmarks.slice(0, 4).map((sb) => (
+                      <div key={sb.contract_type} className="bg-white/10 rounded-lg px-3 py-2">
+                        <p className="text-sm font-medium text-[#E8C547] premium-heading">
+                          ${sb.avg_rate.toLocaleString()}{sb.rate_type === "hourly" ? "/hr" : "/yr"}
+                        </p>
+                        <p className="text-xs text-white/60 premium-body">
+                          {sb.contract_type} avg · {sb.sample_size} jobs
+                        </p>
+                        <p className="text-[10px] text-white/40">
+                          Median: ${sb.median_rate.toLocaleString()}{sb.rate_type === "hourly" ? "/hr" : "/yr"}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Hiring Trends (8-week chart) */}
+              {intelligence.hiring_trends && intelligence.hiring_trends.length > 0 && (
+                <div>
+                  <h3 className="text-sm font-semibold text-white/90 premium-heading mb-3 flex items-center gap-2">
+                    <TrendingUp className="w-4 h-4 text-[#E8C547]" />
+                    Hiring Trends (Last {intelligence.hiring_trends.length} Weeks)
+                  </h3>
+                  <div className="bg-white/5 rounded-lg p-3">
+                    <div className="flex items-end gap-1 h-20">
+                      {intelligence.hiring_trends.map((ht, idx) => {
+                        const maxJobs = Math.max(...intelligence.hiring_trends!.map((h) => h.new_jobs))
+                        const heightPct = maxJobs > 0 ? (ht.new_jobs / maxJobs) * 100 : 10
+                        return (
+                          <div key={idx} className="flex-1 flex flex-col items-center gap-1">
+                            <span className="text-[9px] text-white/50">{ht.new_jobs}</span>
+                            <div
+                              className={`w-full rounded-t ${ht.net_growth >= 0 ? "bg-green-400/60" : "bg-red-400/60"}`}
+                              style={{ height: `${Math.max(heightPct, 5)}%` }}
+                            />
+                            <span className="text-[8px] text-white/40 truncate w-full text-center">
+                              {ht.week.slice(5)}
+                            </span>
+                          </div>
+                        )
+                      })}
+                    </div>
+                    <div className="flex justify-between mt-2 text-[10px] text-white/50">
+                      <span>
+                        Net growth:{" "}
+                        <span className={intelligence.hiring_trends.reduce((s, h) => s + h.net_growth, 0) >= 0 ? "text-green-400" : "text-red-400"}>
+                          {intelligence.hiring_trends.reduce((s, h) => s + h.net_growth, 0) >= 0 ? "+" : ""}
+                          {intelligence.hiring_trends.reduce((s, h) => s + h.net_growth, 0).toLocaleString()} jobs
+                        </span>
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Top Companies Hiring */}
+              {intelligence.company_analytics && intelligence.company_analytics.length > 0 && (
+                <div>
+                  <h3 className="text-sm font-semibold text-white/90 premium-heading mb-3 flex items-center gap-2">
+                    <Building2 className="w-4 h-4 text-[#E8C547]" />
+                    Top Companies Hiring
+                  </h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                    {intelligence.company_analytics.slice(0, 8).map((ca) => (
+                      <div key={ca.company_name} className="bg-white/10 rounded-lg px-3 py-2 flex items-center justify-between">
+                        <div>
+                          <p className="text-sm font-medium text-white premium-heading">{ca.company_name}</p>
+                          <p className="text-xs text-white/60 premium-body">
+                            {ca.open_roles} open role{ca.open_roles !== 1 ? "s" : ""}
+                            {ca.avg_rate != null && ` · Avg $${ca.avg_rate.toLocaleString()}/hr`}
+                          </p>
+                        </div>
+                        {ca.top_skills && ca.top_skills.length > 0 && (
+                          <div className="flex gap-1">
+                            {ca.top_skills.slice(0, 2).map((sk) => (
+                              <span key={sk} className="text-[9px] bg-white/10 text-white/60 px-1.5 py-0.5 rounded">
+                                {sk}
+                              </span>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Industry Demand */}
+              {intelligence.industry_demand && intelligence.industry_demand.length > 0 && (
+                <div>
+                  <h3 className="text-sm font-semibold text-white/90 premium-heading mb-3 flex items-center gap-2">
+                    <BarChart3 className="w-4 h-4 text-[#E8C547]" />
+                    Hottest Industries
+                  </h3>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                    {intelligence.industry_demand.slice(0, 8).map((id) => (
+                      <div key={id.industry} className="bg-white/10 rounded-lg px-3 py-2">
+                        <p className="text-sm font-medium text-white premium-heading truncate">{id.industry}</p>
+                        <p className="text-xs text-white/60 premium-body">
+                          {id.job_count.toLocaleString()} jobs
+                          {id.avg_rate != null && ` · $${id.avg_rate.toLocaleString()}/hr`}
+                        </p>
+                        {id.growth_pct != null && (
+                          <p className={`text-[10px] ${id.growth_pct >= 0 ? "text-green-400" : "text-red-400"}`}>
+                            {id.growth_pct >= 0 ? "+" : ""}{id.growth_pct}% growth
+                          </p>
+                        )}
                       </div>
                     ))}
                   </div>
@@ -627,7 +762,13 @@ export default function CHRMJobSeekerPanel() {
               >
                 <div className="flex justify-between items-start gap-3">
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 flex-wrap mb-1.5">
+                    <div className="flex items-center gap-2 flex-wrap mb-1">
+                      {job.is_featured && (
+                        <Badge className="text-[10px] bg-[#E8C547] text-[#0A1A2F] border-[#D4AF37]">
+                          <Sparkles className="w-2.5 h-2.5 mr-0.5" />
+                          Featured
+                        </Badge>
+                      )}
                       <h3 className="text-sm font-semibold text-foreground premium-heading">
                         {job.title}
                       </h3>
@@ -646,6 +787,16 @@ export default function CHRMJobSeekerPanel() {
                         </Badge>
                       )}
                     </div>
+                    {/* Company name */}
+                    {job.company_name && (
+                      <div className="flex items-center gap-1.5 text-xs text-foreground/80 mb-1">
+                        <Building2 className="w-3 h-3 text-muted-foreground" />
+                        <span className="font-medium">{job.company_name}</span>
+                        {job.industry && (
+                          <span className="text-muted-foreground">· {job.industry}</span>
+                        )}
+                      </div>
+                    )}
                     <div className="flex flex-wrap gap-3 text-xs text-muted-foreground premium-body">
                       <span className="flex items-center gap-1">
                         <MapPin className="w-3 h-3" />
@@ -658,8 +809,23 @@ export default function CHRMJobSeekerPanel() {
                       <span>{contractLabel(job.contract_type)}</span>
                       <span className="flex items-center gap-1">
                         <Clock className="w-3 h-3" />
-                        {relativeTime(job.ingested_at)}
+                        {relativeTime(job.posted_date || job.ingested_at)}
                       </span>
+                      {typeof job.application_count === "number" && job.application_count > 0 && (
+                        <span className="flex items-center gap-1 text-blue-600">
+                          <Users className="w-3 h-3" />
+                          {job.application_count} applicant{job.application_count !== 1 ? "s" : ""}
+                        </span>
+                      )}
+                      {job.seniority_level && (
+                        <span className="flex items-center gap-1">
+                          <GraduationCap className="w-3 h-3" />
+                          {job.seniority_level.charAt(0).toUpperCase() + job.seniority_level.slice(1)}
+                          {job.experience_min != null && (
+                            <span>· {job.experience_min}{job.experience_max ? `-${job.experience_max}` : "+"} yrs</span>
+                          )}
+                        </span>
+                      )}
                       {/* 48h countdown */}
                       <span className="flex items-center gap-1 text-amber-600 font-medium">
                         <Timer className="w-3 h-3" />
@@ -777,6 +943,12 @@ export default function CHRMJobSeekerPanel() {
 
               <div className="space-y-4 mt-4">
                 <div className="flex flex-wrap gap-2">
+                  {selectedJob.is_featured && (
+                    <Badge className="bg-[#E8C547] text-[#0A1A2F] border-[#D4AF37]">
+                      <Sparkles className="w-3 h-3 mr-1" />
+                      Featured
+                    </Badge>
+                  )}
                   <Badge className={workModelLabel(selectedJob.work_model).className}>
                     {workModelLabel(selectedJob.work_model).label}
                   </Badge>
@@ -787,12 +959,29 @@ export default function CHRMJobSeekerPanel() {
                     <Star className="w-3 h-3 mr-1" />
                     Quality: {selectedJob.quality_score}
                   </Badge>
+                  {typeof selectedJob.application_count === "number" && selectedJob.application_count > 0 && (
+                    <Badge className="bg-blue-100 text-blue-700">
+                      <Users className="w-3 h-3 mr-1" />
+                      {selectedJob.application_count} applicant{selectedJob.application_count !== 1 ? "s" : ""}
+                    </Badge>
+                  )}
                   {/* 48h freshness */}
                   <Badge className="bg-amber-50 text-amber-700 border border-amber-200">
                     <Timer className="w-3 h-3 mr-1" />
                     {timeRemaining(selectedJob.expires_at)}
                   </Badge>
                 </div>
+
+                {/* Company + Industry */}
+                {selectedJob.company_name && (
+                  <div className="flex items-center gap-2 text-sm">
+                    <Building2 className="w-4 h-4 text-muted-foreground" />
+                    <span className="font-medium text-foreground">{selectedJob.company_name}</span>
+                    {selectedJob.industry && (
+                      <span className="text-muted-foreground">· {selectedJob.industry}</span>
+                    )}
+                  </div>
+                )}
 
                 <div className="grid grid-cols-2 gap-4 text-sm">
                   <p className="flex items-center gap-2 text-muted-foreground premium-body">
@@ -805,12 +994,21 @@ export default function CHRMJobSeekerPanel() {
                   </p>
                   <p className="flex items-center gap-2 text-muted-foreground premium-body">
                     <Clock className="w-4 h-4" />
-                    Posted {relativeTime(selectedJob.ingested_at)}
+                    Posted {relativeTime(selectedJob.posted_date || selectedJob.ingested_at)}
                   </p>
                   <p className="flex items-center gap-2 text-muted-foreground premium-body">
                     <Briefcase className="w-4 h-4" />
                     Expires {new Date(selectedJob.expires_at).toLocaleDateString()}
                   </p>
+                  {selectedJob.seniority_level && (
+                    <p className="flex items-center gap-2 text-muted-foreground premium-body">
+                      <GraduationCap className="w-4 h-4" />
+                      {selectedJob.seniority_level.charAt(0).toUpperCase() + selectedJob.seniority_level.slice(1)} Level
+                      {selectedJob.experience_min != null && (
+                        <span>· {selectedJob.experience_min}{selectedJob.experience_max ? `-${selectedJob.experience_max}` : "+"} yrs exp</span>
+                      )}
+                    </p>
+                  )}
                 </div>
 
                 {/* 48-hour notice */}

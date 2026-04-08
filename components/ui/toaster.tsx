@@ -17,15 +17,16 @@ export function Toaster() {
     <ToastProvider>
       {toasts.map(function ({ id, title, description, action, ...props }) {
         return (
-          <Toast key={id} {...props}>
+          <Toast key={id} {...props} className="bg-[#E8C547] border-2 border-[#D4AF37] text-[#0A1A2F] rounded-full shadow-lg">
             <div className="grid gap-1">
-              {title && <ToastTitle>{title}</ToastTitle>}
+              <ToastTitle className="font-extrabold text-[#0A1A2F]">Career Accel Says:</ToastTitle>
+              {title && <ToastTitle className="font-bold text-[#0A1A2F]">{title}</ToastTitle>}
               {description && (
-                <ToastDescription>{description}</ToastDescription>
+                <ToastDescription className="text-[#0A1A2F]/80">{description}</ToastDescription>
               )}
             </div>
             {action}
-            <ToastClose />
+            <ToastClose className="text-[#0A1A2F] hover:text-[#0A1A2F]/70" />
           </Toast>
         )
       })}

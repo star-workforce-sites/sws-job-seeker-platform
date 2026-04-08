@@ -32,8 +32,8 @@ const PLANS = [
     price: "$199",
     period: "/month",
     appsPerDay: "4 apps/day",
-    appsPerMonth: "~90-120/month",
-    features: ["Dedicated recruiter", "Daily job applications", "Weekly summary report"],
+    appsPerMonth: "~80-90/month",
+    features: ["Dedicated recruiter", "Daily applications (Mon-Fri)", "Weekly summary report", "Bi-weekly recruiter calls"],
     icon: Zap,
     color: "text-blue-600",
     bgColor: "bg-blue-50",
@@ -44,9 +44,9 @@ const PLANS = [
     name: "Standard",
     price: "$399",
     period: "/month",
-    appsPerDay: "12 apps/day",
-    appsPerMonth: "~300-360/month",
-    features: ["Everything in Basic", "3x more applications", "Priority recruiter matching", "Bi-weekly progress calls"],
+    appsPerDay: "6 apps/day",
+    appsPerMonth: "~120-130/month",
+    features: ["Everything in Basic", "50% more applications", "Priority recruiter matching", "Weekly recruiter calls"],
     icon: Star,
     color: "text-[#E8C547]",
     bgColor: "bg-[#E8C547]/10",
@@ -58,9 +58,9 @@ const PLANS = [
     name: "Pro",
     price: "$599",
     period: "/month",
-    appsPerDay: "25 apps/day",
-    appsPerMonth: "~600-750/month",
-    features: ["Everything in Standard", "Maximum applications", "Advanced dashboard & analytics", "Direct recruiter Slack access"],
+    appsPerDay: "10 apps/day",
+    appsPerMonth: "~200-220/month",
+    features: ["Everything in Standard", "Maximum applications", "Full analytics dashboard", "Slack + phone recruiter access", "Twice weekly progress calls"],
     icon: Crown,
     color: "text-purple-600",
     bgColor: "bg-purple-50",
@@ -293,7 +293,7 @@ export default function PlanManagerClient({
       {isFreePlan && !showPlans && (
         <div className="mt-3 flex items-center gap-2 text-[10px] text-muted-foreground">
           <Zap className="w-3 h-3 text-[#E8C547]" />
-          Plans from $199/mo — A dedicated recruiter applies to 4-25 jobs per day on your behalf.
+          Plans from $199/mo — A dedicated recruiter applies to 4-10 jobs per day (Mon-Fri) on your behalf.
         </div>
       )}
     </Card>

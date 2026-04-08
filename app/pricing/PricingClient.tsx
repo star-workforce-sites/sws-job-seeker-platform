@@ -14,13 +14,14 @@ export default function Pricing() {
       name: "Basic",
       price: "$199",
       period: "/month",
-      applications: "3-5 applications/day",
+      applications: "4 applications/day (Mon-Fri)",
       features: [
-        "90-150 applications per month",
+        "~80-90 applications per month",
         "Basic activity dashboard",
         "Email support",
         "Job title targeting",
-        "Weekly status reports",
+        "Weekly summary reports",
+        "Bi-weekly recruiter calls",
       ],
     },
     {
@@ -28,14 +29,14 @@ export default function Pricing() {
       name: "Standard",
       price: "$399",
       period: "/month",
-      applications: "10-15 applications/day",
+      applications: "6 applications/day (Mon-Fri)",
       features: [
-        "300-450 applications per month",
+        "~120-130 applications per month",
         "Advanced dashboard & analytics",
         "Priority support",
         "Job title + location targeting",
         "Daily status updates",
-        "Direct recruiter messaging",
+        "Weekly recruiter calls",
       ],
       highlighted: true,
     },
@@ -44,15 +45,15 @@ export default function Pricing() {
       name: "Pro",
       price: "$599",
       period: "/month",
-      applications: "20-30 applications/day",
+      applications: "10 applications/day (Mon-Fri)",
       features: [
-        "600-900 applications per month",
+        "~200-220 applications per month",
         "Full analytics dashboard",
         "24/7 priority support",
         "Custom job criteria & filters",
         "Daily detailed reports",
-        "Personal recruiter consultation",
-        "Strategy calls (bi-weekly)",
+        "Slack + phone access to recruiter",
+        "Twice weekly progress calls",
       ],
     },
   ]
@@ -103,7 +104,7 @@ export default function Pricing() {
                 <div className="flex items-start gap-2">
                   <Check className="w-5 h-5 text-primary flex-shrink-0 mt-0.5" />
                   <span className="text-sm text-foreground premium-body">
-                    5 job applications per day
+                    5 job applications per week
                   </span>
                 </div>
                 <div className="flex items-start gap-2">
@@ -115,6 +116,16 @@ export default function Pricing() {
                 <div className="flex items-start gap-2">
                   <Check className="w-5 h-5 text-primary flex-shrink-0 mt-0.5" />
                   <span className="text-sm text-foreground premium-body">Basic job search & filters</span>
+                </div>
+                <div className="flex items-start gap-2">
+                  <Check className="w-5 h-5 text-primary flex-shrink-0 mt-0.5" />
+                  <span className="text-sm text-foreground premium-body">Basic market snapshot</span>
+                </div>
+                <div className="flex items-start gap-2">
+                  <Check className="w-5 h-5 text-primary flex-shrink-0 mt-0.5" />
+                  <span className="text-sm text-foreground premium-body">
+                    Apply from job feed — upgrade for recruiter assistance
+                  </span>
                 </div>
               </div>
 
@@ -224,7 +235,7 @@ export default function Pricing() {
               Let professionals handle your job search while you focus on interviews
             </p>
             <p className="text-sm text-muted-foreground premium-body">
-              90-900 applications per month • Real-time tracking • 90% feedback rate
+              80-220 applications per month (Mon-Fri) • Real-time tracking • 90% feedback rate
             </p>
           </div>
 

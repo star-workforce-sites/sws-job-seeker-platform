@@ -26,10 +26,10 @@ export function Toast({ message, type = 'info', duration = 5000, onClose }: Toas
   if (!isVisible) return null;
 
   const styles = {
-    success: 'bg-green-50 border-green-200 text-green-800',
-    error: 'bg-red-50 border-red-200 text-red-800',
-    warning: 'bg-yellow-50 border-yellow-200 text-yellow-800',
-    info: 'bg-blue-50 border-blue-200 text-blue-800'
+    success: 'bg-[#E8C547] border-[#D4AF37] text-[#0A1A2F]',
+    error: 'bg-[#E8C547] border-[#D4AF37] text-[#0A1A2F]',
+    warning: 'bg-[#E8C547] border-[#D4AF37] text-[#0A1A2F]',
+    info: 'bg-[#E8C547] border-[#D4AF37] text-[#0A1A2F]'
   };
 
   const icons = {
@@ -57,11 +57,13 @@ export function Toast({ message, type = 'info', duration = 5000, onClose }: Toas
 
   return (
     <div className="fixed top-4 right-4 z-50 animate-slide-in">
-      <div className={`flex items-center gap-3 px-4 py-3 rounded-lg border shadow-lg ${styles[type]}`}>
+      <div className={`flex items-center gap-3 px-5 py-3 rounded-full border-2 shadow-lg ${styles[type]}`}>
         <div className="flex-shrink-0">
           {icons[type]}
         </div>
-        <p className="text-sm font-medium">{message}</p>
+        <p className="text-sm font-bold">
+          <span className="font-extrabold">Career Accel Says:</span>{' '}{message}
+        </p>
         <button
           onClick={() => {
             setIsVisible(false);

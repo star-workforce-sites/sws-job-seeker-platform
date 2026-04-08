@@ -17,6 +17,16 @@ export interface CHRMJob {
   quality_score: number
   ingested_at: string
   expires_at: string
+  // v2 fields (may be null if CHRM hasn't populated yet)
+  company_name?: string | null
+  employer_email?: string | null
+  seniority_level?: "entry" | "mid" | "senior" | "lead" | "executive" | null
+  experience_min?: number | null
+  experience_max?: number | null
+  industry?: string | null
+  application_count?: number | null
+  is_featured?: boolean | null
+  posted_date?: string | null
 }
 
 export interface CHRMJobsResponse {
@@ -49,11 +59,45 @@ export interface CHRMIntelligenceStats {
   avg_quality: number
 }
 
+export interface CHRMSalaryBenchmark {
+  contract_type: string
+  avg_rate: number
+  median_rate: number
+  rate_type: "hourly" | "annual"
+  sample_size: number
+}
+
+export interface CHRMHiringTrend {
+  week: string
+  new_jobs: number
+  expired_jobs: number
+  net_growth: number
+}
+
+export interface CHRMCompanyAnalytics {
+  company_name: string
+  open_roles: number
+  avg_rate: number | null
+  top_skills: string[]
+}
+
+export interface CHRMIndustryDemand {
+  industry: string
+  job_count: number
+  avg_rate: number | null
+  growth_pct: number | null
+}
+
 export interface CHRMIntelligenceData {
   stats: CHRMIntelligenceStats
   skill_velocity: CHRMSkillVelocity[]
   city_heatmap: CHRMCityHeatmap[]
   demo_job: CHRMJob
+  // v2 intelligence fields (may be null/undefined if not yet available)
+  salary_benchmarks?: CHRMSalaryBenchmark[]
+  hiring_trends?: CHRMHiringTrend[]
+  company_analytics?: CHRMCompanyAnalytics[]
+  industry_demand?: CHRMIndustryDemand[]
 }
 
 // ── Activity Event Types ─────────────────────────────────────
@@ -82,4 +126,10 @@ export interface CHRMJobsQueryParams {
   skills?: string
   min_score?: number
   contract_type?: string
+  industry?: string
+  seniority_level?: string
+  keyword?: string
+  company_name?: string
+  posted_after?: string
+  sort_by?: string
 }

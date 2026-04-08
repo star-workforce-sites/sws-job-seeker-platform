@@ -133,8 +133,8 @@ export function getPlanDetails(subscriptionType: string): {
 } {
   const plans: Record<string, { name: string; amount: string; applicationsPerDay: number }> = {
     recruiter_basic:    { name: 'Recruiter Basic',    amount: '199', applicationsPerDay: 4  },
-    recruiter_standard: { name: 'Recruiter Standard', amount: '399', applicationsPerDay: 12 },
-    recruiter_pro:      { name: 'Recruiter Pro',      amount: '599', applicationsPerDay: 25 },
+    recruiter_standard: { name: 'Recruiter Standard', amount: '399', applicationsPerDay: 6  },
+    recruiter_pro:      { name: 'Recruiter Pro',      amount: '599', applicationsPerDay: 10 },
     diy_premium:        { name: 'DIY Premium',        amount: '9.99', applicationsPerDay: 0 },
   }
   return plans[subscriptionType] || { name: subscriptionType, amount: '0', applicationsPerDay: 0 }

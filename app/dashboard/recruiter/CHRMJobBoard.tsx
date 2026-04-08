@@ -33,6 +33,10 @@ import {
   Send,
   Eye,
   Loader2,
+  Building2,
+  Users,
+  Sparkles,
+  GraduationCap,
 } from "lucide-react"
 import type { CHRMJob } from "@/types/chrm-nexus"
 
@@ -81,10 +85,12 @@ function qualityBadge(score: number): string {
   return "bg-gray-100 text-gray-700"
 }
 
-function relativeTime(dateStr: string): string {
-  const now = Date.now()
+function relativeTime(dateStr: string | null | undefined): string {
+  if (!dateStr) return "Recently posted"
   const then = new Date(dateStr).getTime()
-  const diffMs = now - then
+  if (isNaN(then)) return "Recently posted"
+  const diffMs = Date.now() - then
+  if (diffMs < 0) return "Just posted"
   const diffHours = Math.floor(diffMs / (1000 * 60 * 60))
   if (diffHours < 1) return "Just now"
   if (diffHours < 24) return `${diffHours}h ago`
@@ -137,6 +143,7 @@ export default function CHRMJobBoard({ clients }: CHRMJobBoardProps) {
       const params = new URLSearchParams()
       params.set("limit", String(LIMIT))
       params.set("offset", String(newOffset))
+      params.set("sort_by", "posted_date")
       if (filterState && filterState !== "all") params.set("state", filterState)
       if (filterWorkModel && filterWorkModel !== "all") params.set("work_model", filterWorkModel)
       if (filterSkills.trim()) params.set("skills", filterSkills.trim())
@@ -226,7 +233,7 @@ export default function CHRMJobBoard({ clients }: CHRMJobBoardProps) {
   const openSubmitDialog = useCallback((job: CHRMJob) => {
     setSubmitJobId(job.job_id)
     setSubmitJobTitle(job.title)
-    setSubmitCompany(`${job.city}, ${job.state}`)
+    setSubmitCompany(job.company_name || `${job.city}, ${job.state}`)
     setSelectedClient(clients[0]?.assignment_id ?? "")
     setSubmitSuccess(null)
     setSubmitDialogOpen(true)
@@ -445,7 +452,13 @@ export default function CHRMJobBoard({ clients }: CHRMJobBoardProps) {
               <div className="flex justify-between items-start gap-4">
                 <div className="flex-1 min-w-0">
                   {/* Title + badges */}
-                  <div className="flex items-center gap-2 flex-wrap mb-2">
+                  <div className="flex items-center gap-2 flex-wrap mb-1">
+                    {job.is_featured && (
+                      <Badge className="text-xs bg-[#E8C547] text-[#0A1A2F] border-[#D4AF37]">
+                        <Sparkles className="w-3 h-3 mr-1" />
+                        Featured
+                      </Badge>
+                    )}
                     <h3 className="text-base font-semibold text-foreground premium-heading truncate">
                       {job.title}
                     </h3>
@@ -461,7 +474,18 @@ export default function CHRMJobBoard({ clients }: CHRMJobBoardProps) {
                     </Badge>
                   </div>
 
-                  {/* Location + rate + time */}
+                  {/* Company name */}
+                  {job.company_name && (
+                    <div className="flex items-center gap-1.5 text-sm text-foreground/80 mb-1.5">
+                      <Building2 className="w-3.5 h-3.5 text-muted-foreground" />
+                      <span className="font-medium">{job.company_name}</span>
+                      {job.industry && (
+                        <span className="text-xs text-muted-foreground">· {job.industry}</span>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Location + rate + time + applicants */}
                   <div className="flex flex-wrap gap-4 text-sm text-muted-foreground premium-body mb-2">
                     <span className="flex items-center gap-1">
                       <MapPin className="w-3.5 h-3.5" />
@@ -473,8 +497,25 @@ export default function CHRMJobBoard({ clients }: CHRMJobBoardProps) {
                     </span>
                     <span className="flex items-center gap-1">
                       <Clock className="w-3.5 h-3.5" />
-                      {relativeTime(job.ingested_at)}
+                      {relativeTime(job.posted_date || job.ingested_at)}
                     </span>
+                    {typeof job.application_count === "number" && job.application_count > 0 && (
+                      <span className="flex items-center gap-1 text-blue-600">
+                        <Users className="w-3.5 h-3.5" />
+                        {job.application_count} applicant{job.application_count !== 1 ? "s" : ""}
+                      </span>
+                    )}
+                    {job.seniority_level && (
+                      <span className="flex items-center gap-1">
+                        <GraduationCap className="w-3.5 h-3.5" />
+                        {job.seniority_level.charAt(0).toUpperCase() + job.seniority_level.slice(1)}
+                        {job.experience_min != null && (
+                          <span className="text-xs">
+                            · {job.experience_min}{job.experience_max ? `-${job.experience_max}` : "+"} yrs
+                          </span>
+                        )}
+                      </span>
+                    )}
                   </div>
 
                   {/* Skills (up to 6) */}
@@ -584,6 +625,12 @@ export default function CHRMJobBoard({ clients }: CHRMJobBoardProps) {
               <div className="space-y-4 mt-4">
                 {/* Badges row */}
                 <div className="flex flex-wrap gap-2">
+                  {selectedJob.is_featured && (
+                    <Badge className="bg-[#E8C547] text-[#0A1A2F] border-[#D4AF37]">
+                      <Sparkles className="w-3 h-3 mr-1" />
+                      Featured
+                    </Badge>
+                  )}
                   <Badge className={workModelBadge(selectedJob.work_model).className}>
                     {workModelBadge(selectedJob.work_model).label}
                   </Badge>
@@ -594,7 +641,24 @@ export default function CHRMJobBoard({ clients }: CHRMJobBoardProps) {
                     <Star className="w-3 h-3 mr-1" />
                     Quality: {selectedJob.quality_score}
                   </Badge>
+                  {typeof selectedJob.application_count === "number" && selectedJob.application_count > 0 && (
+                    <Badge className="bg-blue-100 text-blue-700">
+                      <Users className="w-3 h-3 mr-1" />
+                      {selectedJob.application_count} applicant{selectedJob.application_count !== 1 ? "s" : ""}
+                    </Badge>
+                  )}
                 </div>
+
+                {/* Company + Industry */}
+                {selectedJob.company_name && (
+                  <div className="flex items-center gap-2 text-sm">
+                    <Building2 className="w-4 h-4 text-muted-foreground" />
+                    <span className="font-medium text-foreground">{selectedJob.company_name}</span>
+                    {selectedJob.industry && (
+                      <span className="text-muted-foreground">· {selectedJob.industry}</span>
+                    )}
+                  </div>
+                )}
 
                 {/* Meta info */}
                 <div className="grid grid-cols-2 gap-4 text-sm">
@@ -608,12 +672,21 @@ export default function CHRMJobBoard({ clients }: CHRMJobBoardProps) {
                   </div>
                   <div className="flex items-center gap-2 text-muted-foreground premium-body">
                     <Clock className="w-4 h-4" />
-                    Posted {relativeTime(selectedJob.ingested_at)}
+                    Posted {relativeTime(selectedJob.posted_date || selectedJob.ingested_at)}
                   </div>
                   <div className="flex items-center gap-2 text-muted-foreground premium-body">
                     <Briefcase className="w-4 h-4" />
                     Expires {new Date(selectedJob.expires_at).toLocaleDateString()}
                   </div>
+                  {selectedJob.seniority_level && (
+                    <div className="flex items-center gap-2 text-muted-foreground premium-body">
+                      <GraduationCap className="w-4 h-4" />
+                      {selectedJob.seniority_level.charAt(0).toUpperCase() + selectedJob.seniority_level.slice(1)} Level
+                      {selectedJob.experience_min != null && (
+                        <span>· {selectedJob.experience_min}{selectedJob.experience_max ? `-${selectedJob.experience_max}` : "+"} yrs exp</span>
+                      )}
+                    </div>
+                  )}
                 </div>
 
                 {/* Skills */}
