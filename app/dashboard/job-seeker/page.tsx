@@ -414,7 +414,7 @@ export default async function JobSeekerDashboard() {
             </Card>
           </Link>
 
-          <a href="#job-feed" onClick={(e) => { e.preventDefault(); document.getElementById('job-feed')?.scrollIntoView({ behavior: 'smooth' }) }}>
+          <a href="#job-feed">
             <Card className="p-6 hover:shadow-lg transition cursor-pointer">
               <Briefcase className="w-8 h-8 text-primary mb-3" />
               <h3 className="text-lg font-semibold text-foreground mb-2 premium-heading">Browse Jobs</h3>
