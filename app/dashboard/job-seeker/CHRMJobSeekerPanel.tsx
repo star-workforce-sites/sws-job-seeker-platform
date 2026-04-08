@@ -76,17 +76,24 @@ function contractLabel(type: string | null): string {
 }
 
 /**
- * Formats an avg_rate from industry_demand or company_analytics, which have no rate_type.
- * Heuristic: values > 500 are annual salaries; ≤ 500 are hourly rates.
- * Large annual values are shown with K notation.
+ * Formats an avg_rate from company_analytics (which HAS a rate_type field).
+ * For industry_demand (no rate_type), values > 500 are suppressed as corrupted
+ * (CHRM mixes hourly/annual without normalizing — the average becomes meaningless).
+ * Returns empty string for corrupted or missing values.
  */
-function formatIntelRate(rate: number | null): string {
+function formatIntelRate(rate: number | null, rateType?: string | null): string {
   if (rate == null || rate <= 0) return ""
-  if (rate > 500) {
-    // Annual salary — format as $XK/yr
+  // If we have an explicit rate_type (company_analytics), use it
+  if (rateType === "annual") {
     const k = rate / 1000
     return `$${k >= 10 ? Math.round(k) : k.toFixed(1)}K/yr`
   }
+  if (rateType === "hourly") {
+    return `$${rate.toLocaleString()}/hr`
+  }
+  // No rate_type (industry_demand): only display if clearly hourly (≤ 500)
+  // Values > 500 with no rate_type are corrupted averages — hide them
+  if (rate > 500) return ""
   return `$${rate.toLocaleString()}/hr`
 }
 
@@ -491,11 +498,21 @@ export default function CHRMJobSeekerPanel() {
 
               {/* Salary Benchmarks */}
               {(() => {
-                // Only show benchmarks that have a real (>0) avg rate
+                // Show benchmarks that have a valid avg_range with non-zero values
                 const validBenchmarks = (intelligence.salary_benchmarks ?? []).filter(
-                  (sb) => sb.avg_rate != null && sb.avg_rate > 0
+                  (sb) => sb.avg_range != null && (sb.avg_range.min > 0 || sb.avg_range.max > 0)
                 )
                 if (validBenchmarks.length === 0) return null
+
+                // Format a salary range value: hourly shown as-is, annual shown as $XK
+                function fmtBenchVal(val: number, rateType: string | null): string {
+                  if (rateType === "annual") {
+                    const k = val / 1000
+                    return `$${k >= 10 ? Math.round(k) : k.toFixed(1)}K`
+                  }
+                  return `$${val.toLocaleString()}`
+                }
+
                 return (
                   <div>
                     <h3 className="text-sm font-semibold text-white/90 premium-heading mb-3 flex items-center gap-2">
@@ -504,20 +521,23 @@ export default function CHRMJobSeekerPanel() {
                     </h3>
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
                       {validBenchmarks.slice(0, 4).map((sb) => {
-                        // Human-readable contract type label (fixes W2_OR_C2C → W2 or C2C)
                         const ctLabel = contractLabel(sb.contract_type ?? null)
                         const rateSuffix = sb.rate_type === "hourly" ? "/hr" : sb.rate_type === "annual" ? "/yr" : ""
+                        const avgMin = fmtBenchVal(sb.avg_range!.min, sb.rate_type ?? null)
+                        const avgMax = fmtBenchVal(sb.avg_range!.max, sb.rate_type ?? null)
+                        const overallMin = sb.overall_range ? fmtBenchVal(sb.overall_range.min, sb.rate_type ?? null) : null
+                        const overallMax = sb.overall_range ? fmtBenchVal(sb.overall_range.max, sb.rate_type ?? null) : null
                         return (
-                          <div key={sb.contract_type} className="bg-white/10 rounded-lg px-3 py-2">
+                          <div key={`${sb.contract_type}-${sb.rate_type}`} className="bg-white/10 rounded-lg px-3 py-2">
                             <p className="text-sm font-medium text-[#E8C547] premium-heading">
-                              ${(sb.avg_rate!).toLocaleString()}{rateSuffix}
+                              {avgMin}–{avgMax}{rateSuffix}
                             </p>
                             <p className="text-xs text-white/60 premium-body">
-                              {ctLabel} avg · {sb.sample_size ?? 0} jobs
+                              {ctLabel} · {sb.sample_size ?? 0} jobs
                             </p>
-                            {sb.median_rate != null && sb.median_rate > 0 && (
+                            {overallMin && overallMax && (
                               <p className="text-[10px] text-white/40">
-                                Median: ${sb.median_rate.toLocaleString()}{rateSuffix}
+                                Range: {overallMin}–{overallMax}{rateSuffix}
                               </p>
                             )}
                           </div>
@@ -647,7 +667,10 @@ export default function CHRMJobSeekerPanel() {
                             <p className="text-sm font-medium text-white premium-heading">{ca.company_name}</p>
                             <p className="text-xs text-white/60 premium-body">
                               {ca.open_roles} open role{ca.open_roles !== 1 ? "s" : ""}
-                              {ca.avg_rate != null && ca.avg_rate > 0 && ` · Avg ${formatIntelRate(ca.avg_rate)}`}
+                              {ca.avg_rate != null && ca.avg_rate > 0 && (() => {
+                                const rateStr = formatIntelRate(ca.avg_rate, ca.rate_type ?? null)
+                                return rateStr ? ` · Avg ${rateStr}` : ""
+                              })()}
                             </p>
                           </div>
                           {ca.top_skills && ca.top_skills.length > 0 && (

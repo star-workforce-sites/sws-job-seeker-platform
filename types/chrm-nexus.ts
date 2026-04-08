@@ -61,10 +61,14 @@ export interface CHRMIntelligenceStats {
 
 export interface CHRMSalaryBenchmark {
   contract_type: string
-  avg_rate: number | null
-  median_rate: number | null
   rate_type: "hourly" | "annual" | null
   sample_size: number | null
+  /** Actual API response: range object, not a single value */
+  avg_range: { min: number; max: number } | null
+  overall_range: { min: number; max: number } | null
+  // Legacy fields — not present in current API response
+  avg_rate?: number | null
+  median_rate?: number | null
 }
 
 export interface CHRMHiringTrend {
@@ -78,6 +82,7 @@ export interface CHRMCompanyAnalytics {
   company_name: string | null
   open_roles: number | null
   avg_rate: number | null
+  rate_type: "hourly" | "annual" | null
   top_skills: string[] | null
 }
 
