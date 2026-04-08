@@ -16,6 +16,8 @@ import {
   ChevronDown,
   ChevronUp,
   Loader2,
+  AlertTriangle,
+  X,
 } from "lucide-react"
 
 interface PlanManagerProps {
@@ -76,6 +78,10 @@ export default function PlanManagerClient({
 }: PlanManagerProps) {
   const [showPlans, setShowPlans] = useState(false)
   const [loadingPlan, setLoadingPlan] = useState<string | null>(null)
+  const [showCancelModal, setShowCancelModal] = useState(false)
+  const [cancelling, setCancelling] = useState(false)
+  const [cancelDone, setCancelDone] = useState(false)
+  const [cancelActiveUntil, setCancelActiveUntil] = useState<string | null>(null)
 
   const isFreePlan = !currentPlan
   const currentPlanObj = PLANS.find((p) => p.id === currentPlan)
@@ -101,6 +107,25 @@ export default function PlanManagerClient({
     }
   }
 
+  const handleCancel = async () => {
+    setCancelling(true)
+    try {
+      const res = await fetch("/api/subscription/cancel", { method: "POST" })
+      const data = await res.json()
+      if (res.ok) {
+        setCancelDone(true)
+        setCancelActiveUntil(data.activeUntil || null)
+        setShowCancelModal(false)
+      } else {
+        alert(data.error || "Failed to cancel. Please contact support.")
+      }
+    } catch {
+      alert("Network error. Please try again or contact support.")
+    } finally {
+      setCancelling(false)
+    }
+  }
+
   const getPlanAction = (plan: typeof PLANS[0]) => {
     if (!currentPlan) return "upgrade"
     const currentIdx = PLANS.findIndex((p) => p.id === currentPlan)
@@ -110,7 +135,52 @@ export default function PlanManagerClient({
     return "current"
   }
 
+  // Cancellation confirmation modal
+  const CancelModal = () => (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+      <div className="bg-white rounded-xl shadow-2xl max-w-sm w-full p-6">
+        <div className="flex items-start gap-3 mb-4">
+          <AlertTriangle className="w-6 h-6 text-orange-500 shrink-0 mt-0.5" />
+          <div>
+            <h3 className="font-bold text-foreground text-base">Cancel your plan?</h3>
+            <p className="text-sm text-muted-foreground mt-1">
+              Your recruiter will be <strong>unassigned immediately</strong>. Your plan stays active until{" "}
+              {renewalDate
+                ? new Date(renewalDate).toLocaleDateString("en-US", { month: "long", day: "numeric" })
+                : "the end of your billing period"}
+              , then you move to the free tier.
+            </p>
+          </div>
+          <button onClick={() => setShowCancelModal(false)} className="shrink-0 text-gray-400 hover:text-gray-600">
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+        <div className="flex gap-3">
+          <Button
+            variant="outline"
+            size="sm"
+            className="flex-1"
+            onClick={() => setShowCancelModal(false)}
+            disabled={cancelling}
+          >
+            Keep Plan
+          </Button>
+          <Button
+            size="sm"
+            className="flex-1 bg-red-600 hover:bg-red-700 text-white"
+            onClick={handleCancel}
+            disabled={cancelling}
+          >
+            {cancelling ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : "Yes, Cancel"}
+          </Button>
+        </div>
+      </div>
+    </div>
+  )
+
   return (
+    <>
+    {showCancelModal && <CancelModal />}
     <Card className="p-5 border-2 border-[#E8C547] col-span-1 lg:col-span-2">
       {/* Top Section: Current plan summary + Recruiter status */}
       <div className="flex flex-col sm:flex-row sm:items-start gap-4">
@@ -205,21 +275,41 @@ export default function PlanManagerClient({
           {/* Free plan card — only show when user is on a paid plan */}
           {!isFreePlan && (
             <div className="relative rounded-xl border-2 border-gray-200 bg-white p-4 transition hover:border-gray-300 sm:col-span-3">
-              <div className="flex items-center justify-between">
-                <div>
-                  <div className="flex items-center gap-2 mb-1">
-                    <Users className="w-4 h-4 text-gray-500" />
-                    <span className="text-sm font-bold text-foreground premium-heading">Free Plan</span>
-                    <Badge className="text-[9px] bg-gray-100 text-gray-600">$0/month</Badge>
-                  </div>
-                  <p className="text-[10px] text-muted-foreground">
-                    5 applications/week · Basic job search · Market snapshot · No recruiter assistance
+              {cancelDone ? (
+                <div className="flex items-center gap-3 text-sm text-green-700">
+                  <CheckCircle className="w-4 h-4 text-green-500 shrink-0" />
+                  <p>
+                    <strong>Plan cancelled.</strong> Your recruiter has been unassigned. You have access until{" "}
+                    {cancelActiveUntil
+                      ? new Date(cancelActiveUntil).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })
+                      : renewalDate
+                        ? new Date(renewalDate).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })
+                        : "the end of your billing period"}
+                    .
                   </p>
                 </div>
-                <p className="text-[10px] text-muted-foreground italic shrink-0 ml-4">
-                  Cancel your subscription in Stripe to return to Free
-                </p>
-              </div>
+              ) : (
+                <div className="flex items-center justify-between gap-4">
+                  <div>
+                    <div className="flex items-center gap-2 mb-1">
+                      <Users className="w-4 h-4 text-gray-500" />
+                      <span className="text-sm font-bold text-foreground premium-heading">Free Plan</span>
+                      <Badge className="text-[9px] bg-gray-100 text-gray-600">$0/month</Badge>
+                    </div>
+                    <p className="text-[10px] text-muted-foreground">
+                      5 applications/week · Basic job search · Market snapshot · No recruiter assistance
+                    </p>
+                  </div>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="shrink-0 text-[10px] h-7 border-red-300 text-red-600 hover:bg-red-50 hover:border-red-400"
+                    onClick={() => setShowCancelModal(true)}
+                  >
+                    Cancel Plan
+                  </Button>
+                </div>
+              )}
             </div>
           )}
           {PLANS.map((plan) => {
@@ -318,5 +408,6 @@ export default function PlanManagerClient({
         </div>
       )}
     </Card>
+    </>
   )
 }

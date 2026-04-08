@@ -27,7 +27,7 @@ const SUBJECT_OPTIONS = [
 export default function ContactFormClient() {
   const searchParams = useSearchParams()
   const initialSubject = searchParams.get('subject') || 'general'
-  
+
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -37,6 +37,10 @@ export default function ContactFormClient() {
   const [loading, setLoading] = useState(false)
   const [success, setSuccess] = useState(false)
   const [error, setError] = useState('')
+  // Honeypot field — real users never fill this in
+  const [honeypot, setHoneypot] = useState('')
+  // Track when the form was first rendered to catch instant bot submissions
+  const [formLoadTime] = useState(() => Date.now())
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -50,6 +54,8 @@ export default function ContactFormClient() {
         body: JSON.stringify({
           ...formData,
           submittedAt: new Date().toISOString(),
+          _hp: honeypot,                         // honeypot value
+          _elapsed: Date.now() - formLoadTime,   // ms since form loaded
         }),
       })
 
@@ -89,6 +95,20 @@ export default function ContactFormClient() {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
+      {/* Honeypot — hidden from real users, bots fill it in */}
+      <div style={{ display: 'none' }} aria-hidden="true">
+        <label htmlFor="website">Website</label>
+        <input
+          id="website"
+          name="website"
+          type="text"
+          value={honeypot}
+          onChange={(e) => setHoneypot(e.target.value)}
+          tabIndex={-1}
+          autoComplete="off"
+        />
+      </div>
+
       {error && (
         <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
           {error}

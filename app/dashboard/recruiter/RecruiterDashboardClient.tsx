@@ -26,6 +26,10 @@ import {
   FileText,
   LogOut,
   Search,
+  Phone,
+  Video,
+  Calendar,
+  Send,
 } from "lucide-react"
 import CHRMJobBoard from "./CHRMJobBoard"
 
@@ -96,6 +100,19 @@ interface LogFormState {
   job_url: string
   notes: string
   status: string
+  submitting: boolean
+  error: string | null
+  success: string | null
+}
+
+interface NotifyFormState {
+  client_id: string
+  submission_id: string   // optional: pre-existing submission to update
+  job_title: string
+  company_name: string
+  scheduled_at: string    // datetime-local value
+  call_type: string       // for interview: phone | video | in_person
+  message: string
   submitting: boolean
   error: string | null
   success: string | null
@@ -199,6 +216,22 @@ export default function RecruiterDashboardClient({
     error: null,
     success: null,
   })
+
+  const emptyNotifyForm = (): NotifyFormState => ({
+    client_id: initialClients[0]?.client_id ?? "",
+    submission_id: "",
+    job_title: "",
+    company_name: "",
+    scheduled_at: "",
+    call_type: "video",
+    message: "",
+    submitting: false,
+    error: null,
+    success: null,
+  })
+
+  const [screeningForm, setScreeningForm] = useState<NotifyFormState>(emptyNotifyForm)
+  const [interviewForm, setInterviewForm] = useState<NotifyFormState>(emptyNotifyForm)
 
   // ── Derived stats ─────────────────────────────────────────
   const totalToday = clients.reduce(
@@ -322,6 +355,63 @@ export default function RecruiterDashboardClient({
       }
     } catch {
       // silently fail — table will show stale status
+    }
+  }
+
+  // ── Send screening / interview notification ───────────────
+  async function handleNotify(
+    type: "screening" | "interview",
+    form: NotifyFormState,
+    setForm: React.Dispatch<React.SetStateAction<NotifyFormState>>
+  ) {
+    if (!form.client_id || !form.job_title || !form.company_name || !form.scheduled_at) {
+      setForm((prev) => ({ ...prev, error: "Client, job title, company, and date/time are required." }))
+      return
+    }
+    setForm((prev) => ({ ...prev, submitting: true, error: null, success: null }))
+    try {
+      const res = await fetch("/api/recruiter/notify", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          type,
+          client_id: form.client_id,
+          submission_id: form.submission_id || undefined,
+          job_title: form.job_title.trim(),
+          company_name: form.company_name.trim(),
+          scheduled_at: new Date(form.scheduled_at).toISOString(),
+          call_type: form.call_type,
+          message: form.message.trim() || undefined,
+        }),
+      })
+      const data = await res.json()
+      if (!res.ok) {
+        setForm((prev) => ({ ...prev, submitting: false, error: data.error ?? "Failed to send. Please try again." }))
+        return
+      }
+      // Update submission in local state if it was updated
+      if (data.updatedSubmission) {
+        setSubmissions((prev) =>
+          prev.map((s) =>
+            s.id === data.updatedSubmission.id
+              ? { ...s, status: data.updatedSubmission.status }
+              : s
+          )
+        )
+      }
+      const clientName = clients.find((c) => c.client_id === form.client_id)?.client_name ?? "client"
+      setForm((prev) => ({
+        ...prev,
+        job_title: "",
+        company_name: "",
+        scheduled_at: "",
+        message: "",
+        submission_id: "",
+        submitting: false,
+        success: `✅ ${type === "screening" ? "Screening" : "Interview"} notification sent to ${clientName}`,
+      }))
+    } catch {
+      setForm((prev) => ({ ...prev, submitting: false, error: "Network error. Please try again." }))
     }
   }
 
@@ -522,6 +612,14 @@ export default function RecruiterDashboardClient({
                   {submissions.length}
                 </span>
               )}
+            </TabsTrigger>
+            <TabsTrigger value="screening" className="premium-heading">
+              <Phone className="w-4 h-4 mr-1.5" />
+              Screening
+            </TabsTrigger>
+            <TabsTrigger value="interview" className="premium-heading">
+              <Calendar className="w-4 h-4 mr-1.5" />
+              Interview
             </TabsTrigger>
             <TabsTrigger value="jobboard" className="premium-heading">
               <Search className="w-4 h-4 mr-1.5" />
@@ -802,6 +900,348 @@ export default function RecruiterDashboardClient({
                       ))}
                     </tbody>
                   </table>
+                </div>
+              )}
+            </Card>
+          </TabsContent>
+
+          {/* ── Tab: Screening Request ─────────────────────────── */}
+          <TabsContent value="screening">
+            <Card className="p-6 max-w-2xl">
+              <div className="flex items-center gap-2 mb-1">
+                <Phone className="w-5 h-5 text-blue-500" />
+                <h2 className="text-lg font-semibold text-foreground premium-heading">
+                  Screening Call Request
+                </h2>
+              </div>
+              <p className="text-sm text-muted-foreground premium-body mb-4">
+                Notify your client of a scheduled screening call. The application status will update to
+                {" "}<strong>Screening Scheduled</strong> on their dashboard.
+              </p>
+              <Separator className="mb-6" />
+
+              {clients.length === 0 ? (
+                <div className="text-center py-8">
+                  <AlertCircle className="w-10 h-10 text-muted-foreground mx-auto mb-3" />
+                  <p className="text-muted-foreground premium-body">No clients assigned yet.</p>
+                </div>
+              ) : (
+                <div className="space-y-5">
+                  {/* Client */}
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-foreground premium-heading">Client *</label>
+                    <Select
+                      value={screeningForm.client_id}
+                      onValueChange={(val) => setScreeningForm((p) => ({ ...p, client_id: val, submission_id: "", error: null, success: null }))}
+                    >
+                      <SelectTrigger><SelectValue placeholder="Select client..." /></SelectTrigger>
+                      <SelectContent>
+                        {clients.map((c) => (
+                          <SelectItem key={c.client_id} value={c.client_id}>
+                            {c.client_name} — {c.client_email}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  {/* Link to existing submission (optional) */}
+                  {screeningForm.client_id && submissions.filter((s) => {
+                    const cl = clients.find((c) => c.client_id === screeningForm.client_id)
+                    return cl && s.assignment_id === cl.assignment_id
+                  }).length > 0 && (
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium text-foreground premium-heading">
+                        Link to Application (optional)
+                      </label>
+                      <Select
+                        value={screeningForm.submission_id}
+                        onValueChange={(val) => {
+                          const sub = submissions.find((s) => s.id === val)
+                          setScreeningForm((p) => ({
+                            ...p,
+                            submission_id: val,
+                            job_title: sub?.job_title ?? p.job_title,
+                            company_name: sub?.company_name ?? p.company_name,
+                          }))
+                        }}
+                      >
+                        <SelectTrigger><SelectValue placeholder="Select application (auto-fills details)..." /></SelectTrigger>
+                        <SelectContent>
+                          {submissions
+                            .filter((s) => {
+                              const cl = clients.find((c) => c.client_id === screeningForm.client_id)
+                              return cl && s.assignment_id === cl.assignment_id
+                            })
+                            .slice(0, 20)
+                            .map((s) => (
+                              <SelectItem key={s.id} value={s.id}>
+                                {s.job_title} @ {s.company_name}
+                              </SelectItem>
+                            ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  )}
+
+                  {/* Job title */}
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-foreground premium-heading">Job Title *</label>
+                    <input
+                      type="text"
+                      className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring premium-body"
+                      placeholder="e.g. Senior Java Developer"
+                      value={screeningForm.job_title}
+                      onChange={(e) => setScreeningForm((p) => ({ ...p, job_title: e.target.value }))}
+                    />
+                  </div>
+
+                  {/* Company */}
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-foreground premium-heading">Company *</label>
+                    <input
+                      type="text"
+                      className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring premium-body"
+                      placeholder="e.g. Accenture"
+                      value={screeningForm.company_name}
+                      onChange={(e) => setScreeningForm((p) => ({ ...p, company_name: e.target.value }))}
+                    />
+                  </div>
+
+                  {/* Scheduled date/time */}
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-foreground premium-heading">Screening Date & Time *</label>
+                    <input
+                      type="datetime-local"
+                      className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring premium-body"
+                      value={screeningForm.scheduled_at}
+                      onChange={(e) => setScreeningForm((p) => ({ ...p, scheduled_at: e.target.value }))}
+                    />
+                  </div>
+
+                  {/* Optional message */}
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-foreground premium-heading">
+                      Recruiter Message / Prep Notes (optional)
+                    </label>
+                    <textarea
+                      className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring resize-none premium-body"
+                      rows={3}
+                      placeholder="Tips for the client, call format, who to expect on the call..."
+                      value={screeningForm.message}
+                      onChange={(e) => setScreeningForm((p) => ({ ...p, message: e.target.value }))}
+                    />
+                  </div>
+
+                  {screeningForm.error && (
+                    <div className="flex items-center gap-2 text-sm text-red-600 premium-body">
+                      <AlertCircle className="w-4 h-4 shrink-0" />
+                      {screeningForm.error}
+                    </div>
+                  )}
+                  {screeningForm.success && (
+                    <div className="flex items-center gap-2 text-sm text-green-600 premium-body">
+                      <CheckCircle className="w-4 h-4 shrink-0" />
+                      {screeningForm.success}
+                    </div>
+                  )}
+
+                  <Button
+                    onClick={() => handleNotify("screening", screeningForm, setScreeningForm)}
+                    disabled={screeningForm.submitting || !screeningForm.client_id || !screeningForm.job_title || !screeningForm.company_name || !screeningForm.scheduled_at}
+                    className="w-full bg-blue-600 hover:bg-blue-700 text-white premium-heading"
+                  >
+                    {screeningForm.submitting ? (
+                      "Sending..."
+                    ) : (
+                      <>
+                        <Send className="w-4 h-4 mr-2" />
+                        Send Screening Notification
+                      </>
+                    )}
+                  </Button>
+                </div>
+              )}
+            </Card>
+          </TabsContent>
+
+          {/* ── Tab: Interview Confirmation ─────────────────────── */}
+          <TabsContent value="interview">
+            <Card className="p-6 max-w-2xl">
+              <div className="flex items-center gap-2 mb-1">
+                <Calendar className="w-5 h-5 text-green-600" />
+                <h2 className="text-lg font-semibold text-foreground premium-heading">
+                  Interview Confirmation
+                </h2>
+              </div>
+              <p className="text-sm text-muted-foreground premium-body mb-4">
+                Confirm an interview for your client. The application status will update to
+                {" "}<strong>Interview Scheduled</strong> on their dashboard.
+              </p>
+              <Separator className="mb-6" />
+
+              {clients.length === 0 ? (
+                <div className="text-center py-8">
+                  <AlertCircle className="w-10 h-10 text-muted-foreground mx-auto mb-3" />
+                  <p className="text-muted-foreground premium-body">No clients assigned yet.</p>
+                </div>
+              ) : (
+                <div className="space-y-5">
+                  {/* Client */}
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-foreground premium-heading">Client *</label>
+                    <Select
+                      value={interviewForm.client_id}
+                      onValueChange={(val) => setInterviewForm((p) => ({ ...p, client_id: val, submission_id: "", error: null, success: null }))}
+                    >
+                      <SelectTrigger><SelectValue placeholder="Select client..." /></SelectTrigger>
+                      <SelectContent>
+                        {clients.map((c) => (
+                          <SelectItem key={c.client_id} value={c.client_id}>
+                            {c.client_name} — {c.client_email}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  {/* Link to existing submission (optional) */}
+                  {interviewForm.client_id && submissions.filter((s) => {
+                    const cl = clients.find((c) => c.client_id === interviewForm.client_id)
+                    return cl && s.assignment_id === cl.assignment_id
+                  }).length > 0 && (
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium text-foreground premium-heading">
+                        Link to Application (optional)
+                      </label>
+                      <Select
+                        value={interviewForm.submission_id}
+                        onValueChange={(val) => {
+                          const sub = submissions.find((s) => s.id === val)
+                          setInterviewForm((p) => ({
+                            ...p,
+                            submission_id: val,
+                            job_title: sub?.job_title ?? p.job_title,
+                            company_name: sub?.company_name ?? p.company_name,
+                          }))
+                        }}
+                      >
+                        <SelectTrigger><SelectValue placeholder="Select application (auto-fills details)..." /></SelectTrigger>
+                        <SelectContent>
+                          {submissions
+                            .filter((s) => {
+                              const cl = clients.find((c) => c.client_id === interviewForm.client_id)
+                              return cl && s.assignment_id === cl.assignment_id
+                            })
+                            .slice(0, 20)
+                            .map((s) => (
+                              <SelectItem key={s.id} value={s.id}>
+                                {s.job_title} @ {s.company_name}
+                              </SelectItem>
+                            ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  )}
+
+                  {/* Job title */}
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-foreground premium-heading">Job Title *</label>
+                    <input
+                      type="text"
+                      className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring premium-body"
+                      placeholder="e.g. Senior Java Developer"
+                      value={interviewForm.job_title}
+                      onChange={(e) => setInterviewForm((p) => ({ ...p, job_title: e.target.value }))}
+                    />
+                  </div>
+
+                  {/* Company */}
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-foreground premium-heading">Company *</label>
+                    <input
+                      type="text"
+                      className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring premium-body"
+                      placeholder="e.g. Accenture"
+                      value={interviewForm.company_name}
+                      onChange={(e) => setInterviewForm((p) => ({ ...p, company_name: e.target.value }))}
+                    />
+                  </div>
+
+                  {/* Interview type */}
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-foreground premium-heading">Interview Type *</label>
+                    <Select
+                      value={interviewForm.call_type}
+                      onValueChange={(val) => setInterviewForm((p) => ({ ...p, call_type: val }))}
+                    >
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="phone">
+                          <span className="flex items-center gap-2"><Phone className="w-3.5 h-3.5" /> Phone Interview</span>
+                        </SelectItem>
+                        <SelectItem value="video">
+                          <span className="flex items-center gap-2"><Video className="w-3.5 h-3.5" /> Video Interview</span>
+                        </SelectItem>
+                        <SelectItem value="in_person">
+                          <span className="flex items-center gap-2"><Users className="w-3.5 h-3.5" /> In-Person Interview</span>
+                        </SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  {/* Scheduled date/time */}
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-foreground premium-heading">Interview Date & Time *</label>
+                    <input
+                      type="datetime-local"
+                      className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring premium-body"
+                      value={interviewForm.scheduled_at}
+                      onChange={(e) => setInterviewForm((p) => ({ ...p, scheduled_at: e.target.value }))}
+                    />
+                  </div>
+
+                  {/* Optional message */}
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-foreground premium-heading">
+                      Recruiter Message / Prep Notes (optional)
+                    </label>
+                    <textarea
+                      className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring resize-none premium-body"
+                      rows={3}
+                      placeholder="Interview format, what to bring, preparation tips..."
+                      value={interviewForm.message}
+                      onChange={(e) => setInterviewForm((p) => ({ ...p, message: e.target.value }))}
+                    />
+                  </div>
+
+                  {interviewForm.error && (
+                    <div className="flex items-center gap-2 text-sm text-red-600 premium-body">
+                      <AlertCircle className="w-4 h-4 shrink-0" />
+                      {interviewForm.error}
+                    </div>
+                  )}
+                  {interviewForm.success && (
+                    <div className="flex items-center gap-2 text-sm text-green-600 premium-body">
+                      <CheckCircle className="w-4 h-4 shrink-0" />
+                      {interviewForm.success}
+                    </div>
+                  )}
+
+                  <Button
+                    onClick={() => handleNotify("interview", interviewForm, setInterviewForm)}
+                    disabled={interviewForm.submitting || !interviewForm.client_id || !interviewForm.job_title || !interviewForm.company_name || !interviewForm.scheduled_at}
+                    className="w-full bg-green-600 hover:bg-green-700 text-white premium-heading"
+                  >
+                    {interviewForm.submitting ? (
+                      "Sending..."
+                    ) : (
+                      <>
+                        <Send className="w-4 h-4 mr-2" />
+                        Send Interview Confirmation
+                      </>
+                    )}
+                  </Button>
                 </div>
               )}
             </Card>

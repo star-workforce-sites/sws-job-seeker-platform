@@ -3,10 +3,55 @@ import { Resend } from 'resend'
 
 const resend = new Resend(process.env.RESEND_API_KEY)
 
+// ── Simple in-memory rate limiter ─────────────────────────────────────────────
+// Allows up to MAX_REQUESTS submissions per IP within WINDOW_MS
+const WINDOW_MS = 60 * 60 * 1000  // 1 hour
+const MAX_REQUESTS = 5             // max 5 contact submissions per hour per IP
+const ipLog = new Map<string, number[]>()
+
+function isRateLimited(ip: string): boolean {
+  const now = Date.now()
+  const timestamps = (ipLog.get(ip) || []).filter(t => now - t < WINDOW_MS)
+  if (timestamps.length >= MAX_REQUESTS) return true
+  timestamps.push(now)
+  ipLog.set(ip, timestamps)
+  return false
+}
+
+// Minimum time (ms) a real human takes to fill out a form
+const MIN_ELAPSED_MS = 3_000
+
 export async function POST(request: NextRequest) {
   try {
     const data = await request.json()
-    const { name, email, subject, message, submittedAt } = data
+    const { name, email, subject, message, submittedAt, _hp, _elapsed } = data
+
+    // ── Spam gate 1: Honeypot ─────────────────────────────────────────────────
+    if (_hp && _hp.trim().length > 0) {
+      console.log("[Contact] Honeypot triggered — silently rejecting bot submission")
+      // Return 200 so bots don't retry
+      return NextResponse.json({ success: true, message: "Message sent successfully!" }, { status: 200 })
+    }
+
+    // ── Spam gate 2: Timing check (< 3s is almost certainly a bot) ───────────
+    if (typeof _elapsed === "number" && _elapsed < MIN_ELAPSED_MS) {
+      console.log("[Contact] Submission too fast — likely a bot:", _elapsed, "ms")
+      return NextResponse.json({ success: true, message: "Message sent successfully!" }, { status: 200 })
+    }
+
+    // ── Spam gate 3: IP rate limit ────────────────────────────────────────────
+    const clientIp =
+      request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
+      request.headers.get("x-real-ip") ||
+      "unknown"
+
+    if (isRateLimited(clientIp)) {
+      console.log("[Contact] Rate limit exceeded for IP:", clientIp)
+      return NextResponse.json(
+        { success: false, message: "Too many submissions. Please try again later." },
+        { status: 429 }
+      )
+    }
 
     console.log("[Contact] Form submission received:", {
       name,

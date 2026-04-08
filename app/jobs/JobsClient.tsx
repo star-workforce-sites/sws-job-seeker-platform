@@ -5,13 +5,16 @@ import { useSession } from "next-auth/react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
+import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
 import Navigation from "@/components/navigation"
 import Footer from "@/components/footer"
-import { MapPin, DollarSign, Briefcase, BookmarkIcon, Search, Filter, Lock, UserPlus, ArrowRight } from "lucide-react"
+import { MapPin, DollarSign, Briefcase, BookmarkIcon, Search, Filter, Lock, UserPlus, ArrowRight, Zap, Eye } from "lucide-react"
 import Link from "next/link"
 
-type Job = {
+// ── Manual job (from our own DB) ─────────────────────────────────
+type ManualJob = {
+  _source: "manual"
   id: string
   title: string
   company: string
@@ -21,6 +24,53 @@ type Job = {
   description: string
   postedDate: string
   remoteType: string
+}
+
+// ── CHRM NEXUS job (read-only, external) ─────────────────────────
+type CHRMJob = {
+  _source: "chrm"
+  id: string
+  title: string
+  company: string
+  location: string
+  work_model: string | null
+  rate_min: number | null
+  rate_max: number | null
+  rate_type: string | null
+  description: string | null
+  posted_date: string | null
+  ingested_at: string | null
+  contract_type: string | null
+  required_skills: string[] | null
+  city: string | null
+  state: string | null
+  company_name: string | null
+  seniority_level: string | null
+}
+
+type CombinedJob = ManualJob | CHRMJob
+
+function formatCHRMRate(job: CHRMJob): string {
+  if (job.rate_min == null && job.rate_max == null) return "Rate not listed"
+  const suffix = job.rate_type === "hourly" ? "/hr" : job.rate_type === "annual" ? "/yr" : ""
+  if (job.rate_min != null && job.rate_max != null) {
+    return `$${job.rate_min.toLocaleString()}–$${job.rate_max.toLocaleString()}${suffix}`
+  }
+  if (job.rate_min != null) return `$${job.rate_min.toLocaleString()}+${suffix}`
+  return `Up to $${job.rate_max!.toLocaleString()}${suffix}`
+}
+
+function relativeTime(dateStr: string | null | undefined): string {
+  if (!dateStr) return "Recently posted"
+  const then = new Date(dateStr).getTime()
+  if (isNaN(then)) return "Recently posted"
+  const diff = Date.now() - then
+  const days = Math.floor(diff / 86400000)
+  if (days === 0) return "Today"
+  if (days === 1) return "Yesterday"
+  if (days < 7) return `${days}d ago`
+  if (days < 30) return `${Math.floor(days / 7)}w ago`
+  return `${Math.floor(days / 30)}mo ago`
 }
 
 export default function Jobs() {
@@ -33,7 +83,8 @@ export default function Jobs() {
     salary: "all",
     level: "all",
   })
-  const [jobs, setJobs] = useState<Job[]>([])
+  const [manualJobs, setManualJobs] = useState<ManualJob[]>([])
+  const [chrmJobs, setChrmJobs] = useState<CHRMJob[]>([])
   const [loading, setLoading] = useState(true)
   const [savedJobs, setSavedJobs] = useState<string[]>([])
   const [applicationsToday, setApplicationsToday] = useState(0)
@@ -42,11 +93,45 @@ export default function Jobs() {
   const MAX_FREE_APPLICATIONS = 5
 
   useEffect(() => {
-    async function fetchJobs() {
+    async function fetchAllJobs() {
       try {
-        const response = await fetch("/api/jobs/list")
-        const data = await response.json()
-        setJobs(data.jobs || [])
+        const [manualRes, chrmRes] = await Promise.allSettled([
+          fetch("/api/jobs/list"),
+          fetch("/api/chrm/public-jobs"),
+        ])
+
+        if (manualRes.status === "fulfilled" && manualRes.value.ok) {
+          const data = await manualRes.value.json()
+          setManualJobs(
+            (data.jobs || []).map((j: any) => ({ ...j, _source: "manual" as const }))
+          )
+        }
+
+        if (chrmRes.status === "fulfilled" && chrmRes.value.ok) {
+          const data = await chrmRes.value.json()
+          setChrmJobs(
+            (data.jobs || []).map((j: any) => ({
+              _source: "chrm" as const,
+              id: j.id,
+              title: j.title,
+              company: j.company_name || j.city || "See details",
+              location: j.city && j.state ? `${j.city}, ${j.state}` : (j.state || "Remote"),
+              work_model: j.work_model,
+              rate_min: j.rate_min ?? null,
+              rate_max: j.rate_max ?? null,
+              rate_type: j.rate_type ?? null,
+              description: j.description ?? null,
+              posted_date: j.posted_date ?? null,
+              ingested_at: j.ingested_at ?? null,
+              contract_type: j.contract_type ?? null,
+              required_skills: j.required_skills ?? null,
+              city: j.city ?? null,
+              state: j.state ?? null,
+              company_name: j.company_name ?? null,
+              seniority_level: j.seniority_level ?? null,
+            }))
+          )
+        }
       } catch (error) {
         console.error("Failed to fetch jobs:", error)
       } finally {
@@ -54,7 +139,7 @@ export default function Jobs() {
       }
     }
 
-    fetchJobs()
+    fetchAllJobs()
   }, [])
 
   useEffect(() => {
@@ -85,22 +170,33 @@ export default function Jobs() {
     fetchUserData()
   }, [session])
 
-  const filteredJobs = jobs.filter((job) => {
+  // Combine and filter — manual jobs first, then CHRM
+  const allJobs: CombinedJob[] = [...manualJobs, ...chrmJobs]
+
+  const filteredJobs = allJobs.filter((job) => {
     const matchesSearch =
       job.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
       job.company.toLowerCase().includes(searchTerm.toLowerCase())
 
     if (!matchesSearch) return false
 
-    if (filters.remote !== "all" && job.remoteType !== filters.remote) return false
+    if (filters.remote !== "all") {
+      if (job._source === "manual") {
+        if (job.remoteType !== filters.remote) return false
+      } else {
+        const model = job.work_model?.toLowerCase()
+        if (model !== filters.remote) return false
+      }
+    }
 
     return true
   })
 
   const handleSaveJob = useCallback(
     async (jobId: string) => {
+      // Only manual jobs can be saved
       if (!session?.user?.id) {
-        router.push("/auth/login?callbackUrl=/jobs")
+        router.push("/auth/register?callbackUrl=/jobs")
         return
       }
 
@@ -296,10 +392,17 @@ export default function Jobs() {
         </div>
 
         {/* Results Count */}
-        <div className="mb-4 flex items-center justify-between">
-          <p className="text-muted-foreground font-medium">
-            {filteredJobs.length} {filteredJobs.length === 1 ? "job" : "jobs"} found
-          </p>
+        <div className="mb-4 flex items-center justify-between flex-wrap gap-2">
+          <div>
+            <p className="text-muted-foreground font-medium">
+              {filteredJobs.length} {filteredJobs.length === 1 ? "job" : "jobs"} found
+            </p>
+            {chrmJobs.length > 0 && (
+              <p className="text-xs text-muted-foreground mt-0.5">
+                Includes {chrmJobs.filter(j => filteredJobs.some(f => f.id === j.id)).length} live CHRM NEXUS listings
+              </p>
+            )}
+          </div>
           {!session && filteredJobs.length > 0 && (
             <p className="text-sm text-[#E8C547] font-semibold flex items-center gap-1">
               <Lock className="h-4 w-4" />
@@ -312,8 +415,8 @@ export default function Jobs() {
         {filteredJobs.length === 0 ? (
           <div className="text-center py-16">
             <Briefcase className="h-16 w-16 mx-auto text-muted-foreground/30 mb-4" />
-            <p className="text-lg font-semibold text-foreground mb-2">No jobs listed yet</p>
-            <p className="text-muted-foreground mb-6">Job listings are updated daily from our CHRM NEXUS integration. Check back soon!</p>
+            <p className="text-lg font-semibold text-foreground mb-2">No jobs found</p>
+            <p className="text-muted-foreground mb-6">Try adjusting your filters or search term.</p>
             <div className="flex flex-col sm:flex-row gap-3 justify-center">
               <Link href="/tools/ats-optimizer">
                 <Button className="bg-[#E8C547] hover:bg-[#D4AF37] text-[#0A1A2F] font-bold">
@@ -329,102 +432,205 @@ export default function Jobs() {
           </div>
         ) : (
           <div className="space-y-4">
-            {filteredJobs.map((job) => (
-              <Card key={job.id} className="p-6 hover:shadow-lg transition border border-gray-200">
-                <div className="flex justify-between items-start mb-4">
-                  <div className="flex-1">
-                    <Link href={`/jobs/${job.id}`} className="hover:underline">
-                      <h3 className="text-xl font-bold text-foreground mb-1 premium-heading">
-                        {job.title}
-                      </h3>
-                    </Link>
-                    <p className="text-muted-foreground premium-body">{job.company}</p>
-                  </div>
-                  {session ? (
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => handleSaveJob(job.id)}
-                      className="text-muted-foreground hover:text-primary"
-                    >
-                      <BookmarkIcon
-                        className={`h-5 w-5 ${savedJobs.includes(job.id) ? "fill-current text-primary" : ""}`}
-                      />
-                    </Button>
-                  ) : null}
-                </div>
+            {filteredJobs.map((job) => {
+              const isCHRM = job._source === "chrm"
 
-                <div className="flex flex-wrap gap-3 mb-4 text-sm">
-                  <span className="inline-flex items-center gap-1 bg-blue-50 text-blue-700 px-2.5 py-1 rounded-full">
-                    <MapPin className="h-3.5 w-3.5" />
-                    {job.location}
-                  </span>
-                  <span className="inline-flex items-center gap-1 bg-purple-50 text-purple-700 px-2.5 py-1 rounded-full">
-                    <Briefcase className="h-3.5 w-3.5" />
-                    <span className="capitalize">{job.employmentType}</span>
-                  </span>
-                  <span className="inline-flex items-center gap-1 bg-green-50 text-green-700 px-2.5 py-1 rounded-full">
-                    <DollarSign className="h-3.5 w-3.5" />
-                    {job.salary}
-                  </span>
-                  <span className="inline-flex items-center gap-1 bg-amber-50 text-amber-700 px-2.5 py-1 rounded-full capitalize">
-                    {job.remoteType}
-                  </span>
-                  <span className="text-muted-foreground text-xs self-center">
-                    Posted {job.postedDate}
-                  </span>
-                </div>
+              if (isCHRM) {
+                // ── CHRM NEXUS job card (view-only) ──────────────────────
+                const cj = job as CHRMJob
+                return (
+                  <Card key={`chrm-${cj.id}`} className="p-6 hover:shadow-lg transition border border-blue-100 bg-blue-50/30">
+                    <div className="flex justify-between items-start mb-3">
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap mb-1">
+                          <h3 className="text-xl font-bold text-foreground premium-heading">
+                            {cj.title}
+                          </h3>
+                          <Badge className="bg-blue-100 text-blue-700 text-[10px] shrink-0">
+                            <Zap className="h-2.5 w-2.5 mr-1" />
+                            CHRM NEXUS
+                          </Badge>
+                        </div>
+                        <p className="text-muted-foreground premium-body text-sm">
+                          {cj.company_name || cj.company}
+                        </p>
+                      </div>
+                    </div>
 
-                <p className="text-foreground mb-4 line-clamp-2 premium-body text-sm">
-                  {job.description}
-                </p>
+                    <div className="flex flex-wrap gap-2 mb-4 text-sm">
+                      <span className="inline-flex items-center gap-1 bg-blue-50 text-blue-700 px-2.5 py-1 rounded-full text-xs">
+                        <MapPin className="h-3 w-3" />
+                        {cj.location}
+                      </span>
+                      {cj.work_model && (
+                        <span className="inline-flex items-center gap-1 bg-green-50 text-green-700 px-2.5 py-1 rounded-full text-xs capitalize">
+                          {cj.work_model}
+                        </span>
+                      )}
+                      {(cj.rate_min != null || cj.rate_max != null) && (
+                        <span className="inline-flex items-center gap-1 bg-amber-50 text-amber-700 px-2.5 py-1 rounded-full text-xs">
+                          <DollarSign className="h-3 w-3" />
+                          {formatCHRMRate(cj)}
+                        </span>
+                      )}
+                      {cj.contract_type && (
+                        <span className="inline-flex items-center gap-1 bg-purple-50 text-purple-700 px-2.5 py-1 rounded-full text-xs">
+                          {cj.contract_type}
+                        </span>
+                      )}
+                      {cj.seniority_level && (
+                        <span className="inline-flex items-center gap-1 bg-gray-100 text-gray-600 px-2.5 py-1 rounded-full text-xs capitalize">
+                          {cj.seniority_level}
+                        </span>
+                      )}
+                      <span className="text-muted-foreground text-xs self-center">
+                        {relativeTime(cj.posted_date || cj.ingested_at)}
+                      </span>
+                    </div>
 
-                <div className="flex gap-2 items-center">
-                  {session ? (
-                    <>
-                      <Button
-                        onClick={() => handleApply(job.id)}
-                        disabled={applicationsToday >= MAX_FREE_APPLICATIONS && !hasSubscription}
-                        className="bg-[#E8C547] hover:bg-[#D4AF37] text-[#0A1A2F] font-bold disabled:opacity-50"
-                      >
-                        Apply Now
-                      </Button>
-                      <Link href={`/jobs/${job.id}`}>
-                        <Button variant="outline" className="border-[#0A1A2F] text-[#0A1A2F] hover:bg-[#0A1A2F]/5">
-                          View Details
-                        </Button>
-                      </Link>
-                      {applicationsToday >= MAX_FREE_APPLICATIONS && !hasSubscription && (
-                        <Link href="/pricing" className="ml-2">
-                          <span className="text-sm text-[#E8C547] font-semibold hover:underline">
-                            Upgrade for Unlimited
+                    {cj.description && (
+                      <p className="text-foreground mb-4 line-clamp-2 premium-body text-sm">
+                        {cj.description}
+                      </p>
+                    )}
+
+                    {cj.required_skills && cj.required_skills.length > 0 && (
+                      <div className="flex flex-wrap gap-1.5 mb-4">
+                        {cj.required_skills.slice(0, 6).map((skill) => (
+                          <span key={skill} className="text-[10px] bg-white border border-blue-200 text-blue-700 px-2 py-0.5 rounded-full">
+                            {skill}
                           </span>
+                        ))}
+                        {cj.required_skills.length > 6 && (
+                          <span className="text-[10px] text-muted-foreground self-center">+{cj.required_skills.length - 6} more</span>
+                        )}
+                      </div>
+                    )}
+
+                    {/* CHRM jobs are view-only — no direct apply from public page */}
+                    <div className="flex gap-2 items-center">
+                      {session ? (
+                        <Link href="/dashboard/job-seeker">
+                          <Button size="sm" className="bg-[#0A1A2F] hover:bg-[#132A47] text-white font-semibold text-xs">
+                            <Eye className="h-3.5 w-3.5 mr-1.5" />
+                            Express Interest in Dashboard
+                          </Button>
+                        </Link>
+                      ) : (
+                        <Link href="/auth/register">
+                          <Button size="sm" className="bg-[#E8C547] hover:bg-[#D4AF37] text-[#0A1A2F] font-semibold text-xs">
+                            <UserPlus className="h-3.5 w-3.5 mr-1.5" />
+                            Register to Express Interest
+                          </Button>
                         </Link>
                       )}
-                    </>
-                  ) : (
-                    <>
-                      <Link href="/auth/signup?callbackUrl=/jobs">
-                        <Button className="bg-[#E8C547] hover:bg-[#D4AF37] text-[#0A1A2F] font-bold">
-                          <UserPlus className="h-4 w-4 mr-2" />
-                          Register Free to Apply
-                        </Button>
+                      <p className="text-[10px] text-muted-foreground italic">
+                        Live listing from CHRM NEXUS — view-only
+                      </p>
+                    </div>
+                  </Card>
+                )
+              }
+
+              // ── Manual job card (full apply flow) ────────────────────────
+              const mj = job as ManualJob
+              return (
+                <Card key={`manual-${mj.id}`} className="p-6 hover:shadow-lg transition border border-gray-200">
+                  <div className="flex justify-between items-start mb-4">
+                    <div className="flex-1">
+                      <Link href={`/jobs/${mj.id}`} className="hover:underline">
+                        <h3 className="text-xl font-bold text-foreground mb-1 premium-heading">
+                          {mj.title}
+                        </h3>
                       </Link>
-                      <Link href={`/jobs/${job.id}`}>
-                        <Button variant="outline" className="border-[#0A1A2F] text-[#0A1A2F] hover:bg-[#0A1A2F]/5">
-                          View Details
+                      <p className="text-muted-foreground premium-body">{mj.company}</p>
+                    </div>
+                    {session ? (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => handleSaveJob(mj.id)}
+                        className="text-muted-foreground hover:text-primary"
+                      >
+                        <BookmarkIcon
+                          className={`h-5 w-5 ${savedJobs.includes(mj.id) ? "fill-current text-primary" : ""}`}
+                        />
+                      </Button>
+                    ) : null}
+                  </div>
+
+                  <div className="flex flex-wrap gap-3 mb-4 text-sm">
+                    <span className="inline-flex items-center gap-1 bg-blue-50 text-blue-700 px-2.5 py-1 rounded-full">
+                      <MapPin className="h-3.5 w-3.5" />
+                      {mj.location}
+                    </span>
+                    <span className="inline-flex items-center gap-1 bg-purple-50 text-purple-700 px-2.5 py-1 rounded-full">
+                      <Briefcase className="h-3.5 w-3.5" />
+                      <span className="capitalize">{mj.employmentType}</span>
+                    </span>
+                    <span className="inline-flex items-center gap-1 bg-green-50 text-green-700 px-2.5 py-1 rounded-full">
+                      <DollarSign className="h-3.5 w-3.5" />
+                      {mj.salary}
+                    </span>
+                    <span className="inline-flex items-center gap-1 bg-amber-50 text-amber-700 px-2.5 py-1 rounded-full capitalize">
+                      {mj.remoteType}
+                    </span>
+                    <span className="text-muted-foreground text-xs self-center">
+                      Posted {mj.postedDate}
+                    </span>
+                  </div>
+
+                  <p className="text-foreground mb-4 line-clamp-2 premium-body text-sm">
+                    {mj.description}
+                  </p>
+
+                  <div className="flex gap-2 items-center">
+                    {session ? (
+                      <>
+                        <Button
+                          onClick={() => handleApply(mj.id)}
+                          disabled={applicationsToday >= MAX_FREE_APPLICATIONS && !hasSubscription}
+                          className="bg-[#E8C547] hover:bg-[#D4AF37] text-[#0A1A2F] font-bold disabled:opacity-50"
+                        >
+                          Apply Now
                         </Button>
-                      </Link>
-                    </>
-                  )}
-                </div>
-              </Card>
-            ))}
+                        <Link href={`/jobs/${mj.id}`}>
+                          <Button variant="outline" className="border-[#0A1A2F] text-[#0A1A2F] hover:bg-[#0A1A2F]/5">
+                            View Details
+                          </Button>
+                        </Link>
+                        {applicationsToday >= MAX_FREE_APPLICATIONS && !hasSubscription && (
+                          <Link href="/pricing" className="ml-2">
+                            <span className="text-sm text-[#E8C547] font-semibold hover:underline">
+                              Upgrade for Unlimited
+                            </span>
+                          </Link>
+                        )}
+                      </>
+                    ) : (
+                      <>
+                        <Link href="/auth/register?callbackUrl=/jobs">
+                          <Button className="bg-[#E8C547] hover:bg-[#D4AF37] text-[#0A1A2F] font-bold">
+                            <UserPlus className="h-4 w-4 mr-2" />
+                            Register Free to Apply
+                          </Button>
+                        </Link>
+                        <Link href={`/jobs/${mj.id}`}>
+                          <Button variant="outline" className="border-[#0A1A2F] text-[#0A1A2F] hover:bg-[#0A1A2F]/5">
+                            View Details
+                          </Button>
+                        </Link>
+                      </>
+                    )}
+                  </div>
+                </Card>
+              )
+            })}
           </div>
         )}
 
         {/* Bottom CTA for non-logged-in users */}
-        {!session && filteredJobs.length > 0 && (
+        {!session && allJobs.length > 0 && (
           <div className="mt-12 bg-gradient-to-r from-[#0A1A2F] to-[#132A47] rounded-xl p-8 text-center text-white">
             <h3 className="text-2xl font-bold mb-3 premium-heading">Ready to Start Applying?</h3>
             <p className="text-white/80 mb-6 max-w-lg mx-auto">

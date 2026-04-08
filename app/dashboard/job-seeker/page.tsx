@@ -18,6 +18,7 @@ import {
 import CHRMJobSeekerPanel from "./CHRMJobSeekerPanel"
 import CHRMMarketIntelSnapshot from "./CHRMMarketIntelSnapshot"
 import PlanManagerClient from "./PlanManagerClient"
+import DashboardSupportCard from "./DashboardSupportCard"
 
 export const dynamic = "force-dynamic"
 
@@ -421,6 +422,14 @@ export default async function JobSeekerDashboard() {
         {/* ── CHRM NEXUS Job Feed, Market Intelligence & Hot Jobs ── */}
         <div className="mt-8">
           <CHRMJobSeekerPanel />
+        </div>
+
+        {/* ── Support / Contact (embedded — no page navigation) ── */}
+        <div className="mt-8">
+          <DashboardSupportCard
+            userEmail={user.email}
+            userName={user.name || ""}
+          />
         </div>
 
       </div>

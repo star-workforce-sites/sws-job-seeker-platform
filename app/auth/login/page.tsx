@@ -1,16 +1,24 @@
 'use client';
 
-import { signIn } from 'next-auth/react';
-import { useState, Suspense } from 'react';
+import { signIn, useSession } from 'next-auth/react';
+import { useState, Suspense, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 
 // Separate component that uses useSearchParams - wrapped in Suspense
 function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const callbackUrl = searchParams.get('callbackUrl') || '/'
+  const callbackUrl = searchParams.get('callbackUrl') || '/dashboard'
   const registered = searchParams.get('registered') === 'true'
-  
+  const { status } = useSession()
+
+  // Redirect already-authenticated users straight to the dashboard
+  useEffect(() => {
+    if (status === 'authenticated') {
+      router.replace('/dashboard')
+    }
+  }, [status, router])
+
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
