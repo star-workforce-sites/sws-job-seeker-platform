@@ -121,6 +121,8 @@ app/
     job-seeker/
       page.tsx                     ← Job seeker dashboard (server component)
       CHRMJobSeekerPanel.tsx       ← Market intel, hot jobs, job feed, visa filter
+      profile/page.tsx             ← Job seeker profile editor
+      saved-jobs/page.tsx          ← Unified saved jobs page (manual + CHRM)
 
 components/
   analytics-tracker.tsx   ← GA page view tracking (in layout)
@@ -161,6 +163,8 @@ vercel.json               ← Cron jobs (cleanup-uploads, expire-jobs)
 | `chrm_activity_events` | CHRM NEXUS activity tracking (job_viewed, candidate_submitted, job_saved) |
 | `recruiter_assignments` | Recruiter-to-client assignments (client_id, recruiter_id, subscription_id) |
 | `application_tracking` | Recruiter job submissions for clients (job_title, company, status, feedback) |
+| `user_profiles` | Extended job seeker profile (phone, LinkedIn, skills, work auth, preferences) |
+| `saved_jobs` | Manual job board bookmarks (userId, jobId) |
 
 ---
 
@@ -215,9 +219,11 @@ RESUMEBLAST_WEBHOOK_SECRET=...       ← HMAC secret for verifying ResumeBlast c
 
 | Trigger | Recipient |
 |---------|-----------|
-| New subscriber signs up | Srikanth@startekk.net |
+| New subscriber signs up | Srikanth@startekk.net, info@startekk.net |
 | Contact form submission | info@starworkforcesolutions.com |
-| Admin notifications | Srikanth@startekk.net |
+| Admin notifications (purchases) | Srikanth@startekk.net, info@startekk.net |
+| Profile update notification | Srikanth@startekk.net, info@startekk.net |
+| Recruiter logs submission | Job seeker email + Srikanth@startekk.net, info@startekk.net |
 | Welcome emails | User's email |
 
 ---
@@ -249,6 +255,12 @@ RESUMEBLAST_WEBHOOK_SECRET=...       ← HMAC secret for verifying ResumeBlast c
 23. ✅ CHRM Company/Salary Fixes — Filter out 0-role companies, abbreviations, generic names; hide $0 salary benchmarks; fix W2_OR_C2C display
 24. ✅ Admin Purchase Notifications — Stripe webhook sends email to Srikanth@startekk.net on every one-time purchase (ATS, Cover Letter, Interview Prep, Resume Distribution)
 25. ✅ ResumeBlast.ai Integration (feature-flagged) — lib/resumeblast.ts + webhook receiver at /api/resume-distribution-webhook; auto-activates when RESUMEBLAST_API_URL + RESUMEBLAST_API_KEY + RESUMEBLAST_WEBHOOK_SECRET are set in Vercel env
+26. ✅ Job Seeker Profile — Full profile page (/dashboard/job-seeker/profile) with skills, work auth, location, resume text, certifications, LinkedIn URL, target roles/locations
+27. ✅ Application Tracking — Recruiter-logged submissions visible on job seeker dashboard with DOL-compliant status tracking (migration: scripts/012_application_tracking_table.sql)
+28. ✅ Saved Jobs Page — Dedicated /dashboard/job-seeker/saved-jobs page showing bookmarked jobs from both manual job board + CHRM NEXUS, with unified view, tab filters, unsave, and expired job handling
+29. ✅ Admin Profile Update Notifications — Email to admin when a job seeker updates their profile (fields listed in email)
+30. ✅ Recruiter Submission Notifications — Email to job seeker + admin when recruiter logs a new application (job title, company, total count)
+31. ✅ Industry Fallback Rates — Hottest Industries cards show market-average rate ranges when no live data exists (INDUSTRY_FALLBACK_RATES in CHRMJobSeekerPanel.tsx)
 
 ---
 
