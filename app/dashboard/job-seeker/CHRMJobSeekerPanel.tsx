@@ -67,7 +67,7 @@ function workModelLabel(model: string): { label: string; className: string } {
     hybrid:  { label: "Hybrid",  className: "bg-blue-100 text-blue-800" },
     onsite:  { label: "Onsite",  className: "bg-orange-100 text-orange-800" },
   }
-  return map[model?.toLowerCase()] ?? { label: model || "Unknown", className: "bg-gray-100 text-gray-700" }
+  return map[model?.toLowerCase()] ?? { label: "Remote or Hybrid", className: "bg-blue-100 text-blue-800" }
 }
 
 function contractLabel(type: string | null): string {
@@ -572,36 +572,34 @@ export default function CHRMJobSeekerPanel() {
                   )
                 }
 
-                // ── Fallback: sector-based hiring activity from industry_demand ──
-                const sectors = (intelligence.industry_demand ?? [])
-                  .filter((id) => (id.job_count ?? 0) > 0)
+                // ── Fallback: location-based hiring activity from city_heatmap ──
+                const locations = (intelligence.city_heatmap ?? [])
+                  .filter((c) => (c.roles ?? 0) > 0)
                   .slice(0, 8)
-                if (sectors.length === 0) return null
-                const maxCount = Math.max(...sectors.map((id) => id.job_count ?? 0))
+                if (locations.length === 0) return null
+                const maxRoles = Math.max(...locations.map((c) => c.roles ?? 0))
                 return (
                   <div>
                     <h3 className="text-sm font-semibold text-white/90 premium-heading mb-3 flex items-center gap-2">
-                      <TrendingUp className="w-4 h-4 text-[#E8C547]" />
-                      Hiring Activity by Sector
+                      <MapPin className="w-4 h-4 text-[#E8C547]" />
+                      Hiring Activity by Location
                     </h3>
                     <div className="bg-white/5 rounded-lg p-4 space-y-2.5">
-                      {sectors.map((id, idx) => {
-                        const count = id.job_count ?? 0
-                        const widthPct = maxCount > 0 ? Math.max((count / maxCount) * 100, 4) : 4
-                        const growing = (id.growth_pct ?? 0) >= 0
-                        const growthLabel = id.growth_pct != null
-                          ? `${growing ? "+" : ""}${id.growth_pct.toFixed(0)}%`
-                          : null
+                      {locations.map((c, idx) => {
+                        const count = c.roles ?? 0
+                        const widthPct = maxRoles > 0 ? Math.max((count / maxRoles) * 100, 4) : 4
+                        // score > 70 = hot market (green), else blue
+                        const isHot = (c.score ?? 0) >= 70
                         return (
-                          <div key={id.industry ?? idx} className="flex items-center gap-3">
-                            {/* Sector name */}
+                          <div key={c.city ?? idx} className="flex items-center gap-3">
+                            {/* City name */}
                             <span className="text-xs text-white/80 w-28 shrink-0 truncate premium-body">
-                              {id.industry ?? "Other"}
+                              {c.city ?? "Other"}
                             </span>
                             {/* Bar */}
                             <div className="flex-1 bg-white/10 rounded-full h-2 overflow-hidden">
                               <div
-                                className={`h-full rounded-full transition-all ${growing ? "bg-green-400" : "bg-red-400"}`}
+                                className={`h-full rounded-full transition-all ${isHot ? "bg-green-400" : "bg-blue-400"}`}
                                 style={{ width: `${widthPct}%` }}
                               />
                             </div>
@@ -609,10 +607,10 @@ export default function CHRMJobSeekerPanel() {
                             <span className="text-xs font-semibold text-white/90 w-8 text-right shrink-0">
                               {count.toLocaleString()}
                             </span>
-                            {/* Growth badge */}
-                            {growthLabel && (
-                              <span className={`text-xs w-10 text-right shrink-0 ${growing ? "text-green-400" : "text-red-400"}`}>
-                                {growthLabel}
+                            {/* Score badge */}
+                            {c.score != null && (
+                              <span className={`text-xs w-10 text-right shrink-0 ${isHot ? "text-green-400" : "text-blue-400"}`}>
+                                {c.score.toFixed(0)}pts
                               </span>
                             )}
                           </div>
@@ -1146,12 +1144,17 @@ export default function CHRMJobSeekerPanel() {
                     <Clock className="w-4 h-4" />
                     Posted {relativeTime(selectedJob.posted_date || selectedJob.ingested_at)}
                   </p>
-                  {selectedJob.expires_at && (
-                    <p className="flex items-center gap-2 text-muted-foreground premium-body">
-                      <Briefcase className="w-4 h-4" />
-                      Expires {new Date(selectedJob.expires_at).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
-                    </p>
-                  )}
+                  {(() => {
+                    if (!selectedJob.expires_at) return null
+                    const expDate = new Date(selectedJob.expires_at)
+                    if (isNaN(expDate.getTime())) return null
+                    return (
+                      <p className="flex items-center gap-2 text-muted-foreground premium-body">
+                        <Briefcase className="w-4 h-4" />
+                        Expires {expDate.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
+                      </p>
+                    )
+                  })()}
                   {selectedJob.seniority_level && (
                     <p className="flex items-center gap-2 text-muted-foreground premium-body">
                       <GraduationCap className="w-4 h-4" />
