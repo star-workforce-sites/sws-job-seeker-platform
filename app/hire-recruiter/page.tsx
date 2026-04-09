@@ -14,6 +14,10 @@ export const metadata: Metadata = {
     "professional job search assistant", "job application service",
     "consulting job recruiter", "contract job placement service",
     "how to work with a recruiter", "hidden job market access",
+    "H1B job search help", "H1B visa job search service",
+    "recruiter for international workers", "STEM OPT job search assistance",
+    "job search service for visa holders", "OPT job placement help",
+    "job search support for immigrants", "H1B transfer jobs recruiter",
   ],
   openGraph: {
     title: "Recruiter Job Search Service | A Real Recruiter Applies for You",

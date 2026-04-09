@@ -30,6 +30,11 @@ export const metadata: Metadata = {
     "best resume optimization tool 2026", "recruiter applies for jobs for you",
     "how to get past ATS filters", "mock interview with AI coach",
     "personalized cover letter generator", "job market intelligence",
+    "H1B visa jobs", "H1B sponsorship jobs", "jobs for H1B visa holders",
+    "STEM OPT jobs", "OPT jobs for international students",
+    "visa sponsorship jobs USA", "jobs for international students",
+    "F1 visa work authorization jobs", "CPT jobs", "EAD jobs",
+    "job search help for immigrants", "tech jobs with visa sponsorship",
   ],
   metadataBase: new URL("https://www.starworkforcesolutions.com"),
   alternates: {

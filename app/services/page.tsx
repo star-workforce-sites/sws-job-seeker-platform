@@ -13,6 +13,9 @@ export const metadata: Metadata = {
     "resume distribution to recruiters", "consulting job services",
     "contract job placement", "career coaching services",
     "best job search tools 2026", "combined resume and interview prep",
+    "career services for H1B visa holders", "job search help for STEM OPT",
+    "career tools for international students", "OPT job search platform",
+    "H1B friendly job search", "visa sponsorship career services",
   ],
   openGraph: {
     title: "Career Acceleration Services | AI Tools & Recruiter Job Search",

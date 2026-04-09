@@ -13,6 +13,9 @@ export const metadata: Metadata = {
     "resume keywords for ATS systems", "beat the ATS algorithm",
     "AI resume optimizer tool", "resume score checker",
     "Jobscan alternative", "free ATS resume checker",
+    "H1B resume optimization", "resume tips for international students",
+    "OPT resume ATS checker", "STEM OPT resume keywords",
+    "F1 visa resume format US", "resume for visa sponsorship jobs",
   ],
   openGraph: {
     title: "Free AI Resume Optimizer for ATS | Pass Automated Screening",

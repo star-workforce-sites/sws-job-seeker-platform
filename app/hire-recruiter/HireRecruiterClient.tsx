@@ -367,6 +367,23 @@ export default function HireRecruiterClient() {
         </div>
       </section>
 
+      {/* SEO Text Block — H1B & International Job Seekers */}
+      <section className="bg-muted/30 border-t border-border py-10 px-4 sm:px-6 lg:px-8">
+        <div className="max-w-4xl mx-auto text-center">
+          <h2 className="text-xl font-semibold text-foreground mb-3 premium-heading">
+            Job Search Support for H1B Visa Holders &amp; International Professionals
+          </h2>
+          <p className="text-sm text-muted-foreground leading-relaxed premium-body">
+            Our recruiter service is especially valuable for H1B visa holders, STEM OPT candidates, and
+            international professionals navigating the US job market. Our dedicated recruiters understand
+            visa timelines, know which employers actively sponsor H1B transfers, and can prioritize
+            applications to visa-friendly companies. Whether you are on H1B, STEM OPT, EAD, CPT, or F1
+            work authorization, we can apply to 90–900 roles per month on your behalf — saving you time
+            and opening doors to opportunities you might otherwise miss.
+          </p>
+        </div>
+      </section>
+
       <Footer />
     </div>
   )

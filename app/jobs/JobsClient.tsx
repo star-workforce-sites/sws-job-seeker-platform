@@ -272,10 +272,10 @@ export default function Jobs() {
       <section className="abstract-gradient text-primary-foreground py-16 px-4 sm:px-6 lg:px-8">
         <div className="max-w-6xl mx-auto text-center">
           <h1 className="text-4xl sm:text-5xl font-bold mb-4 text-white premium-heading">
-            Job Board
+            Tech & IT Job Board — H1B, STEM OPT & Contract Roles
           </h1>
           <p className="text-lg text-white/90 premium-body mb-6">
-            Browse consulting and contract opportunities in Software, AI, Cloud, Cybersecurity, and more
+            Browse consulting and contract opportunities in Software, AI, Cloud, Cybersecurity, and more. Many roles open to H1B visa holders, STEM OPT, CPT, and international candidates.
           </p>
           {!session && (
             <div className="flex flex-col sm:flex-row gap-3 justify-center">
@@ -652,6 +652,24 @@ export default function Jobs() {
           </div>
         )}
       </main>
+
+      {/* SEO Text Block — Visa & International Candidates */}
+      <section className="bg-muted/30 border-t border-border py-10 px-4 sm:px-6 lg:px-8">
+        <div className="max-w-4xl mx-auto text-center">
+          <h2 className="text-xl font-semibold text-foreground mb-3 premium-heading">
+            Finding Jobs in the US — H1B, STEM OPT, and Visa-Friendly Opportunities
+          </h2>
+          <p className="text-sm text-muted-foreground leading-relaxed premium-body">
+            Our job board aggregates real-time consulting and contract positions across the United States.
+            Many employers on our platform are open to sponsoring H1B visas or working with candidates on
+            STEM OPT, CPT, EAD, and F1 work authorization. Use our free{" "}
+            <a href="/tools/ats-optimizer" className="text-primary underline underline-offset-2">ATS Resume Optimizer</a>{" "}
+            to tailor your resume to each role, and consider our{" "}
+            <a href="/hire-recruiter" className="text-primary underline underline-offset-2">Recruiter Job Search Service</a>{" "}
+            to have a dedicated recruiter apply to roles on your behalf — including H1B-friendly employers.
+          </p>
+        </div>
+      </section>
 
       <Footer />
     </div>
