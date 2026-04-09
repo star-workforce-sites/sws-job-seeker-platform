@@ -15,6 +15,7 @@ import {
   CheckCircle,
   ExternalLink,
   UserCircle,
+  Bookmark,
 } from "lucide-react"
 import CHRMJobSeekerPanel from "./CHRMJobSeekerPanel"
 import CHRMMarketIntelSnapshot from "./CHRMMarketIntelSnapshot"
@@ -434,6 +435,16 @@ export default async function JobSeekerDashboard() {
               </p>
             </Card>
           </a>
+
+          <Link href="/dashboard/job-seeker/saved-jobs">
+            <Card className="p-6 hover:shadow-lg transition cursor-pointer">
+              <Bookmark className="w-8 h-8 text-primary mb-3" />
+              <h3 className="text-lg font-semibold text-foreground mb-2 premium-heading">Saved Jobs</h3>
+              <p className="text-sm text-muted-foreground premium-body">
+                View all your bookmarked roles
+              </p>
+            </Card>
+          </Link>
 
           <Link href="/dashboard/job-seeker/profile">
             <Card className="p-6 hover:shadow-lg transition cursor-pointer border-dashed">
