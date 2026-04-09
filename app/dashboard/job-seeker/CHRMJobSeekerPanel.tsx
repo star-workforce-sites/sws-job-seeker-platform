@@ -70,8 +70,8 @@ function workModelLabel(model: string): { label: string; className: string } {
   return map[model?.toLowerCase()] ?? { label: "Remote or Hybrid", className: "bg-blue-100 text-blue-800" }
 }
 
-function contractLabel(type: string | null): string {
-  if (!type) return "W2 or C2C"
+function contractLabel(type: string | null | undefined): string {
+  if (!type || type === "null" || type === "undefined") return "W2 or C2C"
   const map: Record<string, string> = { W2: "W2", C2C: "C2C", "1099": "1099", W2_OR_C2C: "W2 or C2C" }
   return map[type] ?? type.replace(/_/g, " ")
 }
@@ -150,8 +150,8 @@ const INDUSTRY_FALLBACK_RATES: Record<string, string> = {
  * Returns true if a company name is suitable for public display.
  * Filters out: spam/SES tools, AWS, all-caps abbreviations, generic names.
  */
-function isDisplayableCompany(name: string | null): boolean {
-  if (!name || name.trim().length === 0) return false
+function isDisplayableCompany(name: string | null | undefined): boolean {
+  if (!name || name.trim().length === 0 || name === "null" || name === "undefined") return false
   const n = name.trim()
   const lower = n.toLowerCase()
 
