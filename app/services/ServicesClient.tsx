@@ -194,9 +194,9 @@ export default function ServicesClient() {
                     <div className="bg-muted p-4 rounded">
                       <p className="font-semibold text-foreground mb-2 premium-heading">3 Plans Available:</p>
                       <ul className="text-sm text-muted-foreground space-y-1 premium-body">
-                        <li>• <strong>Basic:</strong> $199/mo - 3-5 apps/day</li>
-                        <li>• <strong>Standard:</strong> $399/mo - 10-15 apps/day</li>
-                        <li>• <strong>Pro:</strong> $599/mo - 20-30 apps/day</li>
+                        <li>• <strong>Basic:</strong> $199/mo - 4 apps/day</li>
+                        <li>• <strong>Standard:</strong> $399/mo - 6 apps/day</li>
+                        <li>• <strong>Pro:</strong> $599/mo - 10 apps/day</li>
                       </ul>
                     </div>
                   </div>

@@ -175,8 +175,8 @@ export default function Jobs() {
 
   const filteredJobs = allJobs.filter((job) => {
     const matchesSearch =
-      job.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      job.company.toLowerCase().includes(searchTerm.toLowerCase())
+      (job.title?.toLowerCase() ?? "").includes(searchTerm.toLowerCase()) ||
+      (job.company?.toLowerCase() ?? "").includes(searchTerm.toLowerCase())
 
     if (!matchesSearch) return false
 
@@ -196,7 +196,7 @@ export default function Jobs() {
     async (jobId: string) => {
       // Only manual jobs can be saved
       if (!session?.user?.id) {
-        router.push("/auth/register?callbackUrl=/jobs")
+        router.push("/auth/signup?callbackUrl=/jobs")
         return
       }
 
@@ -306,7 +306,7 @@ export default function Jobs() {
               Want Someone to Apply for You?
             </h2>
             <p className="text-white/80 mb-6 max-w-2xl mx-auto premium-body">
-              Skip the daily grind of applications. A dedicated recruiter submits 5-30 applications per day
+              Skip the daily grind of applications. A dedicated recruiter submits 4-10 applications per day
               on your behalf — so you can focus on interview prep and networking.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
@@ -517,7 +517,7 @@ export default function Jobs() {
                           </Button>
                         </Link>
                       ) : (
-                        <Link href="/auth/register">
+                        <Link href="/auth/signup">
                           <Button size="sm" className="bg-[#E8C547] hover:bg-[#D4AF37] text-[#0A1A2F] font-semibold text-xs">
                             <UserPlus className="h-3.5 w-3.5 mr-1.5" />
                             Register to Express Interest
@@ -609,7 +609,7 @@ export default function Jobs() {
                       </>
                     ) : (
                       <>
-                        <Link href="/auth/register?callbackUrl=/jobs">
+                        <Link href="/auth/signup?callbackUrl=/jobs">
                           <Button className="bg-[#E8C547] hover:bg-[#D4AF37] text-[#0A1A2F] font-bold">
                             <UserPlus className="h-4 w-4 mr-2" />
                             Register Free to Apply

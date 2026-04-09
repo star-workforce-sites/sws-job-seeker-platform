@@ -60,8 +60,8 @@ function statusColor(status: string): string {
 function planLabel(planType: string): string {
   const map: Record<string, string> = {
     recruiter_basic:    "Basic (4 apps/day)",
-    recruiter_standard: "Standard (12 apps/day)",
-    recruiter_pro:      "Pro (25 apps/day)",
+    recruiter_standard: "Standard (6 apps/day)",
+    recruiter_pro:      "Pro (10 apps/day)",
   }
   return map[planType] ?? planType
 }
