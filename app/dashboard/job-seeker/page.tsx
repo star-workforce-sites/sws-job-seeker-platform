@@ -285,8 +285,8 @@ export default async function JobSeekerDashboard() {
           </Card>
         </div>
 
-        {/* ── Submissions Table (only when subscribed) ─────── */}
-        {hasRecruiterSubscription && (
+        {/* ── Submissions Table (show when subscribed OR has past submissions) ── */}
+        {(hasRecruiterSubscription || totalSubmissions > 0) && (
           <Card className="mb-8 p-6">
             <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
               <div>
@@ -296,7 +296,9 @@ export default async function JobSeekerDashboard() {
                 <p className="text-sm text-muted-foreground premium-body mt-0.5">
                   {totalSubmissions > 0
                     ? `${totalSubmissions} total · ${todayCount} today`
-                    : "No submissions yet — your recruiter will start soon"}
+                    : hasRecruiterSubscription
+                      ? "No submissions yet — your recruiter will start soon"
+                      : "Your submission history from previous plans"}
                 </p>
               </div>
             </div>
