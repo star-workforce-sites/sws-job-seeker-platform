@@ -2,63 +2,139 @@ import { type NextRequest, NextResponse } from "next/server"
 import { getCurrentUser } from "@/lib/session"
 import { sql } from "@vercel/postgres"
 
+// ─────────────────────────────────────────────
 // GET /api/user/profile
-// Returns current user's profile
-
+// Returns the user's base record + extended profile
+// ─────────────────────────────────────────────
 export async function GET() {
   try {
-    const user = await getCurrentUser()
-
-    if (!user) {
+    const sessionUser = await getCurrentUser()
+    if (!sessionUser) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
-    const result = await sql`
+    // Base user info
+    const userResult = await sql`
       SELECT id, name, email, role, "atsPremium", "createdAt"
       FROM users
-      WHERE id = ${user.id}
+      WHERE id = ${sessionUser.id}
       LIMIT 1
     `
-
-    if (result.rows.length === 0) {
+    if (userResult.rows.length === 0) {
       return NextResponse.json({ error: "User not found" }, { status: 404 })
     }
+    const user = userResult.rows[0]
 
-    return NextResponse.json({ user: result.rows[0] })
+    // Extended profile (may not exist yet — first visit)
+    const profileResult = await sql`
+      SELECT
+        phone, linkedin_url, location, work_auth,
+        target_titles, target_locations,
+        open_to_remote, open_to_contract, open_to_fulltime,
+        min_rate_hourly, skills, resume_text, certifications,
+        updated_at
+      FROM user_profiles
+      WHERE user_id = ${user.id}
+      LIMIT 1
+    `
+    const profile = profileResult.rows[0] ?? null
+
+    return NextResponse.json({ user, profile })
   } catch (error) {
-    console.error("[v0] Error fetching user profile:", error)
+    console.error("[profile GET] error:", error)
     return NextResponse.json({ error: "Failed to fetch profile" }, { status: 500 })
   }
 }
 
-// PATCH /api/user/profile
-// Updates current user's profile
-
-export async function PATCH(request: NextRequest) {
+// ─────────────────────────────────────────────
+// PUT /api/user/profile
+// Upserts name (users table) + all extended fields (user_profiles table)
+// ─────────────────────────────────────────────
+export async function PUT(request: NextRequest) {
   try {
-    const user = await getCurrentUser()
-
-    if (!user) {
+    const sessionUser = await getCurrentUser()
+    if (!sessionUser) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
     const body = await request.json()
-    const { name } = body
+    const {
+      name,
+      phone,
+      linkedin_url,
+      location,
+      work_auth,
+      target_titles,
+      target_locations,
+      open_to_remote,
+      open_to_contract,
+      open_to_fulltime,
+      min_rate_hourly,
+      skills,
+      resume_text,
+      certifications,
+    } = body
 
-    if (!name) {
-      return NextResponse.json({ error: "Name is required" }, { status: 400 })
+    // Update name in users table
+    if (name !== undefined) {
+      await sql`
+        UPDATE users
+        SET name = ${name ?? null}
+        WHERE id = ${sessionUser.id}
+      `
     }
 
-    const result = await sql`
-      UPDATE users
-      SET name = ${name}
-      WHERE id = ${user.id}
-      RETURNING id, name, email, role, "atsPremium", "createdAt"
+    // Upsert extended profile
+    await sql`
+      INSERT INTO user_profiles (
+        user_id, phone, linkedin_url, location, work_auth,
+        target_titles, target_locations,
+        open_to_remote, open_to_contract, open_to_fulltime,
+        min_rate_hourly, skills, resume_text, certifications,
+        updated_at
+      )
+      VALUES (
+        ${sessionUser.id},
+        ${phone ?? null},
+        ${linkedin_url ?? null},
+        ${location ?? null},
+        ${work_auth ?? null},
+        ${target_titles ?? null},
+        ${target_locations ?? null},
+        ${open_to_remote ?? true},
+        ${open_to_contract ?? true},
+        ${open_to_fulltime ?? false},
+        ${min_rate_hourly ?? null},
+        ${skills ?? null},
+        ${resume_text ?? null},
+        ${certifications ?? null},
+        NOW()
+      )
+      ON CONFLICT (user_id) DO UPDATE SET
+        phone             = EXCLUDED.phone,
+        linkedin_url      = EXCLUDED.linkedin_url,
+        location          = EXCLUDED.location,
+        work_auth         = EXCLUDED.work_auth,
+        target_titles     = EXCLUDED.target_titles,
+        target_locations  = EXCLUDED.target_locations,
+        open_to_remote    = EXCLUDED.open_to_remote,
+        open_to_contract  = EXCLUDED.open_to_contract,
+        open_to_fulltime  = EXCLUDED.open_to_fulltime,
+        min_rate_hourly   = EXCLUDED.min_rate_hourly,
+        skills            = EXCLUDED.skills,
+        resume_text       = EXCLUDED.resume_text,
+        certifications    = EXCLUDED.certifications,
+        updated_at        = NOW()
     `
 
-    return NextResponse.json({ user: result.rows[0] })
+    return NextResponse.json({ success: true })
   } catch (error) {
-    console.error("[v0] Error updating user profile:", error)
-    return NextResponse.json({ error: "Failed to update profile" }, { status: 500 })
+    console.error("[profile PUT] error:", error)
+    return NextResponse.json({ error: "Failed to save profile" }, { status: 500 })
   }
+}
+
+// Keep PATCH for backward compat (name-only update)
+export async function PATCH(request: NextRequest) {
+  return PUT(request)
 }

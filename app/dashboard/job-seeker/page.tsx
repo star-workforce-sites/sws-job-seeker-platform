@@ -14,6 +14,7 @@ import {
   TrendingUp,
   CheckCircle,
   ExternalLink,
+  UserCircle,
 } from "lucide-react"
 import CHRMJobSeekerPanel from "./CHRMJobSeekerPanel"
 import CHRMMarketIntelSnapshot from "./CHRMMarketIntelSnapshot"
@@ -212,13 +213,21 @@ export default async function JobSeekerDashboard() {
       <div className="max-w-7xl mx-auto">
 
         {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-foreground premium-heading">
-            Welcome back, {user.name || "Job Seeker"}!
-          </h1>
-          <p className="text-muted-foreground mt-2 premium-body">
-            Your job search dashboard
-          </p>
+        <div className="mb-8 flex items-start justify-between flex-wrap gap-4">
+          <div>
+            <h1 className="text-3xl font-bold text-foreground premium-heading">
+              Welcome back, {user.name || "Job Seeker"}!
+            </h1>
+            <p className="text-muted-foreground mt-2 premium-body">
+              Your job search dashboard
+            </p>
+          </div>
+          <Link href="/dashboard/job-seeker/profile">
+            <Button variant="outline" size="sm" className="flex items-center gap-2 text-sm">
+              <UserCircle className="w-4 h-4" />
+              My Profile
+            </Button>
+          </Link>
         </div>
 
         {/* ── Top Row: Plan Manager (2 cols) + Market Intel (1 col) ── */}
@@ -423,6 +432,16 @@ export default async function JobSeekerDashboard() {
               </p>
             </Card>
           </a>
+
+          <Link href="/dashboard/job-seeker/profile">
+            <Card className="p-6 hover:shadow-lg transition cursor-pointer border-dashed">
+              <UserCircle className="w-8 h-8 text-primary mb-3" />
+              <h3 className="text-lg font-semibold text-foreground mb-2 premium-heading">My Profile</h3>
+              <p className="text-sm text-muted-foreground premium-body">
+                Skills, work auth, resume & job preferences
+              </p>
+            </Card>
+          </Link>
         </div>
 
         {/* ── Job Feed, Market Intelligence & Hot Jobs ── */}
