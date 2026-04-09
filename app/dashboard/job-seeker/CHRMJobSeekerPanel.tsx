@@ -130,9 +130,9 @@ function isDisplayableCompany(name: string | null): boolean {
 }
 
 function relativeTime(dateStr: string | null | undefined): string {
-  if (!dateStr) return "Recently posted"
+  if (!dateStr) return "recently"
   const then = new Date(dateStr).getTime()
-  if (isNaN(then)) return "Recently posted"
+  if (isNaN(then)) return "recently"
   const diffMs = Date.now() - then
   if (diffMs < 0) return "Just posted"
   const diffHours = Math.floor(diffMs / (1000 * 60 * 60))
@@ -945,7 +945,7 @@ export default function CHRMJobSeekerPanel() {
                         <DollarSign className="w-3 h-3" />
                         {formatRate(job)}
                       </span>
-                      <span>{contractLabel(job.contract_type)}</span>
+                      {job.contract_type && <span>{contractLabel(job.contract_type)}</span>}
                       <span className="flex items-center gap-1">
                         <Clock className="w-3 h-3" />
                         {relativeTime(job.posted_date || job.ingested_at)}
@@ -1102,9 +1102,11 @@ export default function CHRMJobSeekerPanel() {
                   <Badge className={workModelLabel(selectedJob.work_model).className}>
                     {workModelLabel(selectedJob.work_model).label}
                   </Badge>
-                  <Badge className="bg-gray-100 text-gray-700">
-                    {contractLabel(selectedJob.contract_type)}
-                  </Badge>
+                  {selectedJob.contract_type && (
+                    <Badge className="bg-gray-100 text-gray-700">
+                      {contractLabel(selectedJob.contract_type)}
+                    </Badge>
+                  )}
                   <Badge className={selectedJob.quality_score >= 80 ? "bg-green-100 text-green-800" : "bg-gray-100 text-gray-700"}>
                     <Star className="w-3 h-3 mr-1" />
                     Quality: {selectedJob.quality_score}
@@ -1146,10 +1148,12 @@ export default function CHRMJobSeekerPanel() {
                     <Clock className="w-4 h-4" />
                     Posted {relativeTime(selectedJob.posted_date || selectedJob.ingested_at)}
                   </p>
-                  <p className="flex items-center gap-2 text-muted-foreground premium-body">
-                    <Briefcase className="w-4 h-4" />
-                    Expires {new Date(selectedJob.expires_at).toLocaleDateString()}
-                  </p>
+                  {selectedJob.expires_at && (
+                    <p className="flex items-center gap-2 text-muted-foreground premium-body">
+                      <Briefcase className="w-4 h-4" />
+                      Expires {new Date(selectedJob.expires_at).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
+                    </p>
+                  )}
                   {selectedJob.seniority_level && (
                     <p className="flex items-center gap-2 text-muted-foreground premium-body">
                       <GraduationCap className="w-4 h-4" />
