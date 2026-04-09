@@ -49,7 +49,20 @@ export default async function RecruiterDashboardPage() {
             'second_interview_scheduled'
           )
         )                            AS interview_count,
-        MAX(at.submitted_at)         AS last_submission_at
+        MAX(at.submitted_at)         AS last_submission_at,
+        -- Profile fields (may be null if not filled in)
+        up.phone                     AS client_phone,
+        up.linkedin_url              AS client_linkedin,
+        up.location                  AS client_location,
+        up.work_auth                 AS client_work_auth,
+        up.skills                    AS client_skills,
+        up.target_titles             AS client_target_titles,
+        up.target_locations          AS client_target_locations,
+        up.min_rate_hourly           AS client_min_rate,
+        up.open_to_remote            AS client_open_to_remote,
+        up.open_to_contract          AS client_open_to_contract,
+        up.certifications            AS client_certifications,
+        up.resume_text               AS client_resume_text
       FROM recruiter_assignments ra
       JOIN users u ON u.id = ra.client_id
       LEFT JOIN subscriptions s
@@ -58,17 +71,55 @@ export default async function RecruiterDashboardPage() {
         AND s.subscription_type LIKE 'recruiter_%'
       LEFT JOIN application_tracking at
         ON at.assignment_id = ra.id
+      LEFT JOIN user_profiles up
+        ON up.user_id = ra.client_id
       WHERE ra.recruiter_id = ${recruiter.id}
         AND ra.status = 'active'
       GROUP BY
         ra.id, ra.client_id, ra.plan_type, ra.applications_per_day,
         ra.assigned_at, ra.notes,
-        u.name, u.email, s.subscription_type
+        u.name, u.email, s.subscription_type,
+        up.phone, up.linkedin_url, up.location, up.work_auth,
+        up.skills, up.target_titles, up.target_locations,
+        up.min_rate_hourly, up.open_to_remote, up.open_to_contract,
+        up.certifications, up.resume_text
       ORDER BY ra.assigned_at DESC
     `
     clients = clientResult.rows
   } catch (error) {
     console.error("[RecruiterDashboard] Error fetching clients:", error)
+  }
+
+  // ── Fetch last 5 submissions per client (for inline view) ─
+  let recentByAssignment: Record<string, any[]> = {}
+  try {
+    const recResult = await sql`
+      SELECT DISTINCT ON (at.assignment_id, at.id)
+        at.id,
+        at.assignment_id,
+        at.job_title,
+        at.company_name,
+        at.job_url,
+        at.status,
+        at.application_date,
+        at.submitted_at,
+        at.feedback_received,
+        at.feedback_notes,
+        at.notes
+      FROM application_tracking at
+      WHERE at.recruiter_id = ${recruiter.id}
+      ORDER BY at.assignment_id, at.id, at.submitted_at DESC
+    `
+    // Group into map and keep last 5 per assignment
+    for (const row of recResult.rows) {
+      const key = row.assignment_id
+      if (!recentByAssignment[key]) recentByAssignment[key] = []
+      if (recentByAssignment[key].length < 5) {
+        recentByAssignment[key].push(row)
+      }
+    }
+  } catch (error) {
+    console.error("[RecruiterDashboard] Error fetching recent submissions:", error)
   }
 
   // ── Fetch recent submissions (last 50) ────────────────────
@@ -106,6 +157,7 @@ export default async function RecruiterDashboardPage() {
       recruiter={recruiter}
       initialClients={clients}
       initialSubmissions={submissions}
+      recentByAssignment={recentByAssignment}
     />
   )
 }

@@ -30,6 +30,14 @@ import {
   Video,
   Calendar,
   Send,
+  ChevronDown,
+  ChevronUp,
+  Linkedin,
+  MapPin,
+  Tag,
+  Award,
+  Copy,
+  DollarSign,
 } from "lucide-react"
 import CHRMJobBoard from "./CHRMJobBoard"
 
@@ -67,6 +75,32 @@ interface Client {
   submissions_today: number
   interview_count: number
   last_submission_at: string | null
+  // Profile fields
+  client_phone: string | null
+  client_linkedin: string | null
+  client_location: string | null
+  client_work_auth: string | null
+  client_skills: string[] | null
+  client_target_titles: string[] | null
+  client_target_locations: string[] | null
+  client_min_rate: number | null
+  client_open_to_remote: boolean | null
+  client_open_to_contract: boolean | null
+  client_certifications: string[] | null
+  client_resume_text: string | null
+}
+
+// Work auth display labels
+const WORK_AUTH_LABELS: Record<string, string> = {
+  us_citizen:   "US Citizen",
+  green_card:   "Green Card",
+  h1b:          "H1B",
+  h1b_transfer: "H1B Transfer",
+  stem_opt:     "STEM OPT",
+  opt:          "OPT",
+  ead:          "EAD",
+  tn_visa:      "TN Visa",
+  other:        "Other",
 }
 
 interface Submission {
@@ -100,6 +134,7 @@ interface LogFormState {
   job_url: string
   notes: string
   status: string
+  cover_letter: string
   submitting: boolean
   error: string | null
   success: string | null
@@ -168,6 +203,38 @@ function formatDateTime(dateStr: string | null): string {
   })
 }
 
+// ── Cover Letter Template Generator ──────────────────────────
+function generateCoverLetter(
+  clientName: string,
+  jobTitle: string,
+  company: string,
+  skills: string[],
+  workAuth: string | null,
+  targetTitles: string[],
+): string {
+  const firstName = clientName.split(" ")[0] || clientName
+  const topSkills = skills.slice(0, 5).join(", ") || "relevant technical skills"
+  const authNote = workAuth && !["us_citizen", "green_card"].includes(workAuth)
+    ? `\nI am authorized to work in the United States and am available to discuss my work authorization status.`
+    : ""
+  const roleContext = targetTitles.length > 0
+    ? `With a background focused on ${targetTitles.slice(0, 2).join(" and ")} roles`
+    : "With my background in technology consulting"
+
+  return `Dear Hiring Manager,
+
+I am writing to express my strong interest in the ${jobTitle} position at ${company}. ${roleContext}, I bring hands-on expertise in ${topSkills} and a proven track record of delivering results in fast-paced consulting environments.
+
+Throughout my career, I have demonstrated the ability to quickly adapt to new technologies, collaborate across cross-functional teams, and deliver high-quality solutions on time. I am particularly drawn to this opportunity at ${company} because of the chance to apply my skills in a challenging and impactful role.
+
+I am confident that my technical skills, professional experience, and commitment to excellence make me a strong candidate for this position. I would welcome the opportunity to discuss how I can contribute to your team's success.
+
+Thank you for considering my application. I look forward to hearing from you.${authNote}
+
+Sincerely,
+${firstName}`
+}
+
 // ── Stat Card ─────────────────────────────────────────────────
 function StatCard({
   icon, label, value, color,
@@ -195,13 +262,16 @@ export default function RecruiterDashboardClient({
   recruiter,
   initialClients,
   initialSubmissions,
+  recentByAssignment,
 }: {
   recruiter: RecruiterUser
   initialClients: Client[]
   initialSubmissions: Submission[]
+  recentByAssignment: Record<string, Submission[]>
 }) {
   const [clients, setClients] = useState<Client[]>(initialClients)
   const [submissions, setSubmissions] = useState<Submission[]>(initialSubmissions)
+  const [recentMap, setRecentMap] = useState<Record<string, Submission[]>>(recentByAssignment)
   const [refreshing, setRefreshing] = useState(false)
   const [activeTab, setActiveTab] = useState("clients")
 
@@ -212,6 +282,7 @@ export default function RecruiterDashboardClient({
     job_url: "",
     notes: "",
     status: "submitted",
+    cover_letter: "",
     submitting: false,
     error: null,
     success: null,
@@ -415,77 +486,130 @@ export default function RecruiterDashboardClient({
     }
   }
 
-  // ── Client Card ───────────────────────────────────────────
+  // ── Client Card (candidates-first redesign) ───────────────
   function ClientCard({ client }: { client: Client }) {
+    const [expanded, setExpanded] = useState(false)
     const dailyTarget = Number(client.applications_per_day)
-    const todayCount = Number(client.submissions_today)
+    const todayCount  = Number(client.submissions_today)
     const progressPct = dailyTarget > 0
       ? Math.min(Math.round((todayCount / dailyTarget) * 100), 100)
       : 0
+    const recentSubs = recentMap[client.assignment_id] ?? []
+    const hasProfile = !!(client.client_work_auth || (client.client_skills ?? []).length > 0 || client.client_target_titles?.length)
 
     return (
-      <Card className="p-6">
-        <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2 flex-wrap mb-1">
-              <span className="font-semibold text-foreground premium-heading">
-                {client.client_name}
-              </span>
-              <Badge className={`text-xs ${planColor(client.plan_type)}`}>
-                {planLabel(client.plan_type)}
+      <Card className="overflow-hidden">
+        {/* ── Top bar ── */}
+        <div className="bg-gradient-to-r from-[#0A1A2F] to-[#132A47] px-5 py-3 flex items-center justify-between gap-3 flex-wrap">
+          <div className="flex items-center gap-3 flex-wrap">
+            <span className="font-bold text-white text-base premium-heading">{client.client_name}</span>
+            <Badge className={`text-xs ${planColor(client.plan_type)}`}>{planLabel(client.plan_type)}</Badge>
+            {client.client_work_auth && (
+              <Badge className="text-xs bg-white/20 text-white border-white/30">
+                {WORK_AUTH_LABELS[client.client_work_auth] ?? client.client_work_auth}
               </Badge>
-            </div>
-            <p className="text-sm text-muted-foreground premium-body">
-              {client.client_email}
-            </p>
-            <p className="text-xs text-muted-foreground premium-body mt-1">
-              Assigned: {formatDate(client.assigned_at)}
-              {client.last_submission_at && (
-                <span className="ml-3">
-                  Last submission: {formatDateTime(client.last_submission_at)}
-                </span>
-              )}
-            </p>
+            )}
+          </div>
+          <div className="flex items-center gap-3 text-white/70 text-xs">
+            {client.client_location && (
+              <span className="flex items-center gap-1"><MapPin className="w-3 h-3" />{client.client_location}</span>
+            )}
+            {client.client_phone && (
+              <span className="flex items-center gap-1"><Phone className="w-3 h-3" />{client.client_phone}</span>
+            )}
+            {client.client_linkedin && (
+              <a href={client.client_linkedin} target="_blank" rel="noopener noreferrer"
+                className="flex items-center gap-1 hover:text-[#E8C547] transition">
+                <Linkedin className="w-3 h-3" />LinkedIn
+              </a>
+            )}
+          </div>
+        </div>
 
-            {/* Daily progress bar */}
-            <div className="mt-3">
-              <div className="flex items-center justify-between text-xs premium-body mb-1">
-                <span className="text-muted-foreground">
-                  Today: {todayCount} / {dailyTarget} applications
-                </span>
-                <span className={progressPct >= 100 ? "text-green-600 font-medium" : "text-muted-foreground"}>
-                  {progressPct}%
-                </span>
+        <div className="p-5">
+          {/* ── Profile snapshot (if any) ── */}
+          {hasProfile && (
+            <div className="mb-4 grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
+              {(client.client_target_titles ?? []).length > 0 && (
+                <div>
+                  <p className="text-muted-foreground font-medium mb-1 flex items-center gap-1">
+                    <Briefcase className="w-3 h-3" /> Target Roles
+                  </p>
+                  <div className="flex flex-wrap gap-1">
+                    {(client.client_target_titles ?? []).slice(0, 4).map((t) => (
+                      <span key={t} className="bg-[#0A1A2F]/10 text-[#0A1A2F] rounded px-1.5 py-0.5">{t}</span>
+                    ))}
+                  </div>
+                </div>
+              )}
+              {(client.client_skills ?? []).length > 0 && (
+                <div>
+                  <p className="text-muted-foreground font-medium mb-1 flex items-center gap-1">
+                    <Tag className="w-3 h-3" /> Skills
+                  </p>
+                  <div className="flex flex-wrap gap-1">
+                    {(client.client_skills ?? []).slice(0, 6).map((s) => (
+                      <span key={s} className="bg-blue-50 text-blue-700 rounded px-1.5 py-0.5">{s}</span>
+                    ))}
+                    {(client.client_skills ?? []).length > 6 && (
+                      <span className="text-muted-foreground">+{(client.client_skills ?? []).length - 6} more</span>
+                    )}
+                  </div>
+                </div>
+              )}
+              <div className="space-y-1">
+                {client.client_min_rate && (
+                  <p className="flex items-center gap-1 text-muted-foreground">
+                    <DollarSign className="w-3 h-3" /> Min ${client.client_min_rate}/hr
+                  </p>
+                )}
+                {(client.client_certifications ?? []).length > 0 && (
+                  <p className="flex items-center gap-1 text-muted-foreground">
+                    <Award className="w-3 h-3" /> {(client.client_certifications ?? []).slice(0, 2).join(", ")}
+                  </p>
+                )}
+                {client.client_open_to_remote && (
+                  <p className="text-green-600">✓ Open to remote</p>
+                )}
               </div>
-              <div className="w-full bg-muted rounded-full h-2">
-                <div
-                  className={`h-2 rounded-full transition-all ${
-                    progressPct >= 100 ? "bg-green-500" :
-                    progressPct >= 50  ? "bg-[#E8C547]" :
-                    "bg-[#0A1A2F]"
-                  }`}
-                  style={{ width: `${progressPct}%` }}
-                />
-              </div>
+            </div>
+          )}
+
+          {!hasProfile && (
+            <p className="text-xs text-muted-foreground mb-3 italic">
+              No profile filled in yet — ask client to complete their profile for better job matching.
+            </p>
+          )}
+
+          {/* ── Daily progress ── */}
+          <div className="mb-4">
+            <div className="flex items-center justify-between text-xs mb-1">
+              <span className="text-muted-foreground premium-body">
+                Today: <strong>{todayCount}</strong> / {dailyTarget} apps
+              </span>
+              <span className="flex items-center gap-3 text-muted-foreground">
+                <span>{client.total_submissions} total</span>
+                {Number(client.interview_count) > 0 && (
+                  <span className="text-green-600 font-semibold">{client.interview_count} interviews 🎉</span>
+                )}
+                {client.last_submission_at && (
+                  <span>Last: {formatDateTime(client.last_submission_at)}</span>
+                )}
+              </span>
+            </div>
+            <div className="w-full bg-muted rounded-full h-2">
+              <div
+                className={`h-2 rounded-full transition-all ${
+                  progressPct >= 100 ? "bg-green-500" :
+                  progressPct >= 50  ? "bg-[#E8C547]" : "bg-[#0A1A2F]"
+                }`}
+                style={{ width: `${progressPct}%` }}
+              />
             </div>
           </div>
 
-          {/* Stats column */}
-          <div className="flex sm:flex-col items-center sm:items-end gap-4 sm:gap-2 shrink-0">
-            <div className="text-center sm:text-right">
-              <p className="text-2xl font-bold text-foreground premium-heading">
-                {client.total_submissions}
-              </p>
-              <p className="text-xs text-muted-foreground premium-body">total</p>
-            </div>
-            {Number(client.interview_count) > 0 && (
-              <div className="text-center sm:text-right">
-                <p className="text-lg font-bold text-green-600 premium-heading">
-                  {client.interview_count}
-                </p>
-                <p className="text-xs text-muted-foreground premium-body">interviews</p>
-              </div>
-            )}
+          {/* ── Action buttons ── */}
+          <div className="flex flex-wrap gap-2 mb-4">
             <Button
               size="sm"
               onClick={() => {
@@ -497,23 +621,100 @@ export default function RecruiterDashboardClient({
                   job_url: "",
                   notes: "",
                   status: "submitted",
+                  cover_letter: "",
                   error: null,
                   success: null,
                 }))
                 setActiveTab("log")
               }}
-              className="bg-[#0A1A2F] hover:bg-[#132A47] text-white premium-heading text-xs"
+              className="bg-[#0A1A2F] hover:bg-[#132A47] text-white text-xs premium-heading"
             >
+              <FileText className="w-3.5 h-3.5 mr-1.5" />
               Log Submission
             </Button>
+            <Button
+              size="sm" variant="outline"
+              onClick={() => {
+                setScreeningForm((p) => ({ ...p, client_id: client.client_id, submission_id: "", error: null, success: null }))
+                setActiveTab("screening")
+              }}
+              className="text-xs text-blue-700 border-blue-200 hover:bg-blue-50"
+            >
+              <Phone className="w-3.5 h-3.5 mr-1.5" />
+              Screening
+            </Button>
+            <Button
+              size="sm" variant="outline"
+              onClick={() => {
+                setInterviewForm((p) => ({ ...p, client_id: client.client_id, submission_id: "", error: null, success: null }))
+                setActiveTab("interview")
+              }}
+              className="text-xs text-green-700 border-green-200 hover:bg-green-50"
+            >
+              <Calendar className="w-3.5 h-3.5 mr-1.5" />
+              Interview
+            </Button>
           </div>
-        </div>
 
-        {client.assignment_notes && (
-          <div className="mt-3 text-xs text-muted-foreground premium-body bg-muted/40 rounded px-3 py-2">
-            <span className="font-medium">Notes:</span> {client.assignment_notes}
-          </div>
-        )}
+          {/* ── Recent submissions (inline, collapsible) ── */}
+          {recentSubs.length > 0 && (
+            <div>
+              <button
+                className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground hover:text-foreground transition mb-2"
+                onClick={() => setExpanded((v) => !v)}
+              >
+                {expanded ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
+                {expanded ? "Hide" : "Show"} recent submissions ({recentSubs.length})
+              </button>
+              {expanded && (
+                <div className="border border-border rounded-lg overflow-hidden">
+                  <table className="w-full text-xs">
+                    <thead className="bg-muted/40">
+                      <tr>
+                        <th className="px-3 py-2 text-left font-semibold text-foreground">Date</th>
+                        <th className="px-3 py-2 text-left font-semibold text-foreground">Job / Company</th>
+                        <th className="px-3 py-2 text-left font-semibold text-foreground">Status</th>
+                        <th className="px-3 py-2 text-left font-semibold text-foreground">Link</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {recentSubs.map((sub) => (
+                        <tr key={sub.id} className="border-t border-border hover:bg-muted/20">
+                          <td className="px-3 py-2 text-muted-foreground whitespace-nowrap">
+                            {formatDate(sub.application_date || sub.submitted_at)}
+                          </td>
+                          <td className="px-3 py-2 max-w-[200px]">
+                            <div className="font-medium text-foreground truncate">{sub.job_title}</div>
+                            <div className="text-muted-foreground truncate">{sub.company_name}</div>
+                          </td>
+                          <td className="px-3 py-2">
+                            <span className={`inline-flex px-2 py-0.5 rounded text-[10px] font-medium ${statusColor(sub.status)}`}>
+                              {statusLabel(sub.status)}
+                            </span>
+                          </td>
+                          <td className="px-3 py-2">
+                            {sub.job_url ? (
+                              <a href={sub.job_url} target="_blank" rel="noopener noreferrer"
+                                className="text-[#0A1A2F] hover:text-[#E8C547] transition">
+                                <ExternalLink className="w-3.5 h-3.5" />
+                              </a>
+                            ) : "—"}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+          )}
+
+          {client.assignment_notes && (
+            <div className="mt-3 text-xs text-muted-foreground bg-muted/40 rounded px-3 py-2">
+              <span className="font-medium">Notes:</span> {client.assignment_notes}
+            </div>
+          )}
+        </div>
       </Card>
     )
   }
@@ -785,6 +986,66 @@ export default function RecruiterDashboardClient({
                         setLogForm((prev) => ({ ...prev, notes: e.target.value }))
                       }
                     />
+                  </div>
+
+                  {/* Cover Letter Template */}
+                  <div className="space-y-2 border border-border rounded-lg p-4 bg-muted/20">
+                    <div className="flex items-center justify-between flex-wrap gap-2">
+                      <label className="text-sm font-medium text-foreground premium-heading flex items-center gap-1.5">
+                        <FileText className="w-4 h-4 text-primary" />
+                        Cover Letter Template
+                      </label>
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        disabled={!logForm.job_title || !logForm.company_name}
+                        onClick={() => {
+                          const selectedClient = clients.find(
+                            (c) => c.assignment_id === logForm.assignment_id
+                          )
+                          if (!selectedClient) return
+                          const letter = generateCoverLetter(
+                            selectedClient.client_name,
+                            logForm.job_title,
+                            logForm.company_name,
+                            selectedClient.client_skills ?? [],
+                            selectedClient.client_work_auth,
+                            selectedClient.client_target_titles ?? [],
+                          )
+                          setLogForm((prev) => ({ ...prev, cover_letter: letter }))
+                        }}
+                        className="text-xs"
+                      >
+                        ✨ Generate Template
+                      </Button>
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      Auto-fills from the client&apos;s profile (skills, work auth, target roles). Edit before use.
+                    </p>
+                    <textarea
+                      className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring resize-y premium-body font-mono"
+                      rows={12}
+                      placeholder="Click 'Generate Template' to auto-generate a cover letter, or type your own..."
+                      value={logForm.cover_letter}
+                      onChange={(e) =>
+                        setLogForm((prev) => ({ ...prev, cover_letter: e.target.value }))
+                      }
+                    />
+                    {logForm.cover_letter && (
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="ghost"
+                        className="text-xs text-muted-foreground hover:text-foreground"
+                        onClick={() => {
+                          navigator.clipboard.writeText(logForm.cover_letter)
+                        }}
+                      >
+                        <Copy className="w-3.5 h-3.5 mr-1.5" />
+                        Copy to clipboard
+                      </Button>
+                    )}
                   </div>
 
                   {/* Error / Success */}
