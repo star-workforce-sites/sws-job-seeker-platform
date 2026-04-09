@@ -71,7 +71,7 @@ function workModelLabel(model: string): { label: string; className: string } {
 }
 
 function contractLabel(type: string | null): string {
-  if (!type) return "Not specified"
+  if (!type) return "W2 or C2C"
   const map: Record<string, string> = { W2: "W2", C2C: "C2C", "1099": "1099", W2_OR_C2C: "W2 or C2C" }
   return map[type] ?? type.replace(/_/g, " ")
 }
@@ -945,7 +945,7 @@ export default function CHRMJobSeekerPanel() {
                         <DollarSign className="w-3 h-3" />
                         {formatRate(job)}
                       </span>
-                      {job.contract_type && <span>{contractLabel(job.contract_type)}</span>}
+                      <span>{contractLabel(job.contract_type)}</span>
                       <span className="flex items-center gap-1">
                         <Clock className="w-3 h-3" />
                         {relativeTime(job.posted_date || job.ingested_at)}
@@ -1102,11 +1102,9 @@ export default function CHRMJobSeekerPanel() {
                   <Badge className={workModelLabel(selectedJob.work_model).className}>
                     {workModelLabel(selectedJob.work_model).label}
                   </Badge>
-                  {selectedJob.contract_type && (
-                    <Badge className="bg-gray-100 text-gray-700">
-                      {contractLabel(selectedJob.contract_type)}
-                    </Badge>
-                  )}
+                  <Badge className="bg-gray-100 text-gray-700">
+                    {contractLabel(selectedJob.contract_type)}
+                  </Badge>
                   <Badge className={selectedJob.quality_score >= 80 ? "bg-green-100 text-green-800" : "bg-gray-100 text-gray-700"}>
                     <Star className="w-3 h-3 mr-1" />
                     Quality: {selectedJob.quality_score}
