@@ -584,34 +584,48 @@ export default function CHRMJobSeekerPanel() {
                       <TrendingUp className="w-4 h-4 text-[#E8C547]" />
                       Hiring Activity by Sector
                     </h3>
-                    <div className="bg-white/5 rounded-lg p-3">
-                      <div className="flex items-end gap-1 h-20">
-                        {sectors.map((id, idx) => {
-                          const count = id.job_count ?? 0
-                          const heightPct = maxCount > 0 ? (count / maxCount) * 100 : 10
-                          const growing = (id.growth_pct ?? 0) >= 0
-                          return (
-                            <div key={id.industry ?? idx} className="flex-1 flex flex-col items-center gap-1">
-                              <span className="text-[9px] text-white/50">{count}</span>
+                    <div className="bg-white/5 rounded-lg p-4 space-y-2.5">
+                      {sectors.map((id, idx) => {
+                        const count = id.job_count ?? 0
+                        const widthPct = maxCount > 0 ? Math.max((count / maxCount) * 100, 4) : 4
+                        const growing = (id.growth_pct ?? 0) >= 0
+                        const growthLabel = id.growth_pct != null
+                          ? `${growing ? "+" : ""}${id.growth_pct.toFixed(0)}%`
+                          : null
+                        return (
+                          <div key={id.industry ?? idx} className="flex items-center gap-3">
+                            {/* Sector name */}
+                            <span className="text-xs text-white/80 w-28 shrink-0 truncate premium-body">
+                              {id.industry ?? "Other"}
+                            </span>
+                            {/* Bar */}
+                            <div className="flex-1 bg-white/10 rounded-full h-2 overflow-hidden">
                               <div
-                                className={`w-full rounded-t ${growing ? "bg-green-400/60" : "bg-red-400/60"}`}
-                                style={{ height: `${Math.max(heightPct, 5)}%` }}
+                                className={`h-full rounded-full transition-all ${growing ? "bg-green-400" : "bg-red-400"}`}
+                                style={{ width: `${widthPct}%` }}
                               />
-                              <span className="text-[8px] text-white/40 truncate w-full text-center">
-                                {(id.industry ?? "Other").slice(0, 5)}
-                              </span>
                             </div>
-                          )
-                        })}
-                      </div>
-                      <div className="flex justify-between mt-2 text-[10px] text-white/50">
+                            {/* Count */}
+                            <span className="text-xs font-semibold text-white/90 w-8 text-right shrink-0">
+                              {count.toLocaleString()}
+                            </span>
+                            {/* Growth badge */}
+                            {growthLabel && (
+                              <span className={`text-xs w-10 text-right shrink-0 ${growing ? "text-green-400" : "text-red-400"}`}>
+                                {growthLabel}
+                              </span>
+                            )}
+                          </div>
+                        )
+                      })}
+                      <div className="flex justify-between pt-2 border-t border-white/10 text-xs text-white/50">
                         <span>
                           Total active:{" "}
-                          <span className="text-green-400">
+                          <span className="text-green-400 font-semibold">
                             {intelligence.stats.total_active.toLocaleString()} jobs
                           </span>
                         </span>
-                        <span className="text-white/30">Current snapshot</span>
+                        <span className="text-white/30">Live snapshot</span>
                       </div>
                     </div>
                   </div>
