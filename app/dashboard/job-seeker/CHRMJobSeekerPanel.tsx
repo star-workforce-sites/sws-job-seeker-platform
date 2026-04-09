@@ -98,6 +98,30 @@ function formatIntelRate(rate: number | null, rateType?: string | null): string 
   return `$${rate.toLocaleString()}/hr`
 }
 
+/**
+ * Derives a rate range string from the live jobs array for a given industry.
+ * Uses only hourly-rate jobs to avoid mixing hourly/annual values.
+ * Returns empty string if no matching jobs have rate data.
+ */
+function industryRateRange(industryName: string | null, jobs: CHRMJob[]): string {
+  if (!industryName) return ""
+  const matching = jobs.filter(
+    (j) =>
+      j.industry?.toLowerCase() === industryName.toLowerCase() &&
+      j.rate_type === "hourly" &&
+      (j.rate_min != null || j.rate_max != null)
+  )
+  if (matching.length === 0) return ""
+  const mins = matching.map((j) => j.rate_min).filter((r): r is number => r != null)
+  const maxes = matching.map((j) => j.rate_max).filter((r): r is number => r != null)
+  const low = mins.length > 0 ? Math.min(...mins) : null
+  const high = maxes.length > 0 ? Math.max(...maxes) : null
+  if (low != null && high != null && low !== high) return `$${low}–$${high}/hr`
+  if (high != null) return `up to $${high}/hr`
+  if (low != null) return `$${low}+/hr`
+  return ""
+}
+
 // ── Company name quality filters ──────────────────────────────
 /**
  * Returns true if a company name is suitable for public display.
@@ -687,7 +711,13 @@ export default function CHRMJobSeekerPanel() {
                         <p className="text-sm font-medium text-white premium-heading truncate">{id.industry ?? "Other"}</p>
                         <p className="text-xs text-white/60 premium-body">
                           {(id.job_count ?? 0).toLocaleString()} jobs
-                          {id.avg_rate != null && id.avg_rate > 0 && ` · ${formatIntelRate(id.avg_rate)}`}
+                          {(() => {
+                            const rangeStr = industryRateRange(id.industry, jobs)
+                            if (rangeStr) return ` · ${rangeStr}`
+                            const single = formatIntelRate(id.avg_rate)
+                            if (single) return ` · ${single}`
+                            return null
+                          })()}
                         </p>
                         {id.growth_pct != null && (
                           <p className={`text-[10px] ${id.growth_pct >= 0 ? "text-green-400" : "text-red-400"}`}>
@@ -925,7 +955,7 @@ export default function CHRMJobSeekerPanel() {
                       )}
                     </div>
                     {/* Company name */}
-                    {job.company_name && (
+                    {isDisplayableCompany(job.company_name ?? null) && (
                       <div className="flex items-center gap-1.5 text-xs text-foreground/80 mb-1">
                         <Building2 className="w-3 h-3 text-muted-foreground" />
                         <span className="font-medium">{job.company_name}</span>
@@ -1121,7 +1151,7 @@ export default function CHRMJobSeekerPanel() {
                 </div>
 
                 {/* Company + Industry */}
-                {selectedJob.company_name && (
+                {isDisplayableCompany(selectedJob.company_name ?? null) && (
                   <div className="flex items-center gap-2 text-sm">
                     <Building2 className="w-4 h-4 text-muted-foreground" />
                     <span className="font-medium text-foreground">{selectedJob.company_name}</span>
