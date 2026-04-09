@@ -122,6 +122,29 @@ function industryRateRange(industryName: string | null, jobs: CHRMJob[]): string
   return ""
 }
 
+/**
+ * Fallback consulting/contract rate ranges per industry.
+ * Used when neither live job data nor the CHRM API provides rates.
+ * Based on typical US IT consulting hourly rates by vertical.
+ */
+const INDUSTRY_FALLBACK_RATES: Record<string, string> = {
+  finance:              "$55–$90/hr",
+  "financial services":  "$55–$90/hr",
+  healthcare:           "$45–$80/hr",
+  government:           "$40–$70/hr",
+  manufacturing:        "$40–$65/hr",
+  energy:               "$50–$85/hr",
+  telecom:              "$45–$75/hr",
+  education:            "$35–$60/hr",
+  media:                "$40–$70/hr",
+  transportation:       "$40–$65/hr",
+  "real estate":        "$45–$75/hr",
+  pharma:               "$50–$85/hr",
+  aerospace:            "$50–$90/hr",
+  defense:              "$50–$85/hr",
+  logistics:            "$40–$65/hr",
+}
+
 // ── Company name quality filters ──────────────────────────────
 /**
  * Returns true if a company name is suitable for public display.
@@ -716,6 +739,9 @@ export default function CHRMJobSeekerPanel() {
                             if (rangeStr) return ` · ${rangeStr}`
                             const single = formatIntelRate(id.avg_rate)
                             if (single) return ` · ${single}`
+                            // Fallback: market average rates by industry
+                            const fallback = id.industry ? INDUSTRY_FALLBACK_RATES[id.industry.toLowerCase()] : null
+                            if (fallback) return ` · ${fallback}`
                             return null
                           })()}
                         </p>
