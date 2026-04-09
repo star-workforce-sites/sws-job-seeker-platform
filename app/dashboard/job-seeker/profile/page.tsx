@@ -3,8 +3,6 @@
 import { useEffect, useState, useCallback } from "react"
 import { useSession } from "next-auth/react"
 import { useRouter } from "next/navigation"
-import Navigation from "@/components/navigation"
-import Footer from "@/components/footer"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
@@ -278,12 +276,8 @@ export default function ProfilePage() {
 
   if (status === "loading" || loading) {
     return (
-      <div className="min-h-screen bg-background flex flex-col">
-        <Navigation />
-        <div className="flex-1 flex items-center justify-center">
-          <Loader2 className="w-8 h-8 animate-spin text-primary" />
-        </div>
-        <Footer />
+      <div className="flex-1 flex items-center justify-center min-h-[60vh]">
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
       </div>
     )
   }
@@ -291,10 +285,8 @@ export default function ProfilePage() {
   const score = completionScore()
 
   return (
-    <div className="min-h-screen bg-background flex flex-col">
-      <Navigation />
-
-      <main className="flex-1 max-w-3xl mx-auto px-4 py-8 w-full">
+    <div className="min-h-screen bg-background">
+      <main className="max-w-3xl mx-auto px-4 py-8 w-full">
         {/* Back link */}
         <Link
           href="/dashboard/job-seeker"
@@ -563,8 +555,6 @@ export default function ProfilePage() {
           </Button>
         </div>
       </main>
-
-      <Footer />
     </div>
   )
 }
