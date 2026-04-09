@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server"
 import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth"
 import { sql } from "@vercel/postgres"
+import { sendRecruiterSubmissionNotificationEmail } from "@/lib/send-recruiter-emails"
 
 // DOL-compliant status values — the only values allowed
 const VALID_STATUSES = [
@@ -206,6 +207,31 @@ export async function POST(request: NextRequest) {
       )
       RETURNING *
     `
+
+    // ── Send notification emails (fire-and-forget) ──────────
+    // Look up the job seeker's name/email for the notification
+    const clientLookup = await sql`
+      SELECT name, email FROM users WHERE id = ${assignment.client_id} LIMIT 1
+    `
+    const client = clientLookup.rows[0]
+
+    // Count total submissions for this client
+    const countResult = await sql`
+      SELECT COUNT(*) AS total FROM application_tracking WHERE client_id = ${assignment.client_id}
+    `
+    const totalSubmissions = parseInt(countResult.rows[0]?.total || "0")
+
+    if (client?.email) {
+      sendRecruiterSubmissionNotificationEmail({
+        jobSeekerName: client.name || "",
+        jobSeekerEmail: client.email,
+        recruiterName: auth.recruiter.name || "Your Recruiter",
+        jobTitle: job_title,
+        companyName: company_name,
+        jobUrl: job_url || null,
+        totalSubmissions,
+      }).catch((err) => console.error("[recruiter/submissions POST] email failed:", err))
+    }
 
     return NextResponse.json(
       {

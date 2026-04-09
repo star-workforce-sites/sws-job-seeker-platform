@@ -1,6 +1,7 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { getCurrentUser } from "@/lib/session"
 import { sql } from "@vercel/postgres"
+import { sendProfileUpdateNotificationEmail } from "@/lib/send-recruiter-emails"
 
 // ─────────────────────────────────────────────
 // GET /api/user/profile
@@ -126,6 +127,33 @@ export async function PUT(request: NextRequest) {
         certifications    = EXCLUDED.certifications,
         updated_at        = NOW()
     `
+
+    // ── Send admin notification (fire-and-forget) ──────────
+    const FIELD_LABELS: Record<string, string> = {
+      name: "Name",
+      phone: "Phone",
+      linkedin_url: "LinkedIn URL",
+      location: "Location",
+      work_auth: "Work Authorization",
+      target_titles: "Target Titles",
+      target_locations: "Target Locations",
+      open_to_remote: "Open to Remote",
+      open_to_contract: "Open to Contract",
+      open_to_fulltime: "Open to Full-time",
+      min_rate_hourly: "Minimum Hourly Rate",
+      skills: "Skills",
+      resume_text: "Resume Text",
+      certifications: "Certifications",
+    }
+    const updatedFields = Object.keys(body)
+      .filter((k) => body[k] !== undefined && k in FIELD_LABELS)
+      .map((k) => FIELD_LABELS[k])
+
+    sendProfileUpdateNotificationEmail({
+      jobSeekerName: name ?? sessionUser.name ?? "",
+      jobSeekerEmail: sessionUser.email ?? "",
+      updatedFields,
+    }).catch((err) => console.error("[profile PUT] admin email failed:", err))
 
     return NextResponse.json({ success: true })
   } catch (error) {

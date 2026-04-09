@@ -191,6 +191,145 @@ export async function sendPurchaseNotificationEmail(params: {
   }
 }
 
+// ── Recruiter submission notification → Job Seeker + Admin ──────
+export async function sendRecruiterSubmissionNotificationEmail(params: {
+  jobSeekerName: string
+  jobSeekerEmail: string
+  recruiterName: string
+  jobTitle: string
+  companyName: string
+  jobUrl?: string | null
+  totalSubmissions?: number
+}) {
+  try {
+    const { jobSeekerName, jobSeekerEmail, recruiterName, jobTitle, companyName, jobUrl, totalSubmissions } = params
+    const adminEmail = ['Srikanth@startekk.net', 'info@startekk.net']
+    const dashboardUrl = 'https://www.starworkforcesolutions.com/dashboard/job-seeker'
+
+    // ── Email to job seeker ──────────────────────
+    const seekerHtml = `
+      <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;">
+        <div style="background:#0A1A2F;color:white;padding:20px;border-radius:8px 8px 0 0;">
+          <h2 style="margin:0;color:#E8C547;">New Application Submitted</h2>
+        </div>
+        <div style="padding:20px;border:1px solid #e5e7eb;border-top:none;border-radius:0 0 8px 8px;">
+          <p style="margin:0 0 16px;color:#374151;">Hi ${jobSeekerName || 'there'},</p>
+          <p style="margin:0 0 16px;color:#374151;">Your recruiter <strong>${recruiterName}</strong> just submitted an application on your behalf:</p>
+          <table style="width:100%;border-collapse:collapse;">
+            <tr><td style="padding:6px 0;color:#666;width:120px;">Position:</td><td style="padding:6px 0;font-weight:bold;">${jobTitle}</td></tr>
+            <tr><td style="padding:6px 0;color:#666;">Company:</td><td style="padding:6px 0;font-weight:bold;">${companyName}</td></tr>
+            ${jobUrl ? `<tr><td style="padding:6px 0;color:#666;">Job Link:</td><td style="padding:6px 0;"><a href="${jobUrl}" style="color:#0A1A2F;">View Job Posting</a></td></tr>` : ''}
+            ${totalSubmissions ? `<tr><td style="padding:6px 0;color:#666;">Total Apps:</td><td style="padding:6px 0;">${totalSubmissions} submitted so far</td></tr>` : ''}
+          </table>
+          <div style="margin-top:20px;text-align:center;">
+            <a href="${dashboardUrl}" style="display:inline-block;background:#0A1A2F;color:#E8C547;padding:10px 24px;border-radius:6px;text-decoration:none;font-weight:bold;">
+              View Your Dashboard
+            </a>
+          </div>
+          <p style="margin:16px 0 0;font-size:12px;color:#9CA3AF;">You're receiving this because you have a recruiter plan on Career Accel Platform.</p>
+        </div>
+      </div>
+    `
+
+    // ── Email to admin ───────────────────────────
+    const adminHtml = `
+      <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;">
+        <div style="background:#0A1A2F;color:white;padding:20px;border-radius:8px 8px 0 0;">
+          <h2 style="margin:0;color:#E8C547;">Recruiter Submission Logged</h2>
+        </div>
+        <div style="padding:20px;border:1px solid #e5e7eb;border-top:none;border-radius:0 0 8px 8px;">
+          <p style="margin:0 0 16px;color:#374151;">A recruiter just logged a new application submission.</p>
+          <table style="width:100%;border-collapse:collapse;">
+            <tr><td style="padding:6px 0;color:#666;width:120px;">Recruiter:</td><td style="padding:6px 0;font-weight:bold;">${recruiterName}</td></tr>
+            <tr><td style="padding:6px 0;color:#666;">Client:</td><td style="padding:6px 0;font-weight:bold;">${jobSeekerName || 'N/A'} (${jobSeekerEmail})</td></tr>
+            <tr><td style="padding:6px 0;color:#666;">Position:</td><td style="padding:6px 0;">${jobTitle}</td></tr>
+            <tr><td style="padding:6px 0;color:#666;">Company:</td><td style="padding:6px 0;">${companyName}</td></tr>
+            <tr><td style="padding:6px 0;color:#666;">Time:</td><td style="padding:6px 0;">${new Date().toLocaleString('en-US', { timeZone: 'America/Chicago', dateStyle: 'full', timeStyle: 'short' })} CT</td></tr>
+          </table>
+        </div>
+      </div>
+    `
+
+    // Send both emails in parallel (fire-and-forget pattern)
+    const [seekerResult, adminResult] = await Promise.allSettled([
+      resend.emails.send({
+        from: 'STAR Workforce <noreply@starworkforcesolutions.com>',
+        to: jobSeekerEmail,
+        subject: `New Application: ${jobTitle} at ${companyName}`,
+        html: seekerHtml,
+      }),
+      resend.emails.send({
+        from: 'Career Accel System <noreply@starworkforcesolutions.com>',
+        to: adminEmail as string[],
+        subject: `[Submission] ${recruiterName} → ${jobTitle} at ${companyName}`,
+        html: adminHtml,
+      }),
+    ])
+
+    console.log('[Email] Recruiter submission notifications sent for:', jobSeekerEmail, jobTitle)
+    return { success: true, seekerResult, adminResult }
+  } catch (error) {
+    console.error('[Email] Failed to send recruiter submission notification:', error)
+    return { success: false, error }
+  }
+}
+
+// ── Profile update notification → Admin ─────────────────────────
+export async function sendProfileUpdateNotificationEmail(params: {
+  jobSeekerName: string
+  jobSeekerEmail: string
+  updatedFields: string[]
+}) {
+  try {
+    const { jobSeekerName, jobSeekerEmail, updatedFields } = params
+    const adminEmail = ['Srikanth@startekk.net', 'info@startekk.net']
+    const dashboardUrl = 'https://www.starworkforcesolutions.com/dashboard/admin'
+
+    const fieldsList = updatedFields.length > 0
+      ? updatedFields.map(f => `<li style="padding:2px 0;color:#374151;">${f}</li>`).join('\n')
+      : '<li style="padding:2px 0;color:#374151;">General profile update</li>'
+
+    const html = `
+      <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;">
+        <div style="background:#0A1A2F;color:white;padding:20px;border-radius:8px 8px 0 0;">
+          <h2 style="margin:0;color:#E8C547;">Profile Updated — Career Accel</h2>
+        </div>
+        <div style="padding:20px;border:1px solid #e5e7eb;border-top:none;border-radius:0 0 8px 8px;">
+          <p style="margin:0 0 16px;color:#374151;">A job seeker just updated their profile.</p>
+          <table style="width:100%;border-collapse:collapse;">
+            <tr><td style="padding:6px 0;color:#666;width:140px;">Name:</td><td style="padding:6px 0;font-weight:bold;">${jobSeekerName || 'Not set'}</td></tr>
+            <tr><td style="padding:6px 0;color:#666;">Email:</td><td style="padding:6px 0;"><a href="mailto:${jobSeekerEmail}" style="color:#0A1A2F;">${jobSeekerEmail}</a></td></tr>
+            <tr><td style="padding:6px 0;color:#666;">Time:</td><td style="padding:6px 0;">${new Date().toLocaleString('en-US', { timeZone: 'America/Chicago', dateStyle: 'full', timeStyle: 'short' })} CT</td></tr>
+          </table>
+          <div style="margin-top:12px;">
+            <p style="margin:0 0 6px;font-weight:bold;color:#374151;">Fields Updated:</p>
+            <ul style="margin:0;padding-left:20px;">
+              ${fieldsList}
+            </ul>
+          </div>
+          <div style="margin-top:20px;text-align:center;">
+            <a href="${dashboardUrl}" style="display:inline-block;background:#0A1A2F;color:#E8C547;padding:10px 24px;border-radius:6px;text-decoration:none;font-weight:bold;">
+              View Admin Dashboard
+            </a>
+          </div>
+        </div>
+      </div>
+    `
+
+    const result = await resend.emails.send({
+      from: 'Career Accel System <noreply@starworkforcesolutions.com>',
+      to: adminEmail as string[],
+      subject: `[Profile Update] ${jobSeekerName || 'Job Seeker'} — ${jobSeekerEmail}`,
+      html,
+    })
+    console.log('[Email] Profile update notification sent to admin for:', jobSeekerEmail)
+    return { success: true, result }
+  } catch (error) {
+    console.error('[Email] Failed to send profile update notification:', error)
+    return { success: false, error }
+  }
+}
+
 // ── Plan details helper ───────────────────────────────────────
 export function getPlanDetails(subscriptionType: string): {
   name: string
