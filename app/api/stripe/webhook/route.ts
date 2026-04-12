@@ -49,6 +49,10 @@ export async function POST(request: NextRequest) {
 
         // Get subscription details
         const subscription = await stripe.subscriptions.retrieve(subscriptionId)
+        if (!subscription.items?.data?.[0]?.price?.id) {
+          console.error("[Webhook] Subscription has no price items:", subscriptionId)
+          return NextResponse.json({ received: true, warning: "No price items" })
+        }
         const priceId = subscription.items.data[0].price.id
 
         // Determine subscription type

@@ -129,7 +129,7 @@ export default function Pricing() {
                 </div>
               </div>
 
-              <Link href="/auth/register" className="mt-auto">
+              <Link href="/auth/signup" className="mt-auto">
                 <Button
                   variant="outline"
                   className="w-full border-primary text-primary hover:bg-primary/10 bg-transparent"

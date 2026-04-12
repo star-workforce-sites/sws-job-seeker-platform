@@ -56,47 +56,80 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url)
     const assignmentId = searchParams.get("assignment_id")
     const statusFilter = searchParams.get("status")
-    const limit = Math.min(parseInt(searchParams.get("limit") || "50"), 200)
+    const limitParam = Math.min(parseInt(searchParams.get("limit") || "50"), 200)
 
-    // Build query conditionally
-    let queryStr = `
-      SELECT
-        at.id,
-        at.assignment_id,
-        at.client_id,
-        at.job_title,
-        at.company_name,
-        at.job_url,
-        at.job_description,
-        at.application_date,
-        at.submitted_at,
-        at.status,
-        at.feedback_received,
-        at.feedback_date,
-        at.feedback_notes,
-        at.notes,
-        at.created_at,
-        at.updated_at,
-        u.name  AS client_name,
-        u.email AS client_email,
-        ra.plan_type,
-        ra.applications_per_day
-      FROM application_tracking at
-      JOIN users u ON u.id = at.client_id
-      JOIN recruiter_assignments ra ON ra.id = at.assignment_id
-      WHERE at.recruiter_id = '${recruiterId}'
-    `
+    // Parameterized queries to prevent SQL injection
+    let result
 
-    if (assignmentId) {
-      queryStr += ` AND at.assignment_id = '${assignmentId}'`
+    if (assignmentId && statusFilter && VALID_STATUSES.includes(statusFilter as typeof VALID_STATUSES[number])) {
+      result = await sql`
+        SELECT
+          at.id, at.assignment_id, at.client_id, at.job_title, at.company_name,
+          at.job_url, at.job_description, at.application_date, at.submitted_at,
+          at.status, at.feedback_received, at.feedback_date, at.feedback_notes,
+          at.notes, at.created_at, at.updated_at,
+          u.name AS client_name, u.email AS client_email,
+          ra.plan_type, ra.applications_per_day
+        FROM application_tracking at
+        JOIN users u ON u.id = at.client_id
+        JOIN recruiter_assignments ra ON ra.id = at.assignment_id
+        WHERE at.recruiter_id = ${recruiterId}
+          AND at.assignment_id = ${assignmentId}
+          AND at.status = ${statusFilter}
+        ORDER BY at.submitted_at DESC
+        LIMIT ${limitParam}
+      `
+    } else if (assignmentId) {
+      result = await sql`
+        SELECT
+          at.id, at.assignment_id, at.client_id, at.job_title, at.company_name,
+          at.job_url, at.job_description, at.application_date, at.submitted_at,
+          at.status, at.feedback_received, at.feedback_date, at.feedback_notes,
+          at.notes, at.created_at, at.updated_at,
+          u.name AS client_name, u.email AS client_email,
+          ra.plan_type, ra.applications_per_day
+        FROM application_tracking at
+        JOIN users u ON u.id = at.client_id
+        JOIN recruiter_assignments ra ON ra.id = at.assignment_id
+        WHERE at.recruiter_id = ${recruiterId}
+          AND at.assignment_id = ${assignmentId}
+        ORDER BY at.submitted_at DESC
+        LIMIT ${limitParam}
+      `
+    } else if (statusFilter && VALID_STATUSES.includes(statusFilter as typeof VALID_STATUSES[number])) {
+      result = await sql`
+        SELECT
+          at.id, at.assignment_id, at.client_id, at.job_title, at.company_name,
+          at.job_url, at.job_description, at.application_date, at.submitted_at,
+          at.status, at.feedback_received, at.feedback_date, at.feedback_notes,
+          at.notes, at.created_at, at.updated_at,
+          u.name AS client_name, u.email AS client_email,
+          ra.plan_type, ra.applications_per_day
+        FROM application_tracking at
+        JOIN users u ON u.id = at.client_id
+        JOIN recruiter_assignments ra ON ra.id = at.assignment_id
+        WHERE at.recruiter_id = ${recruiterId}
+          AND at.status = ${statusFilter}
+        ORDER BY at.submitted_at DESC
+        LIMIT ${limitParam}
+      `
+    } else {
+      result = await sql`
+        SELECT
+          at.id, at.assignment_id, at.client_id, at.job_title, at.company_name,
+          at.job_url, at.job_description, at.application_date, at.submitted_at,
+          at.status, at.feedback_received, at.feedback_date, at.feedback_notes,
+          at.notes, at.created_at, at.updated_at,
+          u.name AS client_name, u.email AS client_email,
+          ra.plan_type, ra.applications_per_day
+        FROM application_tracking at
+        JOIN users u ON u.id = at.client_id
+        JOIN recruiter_assignments ra ON ra.id = at.assignment_id
+        WHERE at.recruiter_id = ${recruiterId}
+        ORDER BY at.submitted_at DESC
+        LIMIT ${limitParam}
+      `
     }
-    if (statusFilter && VALID_STATUSES.includes(statusFilter as any)) {
-      queryStr += ` AND at.status = '${statusFilter}'`
-    }
-
-    queryStr += ` ORDER BY at.submitted_at DESC LIMIT ${limit}`
-
-    const result = await sql.query(queryStr)
 
     return NextResponse.json({
       success: true,

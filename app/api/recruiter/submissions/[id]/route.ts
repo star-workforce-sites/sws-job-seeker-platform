@@ -129,21 +129,19 @@ export async function PUT(
       )
     }
 
-    // Build update — only update fields that were provided
-    const updates: string[] = ["updated_at = NOW()"]
-    if (status !== undefined)           updates.push(`status = '${status}'`)
-    if (notes !== undefined)            updates.push(`notes = ${notes ? `'${notes.replace(/'/g, "''")}'` : "NULL"}`)
-    if (feedback_received !== undefined) updates.push(`feedback_received = ${feedback_received}`)
-    if (feedback_date !== undefined)    updates.push(`feedback_date = ${feedback_date ? `'${feedback_date}'` : "NULL"}`)
-    if (feedback_notes !== undefined)   updates.push(`feedback_notes = ${feedback_notes ? `'${feedback_notes.replace(/'/g, "''")}'` : "NULL"}`)
-
-    const updateQuery = `
+    // Parameterized update — safe from SQL injection
+    const result = await sql`
       UPDATE application_tracking
-      SET ${updates.join(", ")}
-      WHERE id = '${id}' AND recruiter_id = '${recruiterId}'
+      SET
+        updated_at = NOW(),
+        status = COALESCE(${status !== undefined ? status : null}, status),
+        notes = CASE WHEN ${notes !== undefined} THEN ${notes ?? null} ELSE notes END,
+        feedback_received = COALESCE(${feedback_received !== undefined ? feedback_received : null}, feedback_received),
+        feedback_date = CASE WHEN ${feedback_date !== undefined} THEN ${feedback_date ?? null} ELSE feedback_date END,
+        feedback_notes = CASE WHEN ${feedback_notes !== undefined} THEN ${feedback_notes ?? null} ELSE feedback_notes END
+      WHERE id = ${id} AND recruiter_id = ${recruiterId}
       RETURNING *
     `
-    const result = await sql.query(updateQuery)
 
     return NextResponse.json({
       success: true,

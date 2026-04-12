@@ -95,19 +95,17 @@ export async function PUT(
       }
     }
 
-    // Build dynamic update
-    const updates: string[] = ["updated_at = NOW()"]
-    if (recruiter_id) updates.push(`recruiter_id = '${recruiter_id}'`)
-    if (status) updates.push(`status = '${status}'`)
-    if (notes !== undefined) updates.push(`notes = '${notes}'`)
-
-    const updateQuery = `
+    // Parameterized update — safe from SQL injection
+    const result = await sql`
       UPDATE recruiter_assignments
-      SET ${updates.join(", ")}
-      WHERE id = '${id}'
+      SET
+        updated_at = NOW(),
+        recruiter_id = COALESCE(${recruiter_id || null}, recruiter_id),
+        status = COALESCE(${status || null}, status),
+        notes = CASE WHEN ${notes !== undefined} THEN ${notes ?? null} ELSE notes END
+      WHERE id = ${id}
       RETURNING *
     `
-    const result = await sql.query(updateQuery)
 
     return NextResponse.json({
       success: true,
