@@ -165,7 +165,8 @@ function isDisplayableCompany(name: string | null | undefined): boolean {
   // Block plain generic names
   const genericExact = [
     "government agency", "agency", "company", "unknown", "n/a",
-    "employer", "client", "staffing", "recruiter",
+    "employer", "client", "staffing", "recruiter", "email",
+    "confidential",
   ]
   if (genericExact.includes(lower)) return false
 
@@ -174,6 +175,61 @@ function isDisplayableCompany(name: string | null | undefined): boolean {
   if (/^[A-Z0-9]{2,7}$/.test(n)) return false
 
   return true
+}
+
+/**
+ * Extracts a displayable company name from an employer_email domain.
+ * e.g., "recruiter@techsystems.com" → "Techsystems"
+ *        "john@acme-consulting.io"  → "Acme Consulting"
+ *
+ * The posting company (staffing firm) owns the email domain.
+ * `company_name` from the API is the end client, not the poster.
+ */
+function companyFromEmail(email: string | null | undefined): string | null {
+  if (!email || email === "null" || !email.includes("@")) return null
+  const domain = email.split("@")[1]?.toLowerCase()
+  if (!domain) return null
+
+  // Strip TLD (.com, .io, .co.uk, .net, etc.)
+  const base = domain.replace(/\.(com|net|org|io|co|us|ai|info|biz|dev|tech)(\..*)?$/, "")
+  if (!base || base.length < 2) return null
+
+  // Block generic email providers — not real company names
+  const freeEmail = [
+    "gmail", "yahoo", "hotmail", "outlook", "aol", "icloud",
+    "protonmail", "zoho", "mail", "ymail", "live", "msn",
+  ]
+  if (freeEmail.includes(base)) return null
+
+  // Convert hyphens/dots to spaces and title-case
+  const words = base
+    .replace(/[-_.]/g, " ")
+    .split(" ")
+    .filter(Boolean)
+    .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+    .join(" ")
+
+  return words || null
+}
+
+/**
+ * Returns the best available company name for display:
+ *  1. Posting company from employer_email domain (staffing firm)
+ *  2. Falls back to company_name (end client) if email-derived name isn't available
+ */
+function getDisplayCompany(job: {
+  company_name?: string | null
+  employer_email?: string | null
+}): { poster: string | null; endClient: string | null } {
+  const poster = companyFromEmail(job.employer_email)
+  const endClient = isDisplayableCompany(job.company_name) ? (job.company_name ?? null) : null
+
+  // If poster and end client are effectively the same, don't show both
+  if (poster && endClient && poster.toLowerCase() === endClient.toLowerCase()) {
+    return { poster, endClient: null }
+  }
+
+  return { poster, endClient }
 }
 
 function relativeTime(dateStr: string | null | undefined): string {
@@ -980,16 +1036,23 @@ export default function CHRMJobSeekerPanel() {
                         </Badge>
                       )}
                     </div>
-                    {/* Company name */}
-                    {isDisplayableCompany(job.company_name ?? null) && (
-                      <div className="flex items-center gap-1.5 text-xs text-foreground/80 mb-1">
-                        <Building2 className="w-3 h-3 text-muted-foreground" />
-                        <span className="font-medium">{job.company_name}</span>
-                        {job.industry && (
-                          <span className="text-muted-foreground">· {job.industry}</span>
-                        )}
-                      </div>
-                    )}
+                    {/* Company name — posting company from email domain, end client from company_name */}
+                    {(() => {
+                      const { poster, endClient } = getDisplayCompany(job)
+                      if (!poster && !endClient) return null
+                      return (
+                        <div className="flex items-center gap-1.5 text-xs text-foreground/80 mb-1">
+                          <Building2 className="w-3 h-3 text-muted-foreground" />
+                          <span className="font-medium">{poster || endClient}</span>
+                          {poster && endClient && (
+                            <span className="text-muted-foreground">· for {endClient}</span>
+                          )}
+                          {job.industry && (
+                            <span className="text-muted-foreground">· {job.industry}</span>
+                          )}
+                        </div>
+                      )
+                    })()}
                     <div className="flex flex-wrap gap-3 text-xs text-muted-foreground premium-body">
                       <span className="flex items-center gap-1">
                         <MapPin className="w-3 h-3" />
@@ -1176,16 +1239,23 @@ export default function CHRMJobSeekerPanel() {
                   </Badge>
                 </div>
 
-                {/* Company + Industry */}
-                {isDisplayableCompany(selectedJob.company_name ?? null) && (
-                  <div className="flex items-center gap-2 text-sm">
-                    <Building2 className="w-4 h-4 text-muted-foreground" />
-                    <span className="font-medium text-foreground">{selectedJob.company_name}</span>
-                    {selectedJob.industry && (
-                      <span className="text-muted-foreground">· {selectedJob.industry}</span>
-                    )}
-                  </div>
-                )}
+                {/* Company + Industry — posting company from email, end client from company_name */}
+                {(() => {
+                  const { poster, endClient } = getDisplayCompany(selectedJob)
+                  if (!poster && !endClient) return null
+                  return (
+                    <div className="flex items-center gap-2 text-sm">
+                      <Building2 className="w-4 h-4 text-muted-foreground" />
+                      <span className="font-medium text-foreground">{poster || endClient}</span>
+                      {poster && endClient && (
+                        <span className="text-muted-foreground">· for {endClient}</span>
+                      )}
+                      {selectedJob.industry && (
+                        <span className="text-muted-foreground">· {selectedJob.industry}</span>
+                      )}
+                    </div>
+                  )
+                })()}
 
                 <div className="grid grid-cols-2 gap-4 text-sm">
                   <p className="flex items-center gap-2 text-muted-foreground premium-body">
