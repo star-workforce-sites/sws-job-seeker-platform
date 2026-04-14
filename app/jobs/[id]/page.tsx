@@ -54,7 +54,7 @@ async function getJob(id: string): Promise<Job | null> {
       LIMIT 1
     `;
 
-    if (result.rowCount === 0) {
+    if (!result.rowCount || result.rowCount === 0) {
       return null;
     }
 
@@ -102,7 +102,7 @@ async function checkIfApplied(jobId: string, userEmail: string | null | undefine
       LIMIT 1
     `;
 
-    return result.rowCount > 0;
+    return (result.rowCount ?? 0) > 0;
   } catch (error) {
     console.error('[Job Detail SSR] Error checking application:', error);
     return false;

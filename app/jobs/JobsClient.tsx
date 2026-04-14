@@ -9,7 +9,7 @@ import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
 import Navigation from "@/components/navigation"
 import Footer from "@/components/footer"
-import { MapPin, DollarSign, Briefcase, BookmarkIcon, Search, Filter, Lock, UserPlus, ArrowRight, Zap, Eye } from "lucide-react"
+import { MapPin, DollarSign, Briefcase, BookmarkIcon, Search, Filter, Lock, UserPlus, ArrowRight, Zap, Eye, Building2 } from "lucide-react"
 import Link from "next/link"
 
 // ── Manual job (from our own DB) ─────────────────────────────────
@@ -45,10 +45,77 @@ type CHRMJob = {
   city: string | null
   state: string | null
   company_name: string | null
+  employer_email: string | null
   seniority_level: string | null
+  industry: string | null
+}
+
+// ── Company name quality helpers (ported from dashboard) ─────────
+
+/** Returns true if a company name is suitable for public display. */
+function isDisplayableCompany(name: string | null | undefined): boolean {
+  if (!name || name.trim().length === 0 || name === "null" || name === "undefined") return false
+  const n = name.trim()
+  const lower = n.toLowerCase()
+  const blocklist = [
+    "powerhouse", "prohires", "amazon web service", "amazon ses",
+    "sendgrid", "mailchimp", "constant contact",
+  ]
+  if (blocklist.some((b) => lower.includes(b))) return false
+  const genericExact = [
+    "government agency", "agency", "company", "unknown", "n/a",
+    "employer", "client", "staffing", "recruiter", "email", "confidential",
+  ]
+  if (genericExact.includes(lower)) return false
+  if (/^[A-Z0-9]{2,7}$/.test(n)) return false
+  return true
+}
+
+/**
+ * Extracts a displayable company name from an employer_email domain.
+ * The posting company (staffing firm) owns the email domain.
+ * company_name from the API is the end client, not the poster.
+ */
+function companyFromEmail(email: string | null | undefined): string | null {
+  if (!email || email === "null" || !email.includes("@")) return null
+  const domain = email.split("@")[1]?.toLowerCase()
+  if (!domain) return null
+  const base = domain.replace(/\.(com|net|org|io|co|us|ai|info|biz|dev|tech)(\..*)?$/, "")
+  if (!base || base.length < 2) return null
+  const freeEmail = [
+    "gmail", "yahoo", "hotmail", "outlook", "aol", "icloud",
+    "protonmail", "zoho", "mail", "ymail", "live", "msn",
+  ]
+  if (freeEmail.includes(base)) return null
+  const words = base
+    .replace(/[-_.]/g, " ")
+    .split(" ")
+    .filter(Boolean)
+    .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+    .join(" ")
+  return words || null
+}
+
+/** Returns best available company info: posting firm from email, end client from company_name */
+function getDisplayCompany(job: {
+  company_name?: string | null
+  employer_email?: string | null
+}): { poster: string | null; endClient: string | null } {
+  const poster = companyFromEmail(job.employer_email)
+  const endClient = isDisplayableCompany(job.company_name) ? (job.company_name ?? null) : null
+  if (poster && endClient && poster.toLowerCase() === endClient.toLowerCase()) {
+    return { poster, endClient: null }
+  }
+  return { poster, endClient }
 }
 
 type CombinedJob = ManualJob | CHRMJob
+
+function contractLabel(type: string | null | undefined): string {
+  if (!type || type === "null" || type === "undefined") return "W2 or C2C"
+  const map: Record<string, string> = { W2: "W2", C2C: "C2C", "1099": "1099", W2_OR_C2C: "W2 or C2C" }
+  return map[type] ?? type.replace(/_/g, " ")
+}
 
 function formatCHRMRate(job: CHRMJob): string {
   if (job.rate_min == null && job.rate_max == null) return "Rate not listed"
@@ -85,61 +152,81 @@ export default function Jobs() {
   })
   const [manualJobs, setManualJobs] = useState<ManualJob[]>([])
   const [chrmJobs, setChrmJobs] = useState<CHRMJob[]>([])
-  const [loading, setLoading] = useState(true)
+  const [manualLoading, setManualLoading] = useState(true)
+  const [chrmLoading, setChrmLoading] = useState(true)
   const [savedJobs, setSavedJobs] = useState<string[]>([])
   const [applicationsToday, setApplicationsToday] = useState(0)
   const [hasSubscription, setHasSubscription] = useState(false)
 
   const MAX_FREE_APPLICATIONS = 5
+  const loading = manualLoading && chrmLoading // only show full spinner if BOTH are loading
 
   useEffect(() => {
-    async function fetchAllJobs() {
+    // Fetch manual jobs (fast — our own DB)
+    async function fetchManualJobs() {
       try {
-        const [manualRes, chrmRes] = await Promise.allSettled([
-          fetch("/api/jobs/list"),
-          fetch("/api/chrm/public-jobs"),
-        ])
-
-        if (manualRes.status === "fulfilled" && manualRes.value.ok) {
-          const data = await manualRes.value.json()
+        const res = await fetch("/api/jobs/list")
+        if (res.ok) {
+          const data = await res.json()
           setManualJobs(
             (data.jobs || []).map((j: any) => ({ ...j, _source: "manual" as const }))
           )
         }
-
-        if (chrmRes.status === "fulfilled" && chrmRes.value.ok) {
-          const data = await chrmRes.value.json()
-          setChrmJobs(
-            (data.jobs || []).map((j: any) => ({
-              _source: "chrm" as const,
-              id: j.id,
-              title: j.title,
-              company: j.company_name || j.city || "See details",
-              location: j.city && j.state ? `${j.city}, ${j.state}` : (j.state || "Remote"),
-              work_model: j.work_model,
-              rate_min: j.rate_min ?? null,
-              rate_max: j.rate_max ?? null,
-              rate_type: j.rate_type ?? null,
-              description: j.description ?? null,
-              posted_date: j.posted_date ?? null,
-              ingested_at: j.ingested_at ?? null,
-              contract_type: j.contract_type ?? null,
-              required_skills: j.required_skills ?? null,
-              city: j.city ?? null,
-              state: j.state ?? null,
-              company_name: j.company_name ?? null,
-              seniority_level: j.seniority_level ?? null,
-            }))
-          )
-        }
       } catch (error) {
-        console.error("Failed to fetch jobs:", error)
+        console.error("Failed to fetch manual jobs:", error)
       } finally {
-        setLoading(false)
+        setManualLoading(false)
       }
     }
 
-    fetchAllJobs()
+    // Fetch CHRM jobs (slower — external API)
+    async function fetchCHRMJobs() {
+      try {
+        const res = await fetch("/api/chrm/public-jobs")
+        if (res.ok) {
+          const data = await res.json()
+          setChrmJobs(
+            (data.jobs || []).map((j: any) => {
+              const displayInfo = getDisplayCompany({
+                company_name: j.company_name,
+                employer_email: j.employer_email,
+              })
+              const displayCompany = displayInfo.poster || displayInfo.endClient || j.city || "Employer on file"
+              return {
+                _source: "chrm" as const,
+                id: j.job_id || j.id,
+                title: j.title,
+                company: displayCompany,
+                location: j.city && j.state ? `${j.city}, ${j.state}` : (j.state || "Remote"),
+                work_model: j.work_model,
+                rate_min: j.rate_min ?? null,
+                rate_max: j.rate_max ?? null,
+                rate_type: j.rate_type ?? null,
+                description: j.description ?? null,
+                posted_date: j.posted_date ?? null,
+                ingested_at: j.ingested_at ?? null,
+                contract_type: j.contract_type ?? null,
+                required_skills: j.skills ?? j.required_skills ?? null,
+                city: j.city ?? null,
+                state: j.state ?? null,
+                company_name: j.company_name ?? null,
+                employer_email: j.employer_email ?? null,
+                seniority_level: j.seniority_level ?? null,
+                industry: j.industry ?? null,
+              }
+            })
+          )
+        }
+      } catch (error) {
+        console.error("Failed to fetch CHRM jobs:", error)
+      } finally {
+        setChrmLoading(false)
+      }
+    }
+
+    // Fire both in parallel — page renders as each resolves
+    fetchManualJobs()
+    fetchCHRMJobs()
   }, [])
 
   useEffect(() => {
@@ -174,9 +261,12 @@ export default function Jobs() {
   const allJobs: CombinedJob[] = [...manualJobs, ...chrmJobs]
 
   const filteredJobs = allJobs.filter((job) => {
+    const term = searchTerm.toLowerCase()
     const matchesSearch =
-      (job.title?.toLowerCase() ?? "").includes(searchTerm.toLowerCase()) ||
-      (job.company?.toLowerCase() ?? "").includes(searchTerm.toLowerCase())
+      (job.title?.toLowerCase() ?? "").includes(term) ||
+      (job.company?.toLowerCase() ?? "").includes(term) ||
+      (job._source === "chrm" && (job as CHRMJob).company_name?.toLowerCase().includes(term)) ||
+      (job._source === "chrm" && (job as CHRMJob).industry?.toLowerCase().includes(term))
 
     if (!matchesSearch) return false
 
@@ -184,8 +274,19 @@ export default function Jobs() {
       if (job._source === "manual") {
         if (job.remoteType !== filters.remote) return false
       } else {
-        const model = job.work_model?.toLowerCase()
+        const model = (job as CHRMJob).work_model?.toLowerCase()
         if (model !== filters.remote) return false
+      }
+    }
+
+    // Filter by job type (contract_type for CHRM, employmentType for manual)
+    if (filters.salary !== "all") {
+      if (job._source === "manual") {
+        if ((job as ManualJob).employmentType !== filters.salary) return false
+      } else {
+        const ct = (job as CHRMJob).contract_type?.toLowerCase()
+        if (filters.salary === "contract" && ct && !["w2", "w2_or_c2c"].includes(ct)) return false
+        if (filters.salary === "consulting" && ct && !["c2c", "1099", "w2_or_c2c"].includes(ct)) return false
       }
     }
 
@@ -396,10 +497,15 @@ export default function Jobs() {
           <div>
             <p className="text-muted-foreground font-medium">
               {filteredJobs.length} {filteredJobs.length === 1 ? "job" : "jobs"} found
+              {chrmLoading && !manualLoading && (
+                <span className="text-xs text-blue-600 ml-2 animate-pulse">
+                  Loading CHRM NEXUS listings...
+                </span>
+              )}
             </p>
             {chrmJobs.length > 0 && (
               <p className="text-xs text-muted-foreground mt-0.5">
-                Includes {chrmJobs.filter(j => filteredJobs.some(f => f.id === j.id)).length} Nexus Hot Jobs (Posted Recently)
+                Includes {chrmJobs.filter(j => filteredJobs.some(f => f.id === j.id)).length} CHRM NEXUS exclusive roles (Contract & Consulting)
               </p>
             )}
           </div>
@@ -451,9 +557,23 @@ export default function Jobs() {
                             Nexus Hot Job
                           </Badge>
                         </div>
-                        <p className="text-muted-foreground premium-body text-sm">
-                          {cj.company_name || cj.company}
-                        </p>
+                        {/* Company name — posting company from email domain, end client from company_name */}
+                        {(() => {
+                          const { poster, endClient } = getDisplayCompany(cj)
+                          const displayName = poster || endClient || cj.company
+                          return (
+                            <div className="flex items-center gap-1.5 text-sm text-muted-foreground premium-body">
+                              <Building2 className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                              <span className="font-medium">{displayName}</span>
+                              {poster && endClient && (
+                                <span className="text-muted-foreground/70">· for {endClient}</span>
+                              )}
+                              {cj.industry && (
+                                <span className="text-muted-foreground/70">· {cj.industry}</span>
+                              )}
+                            </div>
+                          )
+                        })()}
                       </div>
                     </div>
 
@@ -475,7 +595,7 @@ export default function Jobs() {
                       )}
                       {cj.contract_type && (
                         <span className="inline-flex items-center gap-1 bg-purple-50 text-purple-700 px-2.5 py-1 rounded-full text-xs">
-                          {cj.contract_type}
+                          {contractLabel(cj.contract_type)}
                         </span>
                       )}
                       {cj.seniority_level && (
