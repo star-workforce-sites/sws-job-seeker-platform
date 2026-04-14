@@ -2,6 +2,7 @@ import { sql } from "@vercel/postgres"
 import { redirect } from "next/navigation"
 import { Metadata } from "next"
 import Link from "next/link"
+import Script from "next/script"
 
 interface Props {
   params: Promise<{ code: string }>
@@ -23,333 +24,445 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   if (!partner) return { title: "Career Accel Platform" }
 
   return {
-    title: `${partner.name} — Career Accel Platform | AI-Powered Job Search`,
-    description: partner.landing_headline || `Stop applying blindly. Get AI-powered resume optimization, real-time market intelligence, and recruiter support. Referred by ${partner.name}.`,
+    title: `${partner.name} | Career Accel Platform — AI Resume Tools & Job Market Intelligence`,
+    description: "AI-powered resume optimization, real-time consulting rate data, exclusive contract roles, and dedicated recruiter support. Free ATS scan included.",
+    keywords: [
+      "AI resume optimizer", "ATS resume checker", "career acceleration platform",
+      "consulting rate data", "contract job search", "recruiter assistance",
+      "resume distribution service", "job market intelligence", "career tools",
+      "IT consulting jobs", "staffing agency alternative", "resume marketing",
+    ].join(", "),
+    openGraph: {
+      title: `Career Accel Platform — AI-Powered Career Tools`,
+      description: "AI resume optimization, real-time market intelligence, and recruiter support. Free to sign up.",
+      url: `https://www.starworkforcesolutions.com/partner/${code}`,
+      siteName: "Career Accel Platform",
+      type: "website",
+    },
+    alternates: {
+      canonical: `https://www.starworkforcesolutions.com/partner/${code}`,
+    },
   }
 }
 
 export default async function PartnerLandingPage({ params }: Props) {
   const { code } = await params
   const partner = await getPartner(code)
+  if (!partner) redirect("/")
 
-  if (!partner) {
-    redirect("/")
-  }
-
-  const headline = partner.landing_headline || "Stop Sending Resumes Into the Void"
-  const bio = partner.landing_bio || `Most job seekers waste months applying with the wrong resume to the wrong roles. Career Accel Platform uses AI and real market data to fix that — so you spend less time applying and more time interviewing.`
-
-  const signupUrl = `/auth/signup?ref=${partner.referral_code}`
+  const headline = partner.landing_headline || "AI-Powered Tools to Help You Navigate the Job Market Smarter"
+  const bio = partner.landing_bio || "Career Accel Platform combines AI resume analysis, real-time consulting rate data, exclusive contract roles from staffing firms, and optional recruiter support — all in one place."
+  const ref = partner.referral_code
+  const signupUrl = `/auth/signup?ref=${ref}`
+  const gaId = process.env.NEXT_PUBLIC_GA_ID
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-[#0A1A2F] via-[#132A47] to-[#0A1A2F]">
-      {/* ── Header ─────────────────────────────────────────── */}
-      <header className="border-b border-white/10 bg-[#0A1A2F]/90 backdrop-blur-lg sticky top-0 z-20">
-        <div className="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between">
-          <Link href="/" className="flex items-center gap-2">
-            <span className="text-[#E8C547] font-bold text-lg">Career Accel Platform</span>
-            <span className="text-gray-500 text-xs hidden sm:inline">powered by STAR Workforce Solutions</span>
-          </Link>
-          <Link
-            href={signupUrl}
-            className="bg-[#E8C547] text-[#0A1A2F] px-5 py-2 rounded-lg font-bold hover:bg-[#D4AF37] transition text-sm shadow-lg shadow-[#E8C547]/20"
-          >
-            Start Free
-          </Link>
-        </div>
-      </header>
+    <>
+      {/* ── Google Analytics ─────────────────────────────── */}
+      {gaId && (
+        <>
+          <Script src={`https://www.googletagmanager.com/gtag/js?id=${gaId}`} strategy="afterInteractive" />
+          <Script id="ga-partner" strategy="afterInteractive">{`
+            window.dataLayer = window.dataLayer || [];
+            function gtag(){dataLayer.push(arguments);}
+            gtag('js', new Date());
+            gtag('config', '${gaId}', { page_path: window.location.pathname, send_page_view: true });
+          `}</Script>
+        </>
+      )}
 
-      {/* ── Hero ───────────────────────────────────────────── */}
-      <section className="max-w-6xl mx-auto px-4 pt-16 md:pt-24 pb-8 text-center">
-        {partner.landing_image && (
-          <div className="w-20 h-20 rounded-full overflow-hidden mx-auto mb-5 border-2 border-[#E8C547]/60 shadow-lg shadow-[#E8C547]/10">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={partner.landing_image} alt={partner.name} className="w-full h-full object-cover" />
-          </div>
-        )}
+      {/* ── JSON-LD Structured Data ──────────────────────── */}
+      <Script id="ld-json" type="application/ld+json" strategy="afterInteractive">{`
+        {
+          "@context": "https://schema.org",
+          "@type": "WebPage",
+          "name": "Career Accel Platform — Partner Page",
+          "description": "AI resume tools, market intelligence, and recruiter support for job seekers.",
+          "url": "https://www.starworkforcesolutions.com/partner/${ref}",
+          "publisher": {
+            "@type": "Organization",
+            "name": "STAR Workforce Solutions",
+            "legalName": "Startek LLC",
+            "url": "https://www.starworkforcesolutions.com"
+          }
+        }
+      `}</Script>
 
-        <div className="inline-block bg-[#E8C547]/10 border border-[#E8C547]/30 rounded-full px-4 py-1.5 mb-6">
-          <span className="text-[#E8C547] text-sm font-medium">Recommended by {partner.name}</span>
-        </div>
+      <div className="min-h-screen bg-[#0A1A2F]" style={{ fontFamily: "'Open Sans', sans-serif" }}>
 
-        <h1 className="text-4xl md:text-6xl font-bold text-white mb-6 leading-tight max-w-4xl mx-auto">
-          {headline}
-        </h1>
-
-        <p className="text-gray-300 text-lg md:text-xl max-w-2xl mx-auto mb-8 leading-relaxed">
-          {bio}
-        </p>
-
-        {/* Hero CTA */}
-        <div className="flex flex-col sm:flex-row gap-4 justify-center mb-6">
-          <Link
-            href={signupUrl}
-            className="inline-flex items-center justify-center bg-[#E8C547] text-[#0A1A2F] px-10 py-4 rounded-xl font-bold text-lg hover:bg-[#D4AF37] transition shadow-xl shadow-[#E8C547]/25 hover:shadow-[#E8C547]/40"
-          >
-            Create Your Free Account
-            <svg className="w-5 h-5 ml-2" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M13 7l5 5m0 0l-5 5m5-5H6" /></svg>
-          </Link>
-        </div>
-        <p className="text-gray-500 text-sm">No credit card required. Free ATS scan + market intelligence included.</p>
-      </section>
-
-      {/* ── Free Features Highlight ────────────────────────── */}
-      <section className="max-w-6xl mx-auto px-4 py-16">
-        <div className="text-center mb-12">
-          <span className="inline-block bg-green-500/10 border border-green-500/30 rounded-full px-4 py-1 text-green-400 text-sm font-medium mb-4">FREE — No Purchase Required</span>
-          <h2 className="text-3xl md:text-4xl font-bold text-white mb-3">
-            See What You Get <span className="text-[#E8C547]">Before You Pay</span>
-          </h2>
-          <p className="text-gray-400 max-w-xl mx-auto">
-            Sign up and instantly access these tools — no trial period, no expiration.
-          </p>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div className="bg-white/5 backdrop-blur-lg border border-green-500/20 rounded-xl p-6 relative overflow-hidden">
-            <div className="absolute top-3 right-3 bg-green-500/20 text-green-400 text-xs font-bold px-2 py-0.5 rounded-full">FREE</div>
-            <div className="text-4xl mb-4">🎯</div>
-            <h3 className="text-white font-bold text-lg mb-2">Free ATS Resume Scan</h3>
-            <p className="text-gray-400 text-sm leading-relaxed">
-              Upload your resume and get an instant ATS compatibility score. See exactly what recruiters and applicant tracking systems see — formatting issues, missing keywords, and how your resume stacks up.
-            </p>
-          </div>
-
-          <div className="bg-white/5 backdrop-blur-lg border border-green-500/20 rounded-xl p-6 relative overflow-hidden">
-            <div className="absolute top-3 right-3 bg-green-500/20 text-green-400 text-xs font-bold px-2 py-0.5 rounded-full">FREE</div>
-            <div className="text-4xl mb-4">📊</div>
-            <h3 className="text-white font-bold text-lg mb-2">Real-Time Market Intelligence</h3>
-            <p className="text-gray-400 text-sm leading-relaxed">
-              See live consulting rate ranges by industry, the hottest job markets, which sectors are hiring now, and what employers are actually paying. Data pulled from real job postings — updated daily.
-            </p>
-          </div>
-
-          <div className="bg-white/5 backdrop-blur-lg border border-green-500/20 rounded-xl p-6 relative overflow-hidden">
-            <div className="absolute top-3 right-3 bg-green-500/20 text-green-400 text-xs font-bold px-2 py-0.5 rounded-full">FREE</div>
-            <div className="text-4xl mb-4">🔥</div>
-            <h3 className="text-white font-bold text-lg mb-2">Hot Jobs &amp; Live Feed</h3>
-            <p className="text-gray-400 text-sm leading-relaxed">
-              Access a live feed of consulting and contract roles from staffing firms across the country. See which jobs are trending, save roles you like, and get a head start before they fill up.
-            </p>
-          </div>
-        </div>
-      </section>
-
-      {/* ── The Problem / Solution ─────────────────────────── */}
-      <section className="max-w-5xl mx-auto px-4 py-16">
-        <div className="bg-gradient-to-r from-red-500/5 to-transparent border border-red-500/10 rounded-2xl p-8 md:p-10 mb-8">
-          <h3 className="text-red-400 font-bold text-sm uppercase tracking-wider mb-3">The Problem</h3>
-          <p className="text-white text-xl md:text-2xl font-medium leading-relaxed">
-            75% of resumes are rejected by ATS software before a human ever sees them. You could be the perfect candidate — and still get auto-filtered because of formatting, missing keywords, or a generic cover letter.
-          </p>
-        </div>
-
-        <div className="bg-gradient-to-r from-[#E8C547]/5 to-transparent border border-[#E8C547]/20 rounded-2xl p-8 md:p-10">
-          <h3 className="text-[#E8C547] font-bold text-sm uppercase tracking-wider mb-3">The Solution</h3>
-          <p className="text-white text-xl md:text-2xl font-medium leading-relaxed">
-            Career Accel Platform uses GPT-4o AI to rewrite your resume for each role, generate targeted cover letters, and show you real-time market data so you know <em className="text-[#E8C547]">exactly</em> where to aim and what to charge.
-          </p>
-        </div>
-      </section>
-
-      {/* ── Paid Services ──────────────────────────────────── */}
-      <section className="max-w-6xl mx-auto px-4 py-16">
-        <div className="text-center mb-12">
-          <h2 className="text-3xl md:text-4xl font-bold text-white mb-3">
-            Premium Tools That <span className="text-[#E8C547]">Land Interviews</span>
-          </h2>
-          <p className="text-gray-400 max-w-xl mx-auto">
-            Affordable, one-time purchases. No subscriptions required for AI tools.
-          </p>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {/* ATS Optimizer */}
-          <div className="bg-white/5 backdrop-blur-lg border border-white/10 rounded-xl p-6 hover:border-[#E8C547]/40 transition group">
-            <div className="flex items-start justify-between mb-4">
-              <div className="bg-blue-500/10 rounded-lg p-3">
-                <svg className="w-6 h-6 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+        {/* ═══════════════════════════════════════════════════ */}
+        {/* HEADER                                             */}
+        {/* ═══════════════════════════════════════════════════ */}
+        <header className="border-b border-white/10 bg-[#0A1A2F]/95 backdrop-blur-xl sticky top-0 z-30">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 py-3 flex items-center justify-between">
+            <Link href="/" className="flex items-center gap-2.5">
+              {/* Same logo as login/nav */}
+              <div className="w-9 h-9 bg-[#E8C547] rounded flex items-center justify-center shadow-md">
+                <svg className="w-5 h-5 text-[#0A1A2F]" fill="currentColor" viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
               </div>
-              <span className="bg-[#E8C547]/10 text-[#E8C547] font-bold px-3 py-1 rounded-full text-sm">$5</span>
-            </div>
-            <h3 className="text-white font-bold text-xl mb-2">ATS Resume Optimizer</h3>
-            <p className="text-gray-400 text-sm leading-relaxed mb-4">
-              AI rewrites your resume to pass ATS filters for a specific job posting. Get keyword optimization, formatting fixes, and a detailed score breakdown. One purchase, unlimited revisions for that role.
-            </p>
-            <div className="flex flex-wrap gap-2">
-              <span className="text-xs bg-white/5 text-gray-300 px-2 py-1 rounded">ATS Score Analysis</span>
-              <span className="text-xs bg-white/5 text-gray-300 px-2 py-1 rounded">Keyword Matching</span>
-              <span className="text-xs bg-white/5 text-gray-300 px-2 py-1 rounded">PDF Export</span>
+              <div className="hidden sm:block leading-tight">
+                <span className="text-white font-bold text-sm tracking-wider block" style={{ fontFamily: "Montserrat, sans-serif", fontWeight: 700 }}>
+                  Career Accel Platform
+                </span>
+                <span className="text-gray-500 text-[10px] tracking-wide" style={{ fontFamily: "Montserrat, sans-serif" }}>
+                  powered by STAR Workforce Solutions
+                </span>
+              </div>
+            </Link>
+            <div className="flex items-center gap-3">
+              <Link href="/auth/login" className="text-gray-400 hover:text-white text-sm transition hidden sm:inline">
+                Sign In
+              </Link>
+              <Link href={signupUrl} className="bg-[#E8C547] text-[#0A1A2F] px-5 py-2 rounded-lg font-bold text-sm hover:bg-[#D4AF37] transition shadow-lg shadow-[#E8C547]/20">
+                Get Started Free
+              </Link>
             </div>
           </div>
+        </header>
 
-          {/* Cover Letter */}
-          <div className="bg-white/5 backdrop-blur-lg border border-white/10 rounded-xl p-6 hover:border-[#E8C547]/40 transition group">
-            <div className="flex items-start justify-between mb-4">
-              <div className="bg-purple-500/10 rounded-lg p-3">
-                <svg className="w-6 h-6 text-purple-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
+        {/* ═══════════════════════════════════════════════════ */}
+        {/* HERO                                               */}
+        {/* ═══════════════════════════════════════════════════ */}
+        <section className="relative overflow-hidden">
+          {/* Subtle gradient backdrop */}
+          <div className="absolute inset-0 bg-gradient-to-br from-[#0A1A2F] via-[#132A47] to-[#0A1A2F]" />
+          <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-[#E8C547]/5 rounded-full blur-[120px] -translate-y-1/2 translate-x-1/3" />
+
+          <div className="relative max-w-6xl mx-auto px-4 sm:px-6 pt-16 sm:pt-24 pb-16 text-center">
+            {partner.landing_image && (
+              <div className="w-16 h-16 rounded-full overflow-hidden mx-auto mb-4 border-2 border-[#E8C547]/50 shadow-lg">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={partner.landing_image} alt={partner.name} className="w-full h-full object-cover" />
               </div>
-              <span className="bg-[#E8C547]/10 text-[#E8C547] font-bold px-3 py-1 rounded-full text-sm">$5</span>
+            )}
+
+            <div className="inline-flex items-center bg-white/5 border border-white/10 rounded-full px-4 py-1.5 mb-8">
+              <span className="text-[#E8C547] text-sm" style={{ fontFamily: "Montserrat, sans-serif" }}>Recommended by <strong>{partner.name}</strong></span>
             </div>
-            <h3 className="text-white font-bold text-xl mb-2">AI Cover Letter Generator</h3>
-            <p className="text-gray-400 text-sm leading-relaxed mb-4">
-              Generates a unique, role-specific cover letter that references the company, the job requirements, and your experience. No more generic templates — each letter is one-of-a-kind.
+
+            <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold text-white mb-5 leading-tight max-w-3xl mx-auto" style={{ fontFamily: "Montserrat, sans-serif", fontWeight: 700 }}>
+              {headline}
+            </h1>
+
+            <p className="text-gray-300 text-base sm:text-lg max-w-2xl mx-auto mb-8 leading-relaxed">
+              {bio}
             </p>
-            <div className="flex flex-wrap gap-2">
-              <span className="text-xs bg-white/5 text-gray-300 px-2 py-1 rounded">Job-Matched</span>
-              <span className="text-xs bg-white/5 text-gray-300 px-2 py-1 rounded">Company Research</span>
-              <span className="text-xs bg-white/5 text-gray-300 px-2 py-1 rounded">Tone Customization</span>
-            </div>
-          </div>
 
-          {/* Resume Distribution */}
-          <div className="bg-white/5 backdrop-blur-lg border border-white/10 rounded-xl p-6 hover:border-[#E8C547]/40 transition group">
-            <div className="flex items-start justify-between mb-4">
-              <div className="bg-orange-500/10 rounded-lg p-3">
-                <svg className="w-6 h-6 text-orange-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" /></svg>
-              </div>
-              <span className="bg-[#E8C547]/10 text-[#E8C547] font-bold px-3 py-1 rounded-full text-sm">$149</span>
-            </div>
-            <h3 className="text-white font-bold text-xl mb-2">ResumeBlast Distribution</h3>
-            <p className="text-gray-400 text-sm leading-relaxed mb-4">
-              Your resume gets sent directly to 1,000+ recruiters and hiring managers in your target industry and location. Skip the job boards — let opportunities come to you.
+            <Link href={signupUrl} className="inline-flex items-center bg-[#E8C547] text-[#0A1A2F] px-8 py-3.5 rounded-lg font-bold text-base hover:bg-[#D4AF37] transition shadow-xl shadow-[#E8C547]/20 hover:shadow-[#E8C547]/35" style={{ fontFamily: "Montserrat, sans-serif" }}>
+              Create Your Free Account
+              <svg className="w-4 h-4 ml-2" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M13 7l5 5m0 0l-5 5m5-5H6" /></svg>
+            </Link>
+            <p className="text-gray-500 text-xs mt-4">No credit card required &middot; Free ATS scan included</p>
+
+            {/* Disclaimer inline */}
+            <p className="text-gray-600 text-[11px] mt-6 max-w-lg mx-auto">
+              Not a staffing agency. Services paid upfront. No placement guarantees.
             </p>
-            <div className="flex flex-wrap gap-2">
-              <span className="text-xs bg-white/5 text-gray-300 px-2 py-1 rounded">1,000+ Recruiters</span>
-              <span className="text-xs bg-white/5 text-gray-300 px-2 py-1 rounded">Industry Targeted</span>
-              <span className="text-xs bg-white/5 text-gray-300 px-2 py-1 rounded">Location Filtered</span>
-            </div>
           </div>
+        </section>
 
-          {/* Recruiter Assistance */}
-          <div className="bg-white/5 backdrop-blur-lg border border-[#E8C547]/20 rounded-xl p-6 hover:border-[#E8C547]/40 transition group relative overflow-hidden">
-            <div className="absolute top-0 right-0 bg-[#E8C547] text-[#0A1A2F] text-xs font-bold px-3 py-1 rounded-bl-lg">MOST POPULAR</div>
-            <div className="flex items-start justify-between mb-4">
-              <div className="bg-[#E8C547]/10 rounded-lg p-3">
-                <svg className="w-6 h-6 text-[#E8C547]" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
-              </div>
-              <span className="bg-[#E8C547]/10 text-[#E8C547] font-bold px-3 py-1 rounded-full text-sm">From $199/mo</span>
-            </div>
-            <h3 className="text-white font-bold text-xl mb-2">Recruiter Assistance Program</h3>
-            <p className="text-gray-400 text-sm leading-relaxed mb-4">
-              A dedicated recruiter applies to 90 to 900 jobs per month on your behalf. They handle the grind — submitting applications, following up, and coordinating interviews — while you focus on preparing.
-            </p>
-            <div className="flex flex-wrap gap-2">
-              <span className="text-xs bg-[#E8C547]/10 text-[#E8C547] px-2 py-1 rounded">Basic: 90-150/mo</span>
-              <span className="text-xs bg-[#E8C547]/10 text-[#E8C547] px-2 py-1 rounded">Standard: 300-450/mo</span>
-              <span className="text-xs bg-[#E8C547]/10 text-[#E8C547] px-2 py-1 rounded">Pro: 600-900/mo</span>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* ── How It Works ───────────────────────────────────── */}
-      <section className="max-w-5xl mx-auto px-4 py-16">
-        <h2 className="text-3xl font-bold text-white text-center mb-12">
-          How It Works
-        </h2>
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
-          {[
-            { step: "1", title: "Sign Up Free", desc: "Create your account in 30 seconds. No credit card needed." },
-            { step: "2", title: "Get Your Score", desc: "Upload your resume for a free ATS scan and market intel dashboard." },
-            { step: "3", title: "Optimize & Apply", desc: "Use AI tools to tailor your resume and cover letter for each role." },
-            { step: "4", title: "Land Interviews", desc: "Let our recruiters handle the volume or distribute your resume to 1,000+." },
-          ].map((item) => (
-            <div key={item.step} className="text-center">
-              <div className="w-12 h-12 bg-[#E8C547] text-[#0A1A2F] rounded-full flex items-center justify-center font-bold text-xl mx-auto mb-4">
-                {item.step}
-              </div>
-              <h3 className="text-white font-bold mb-2">{item.title}</h3>
-              <p className="text-gray-400 text-sm">{item.desc}</p>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      {/* ── Market Intel Preview ────────────────────────────── */}
-      <section className="max-w-6xl mx-auto px-4 py-16">
-        <div className="bg-white/5 backdrop-blur-lg border border-white/10 rounded-2xl p-8 md:p-10">
-          <div className="flex flex-col md:flex-row items-center gap-8">
-            <div className="flex-1">
-              <span className="inline-block bg-blue-500/10 text-blue-400 text-xs font-bold px-3 py-1 rounded-full mb-4">MARKET INTELLIGENCE</span>
-              <h3 className="text-2xl md:text-3xl font-bold text-white mb-4">
-                Know Your Worth Before You Negotiate
-              </h3>
-              <p className="text-gray-400 leading-relaxed mb-6">
-                Our dashboard pulls live data from job postings across the country to show you real consulting and contract rate ranges by industry. See what Healthcare IT, Financial Services, Technology, and other sectors are paying right now — so you never undersell yourself.
+        {/* ═══════════════════════════════════════════════════ */}
+        {/* WHAT YOU GET FREE                                   */}
+        {/* ═══════════════════════════════════════════════════ */}
+        <section className="bg-[#0D2137] border-y border-white/5">
+          <div className="max-w-6xl mx-auto px-4 sm:px-6 py-16 sm:py-20">
+            <div className="text-center mb-12">
+              <span className="inline-block bg-green-500/10 border border-green-500/20 rounded-full px-4 py-1 text-green-400 text-xs font-semibold tracking-wider uppercase mb-4" style={{ fontFamily: "Montserrat, sans-serif" }}>Included Free</span>
+              <h2 className="text-2xl sm:text-3xl font-bold text-white mb-3" style={{ fontFamily: "Montserrat, sans-serif", fontWeight: 700 }}>
+                Tools You Can Use <span className="text-[#E8C547]">Right Away</span>
+              </h2>
+              <p className="text-gray-400 text-sm max-w-lg mx-auto">
+                Create an account and start using these features immediately. No trial. No expiration.
               </p>
-              <div className="grid grid-cols-2 gap-3">
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <div className="bg-[#0A1A2F] border border-white/10 rounded-xl p-6 hover:border-green-500/20 transition">
+                <div className="w-10 h-10 bg-green-500/10 rounded-lg flex items-center justify-center mb-4">
+                  <svg className="w-5 h-5 text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                </div>
+                <h3 className="text-white font-semibold text-base mb-2" style={{ fontFamily: "Montserrat, sans-serif" }}>ATS Resume Scan</h3>
+                <p className="text-gray-400 text-sm leading-relaxed">
+                  Upload your resume and get an instant compatibility score. See what applicant tracking systems see — formatting issues, missing keywords, and areas for improvement.
+                </p>
+              </div>
+
+              <div className="bg-[#0A1A2F] border border-white/10 rounded-xl p-6 hover:border-green-500/20 transition">
+                <div className="w-10 h-10 bg-green-500/10 rounded-lg flex items-center justify-center mb-4">
+                  <svg className="w-5 h-5 text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" /></svg>
+                </div>
+                <h3 className="text-white font-semibold text-base mb-2" style={{ fontFamily: "Montserrat, sans-serif" }}>Real-Time Market Intelligence</h3>
+                <p className="text-gray-400 text-sm leading-relaxed">
+                  Live consulting rate ranges by industry, the hottest hiring sectors, and demand trends — pulled from real job postings and updated daily so you can negotiate with confidence.
+                </p>
+              </div>
+
+              <div className="bg-[#0A1A2F] border border-white/10 rounded-xl p-6 hover:border-green-500/20 transition">
+                <div className="w-10 h-10 bg-green-500/10 rounded-lg flex items-center justify-center mb-4">
+                  <svg className="w-5 h-5 text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
+                </div>
+                <h3 className="text-white font-semibold text-base mb-2" style={{ fontFamily: "Montserrat, sans-serif" }}>Exclusive Contract &amp; Consulting Roles</h3>
+                <p className="text-gray-400 text-sm leading-relaxed">
+                  Access a live feed of urgent contract and consulting roles sourced from staffing firms through our CHRM NEXUS integration — roles that are often filled before they reach public job boards.
+                </p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* ═══════════════════════════════════════════════════ */}
+        {/* CHRM NEXUS / EXCLUSIVE ROLES                       */}
+        {/* ═══════════════════════════════════════════════════ */}
+        <section className="max-w-6xl mx-auto px-4 sm:px-6 py-16 sm:py-20">
+          <div className="flex flex-col md:flex-row items-center gap-10">
+            <div className="flex-1">
+              <span className="inline-block bg-blue-500/10 text-blue-400 text-xs font-semibold px-3 py-1 rounded-full mb-4 uppercase tracking-wider" style={{ fontFamily: "Montserrat, sans-serif" }}>CHRM NEXUS Integration</span>
+              <h2 className="text-2xl sm:text-3xl font-bold text-white mb-4" style={{ fontFamily: "Montserrat, sans-serif", fontWeight: 700 }}>
+                Roles You Won&apos;t Find on Job Boards
+              </h2>
+              <p className="text-gray-400 text-sm leading-relaxed mb-5">
+                Most contract and consulting positions are filled before they&apos;re posted publicly. Through our CHRM NEXUS connection, Career Accel surfaces urgent roles directly from staffing firms and employers — including end-client details, rate ranges, and location requirements.
+              </p>
+              <ul className="space-y-3 mb-6">
                 {[
-                  { industry: "Technology", range: "$55-85/hr" },
-                  { industry: "Healthcare IT", range: "$50-75/hr" },
-                  { industry: "Financial Services", range: "$60-95/hr" },
-                  { industry: "Government", range: "$45-70/hr" },
-                ].map((item) => (
-                  <div key={item.industry} className="bg-white/5 rounded-lg px-3 py-2">
-                    <p className="text-xs text-gray-500">{item.industry}</p>
-                    <p className="text-[#E8C547] font-bold">{item.range}</p>
-                  </div>
+                  "Urgent roles from staffing firms updated in real time",
+                  "See the posting company, end client, and industry",
+                  "Filter by location, contract type, and rate range",
+                  "Save roles and track your application activity",
+                ].map((item, i) => (
+                  <li key={i} className="flex items-start gap-2.5 text-sm text-gray-300">
+                    <svg className="w-4 h-4 text-[#E8C547] mt-0.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" /></svg>
+                    {item}
+                  </li>
                 ))}
-              </div>
-              <p className="text-xs text-gray-600 mt-3">* Sample ranges. Live data updates daily on your dashboard.</p>
+              </ul>
+              <Link href={signupUrl} className="inline-flex items-center text-[#E8C547] font-semibold text-sm hover:underline" style={{ fontFamily: "Montserrat, sans-serif" }}>
+                Sign up to browse roles
+                <svg className="w-4 h-4 ml-1" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
+              </Link>
             </div>
-            <div className="flex-1 grid grid-cols-2 gap-4 w-full">
-              <div className="bg-white/5 border border-white/10 rounded-xl p-5 text-center">
-                <div className="text-3xl font-bold text-[#E8C547]">500+</div>
-                <div className="text-gray-400 text-xs mt-1">Active Job Listings</div>
-              </div>
-              <div className="bg-white/5 border border-white/10 rounded-xl p-5 text-center">
-                <div className="text-3xl font-bold text-[#E8C547]">95%</div>
-                <div className="text-gray-400 text-xs mt-1">ATS Pass Rate</div>
-              </div>
-              <div className="bg-white/5 border border-white/10 rounded-xl p-5 text-center">
-                <div className="text-3xl font-bold text-[#E8C547]">8+</div>
-                <div className="text-gray-400 text-xs mt-1">Industries Tracked</div>
-              </div>
-              <div className="bg-white/5 border border-white/10 rounded-xl p-5 text-center">
-                <div className="text-3xl font-bold text-[#E8C547]">1,000+</div>
-                <div className="text-gray-400 text-xs mt-1">Recruiter Network</div>
+
+            {/* Rate preview cards */}
+            <div className="flex-1 w-full">
+              <div className="bg-[#0D2137] border border-white/10 rounded-xl p-6">
+                <p className="text-xs text-gray-500 uppercase tracking-wider mb-4" style={{ fontFamily: "Montserrat, sans-serif" }}>Sample Market Rate Ranges</p>
+                <div className="grid grid-cols-2 gap-3">
+                  {[
+                    { industry: "Technology", range: "$55–85/hr" },
+                    { industry: "Healthcare IT", range: "$50–75/hr" },
+                    { industry: "Financial Services", range: "$60–95/hr" },
+                    { industry: "Government", range: "$45–70/hr" },
+                    { industry: "Energy", range: "$55–80/hr" },
+                    { industry: "Manufacturing", range: "$45–65/hr" },
+                  ].map((item) => (
+                    <div key={item.industry} className="bg-[#0A1A2F] rounded-lg px-3 py-2.5 border border-white/5">
+                      <p className="text-gray-500 text-xs">{item.industry}</p>
+                      <p className="text-[#E8C547] font-bold text-sm" style={{ fontFamily: "Montserrat, sans-serif" }}>{item.range}</p>
+                    </div>
+                  ))}
+                </div>
+                <p className="text-gray-600 text-[10px] mt-3">* Illustrative ranges. Live data updates daily on your dashboard.</p>
               </div>
             </div>
           </div>
-        </div>
-      </section>
+        </section>
 
-      {/* ── Final CTA ──────────────────────────────────────── */}
-      <section className="max-w-4xl mx-auto px-4 py-20 text-center">
-        <div className="bg-gradient-to-b from-[#E8C547]/10 to-transparent border border-[#E8C547]/30 rounded-2xl p-10 md:p-14">
-          <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">
-            Your Next Interview Starts Here
+        {/* ═══════════════════════════════════════════════════ */}
+        {/* PREMIUM SERVICES                                    */}
+        {/* ═══════════════════════════════════════════════════ */}
+        <section className="bg-[#0D2137] border-y border-white/5">
+          <div className="max-w-6xl mx-auto px-4 sm:px-6 py-16 sm:py-20">
+            <div className="text-center mb-12">
+              <h2 className="text-2xl sm:text-3xl font-bold text-white mb-3" style={{ fontFamily: "Montserrat, sans-serif", fontWeight: 700 }}>
+                Premium Career Tools
+              </h2>
+              <p className="text-gray-400 text-sm max-w-lg mx-auto">
+                Affordable, one-time purchases. No subscriptions required for AI tools.
+              </p>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+              {/* ATS Optimizer */}
+              <div className="bg-[#0A1A2F] border border-white/10 rounded-xl p-5 hover:border-[#E8C547]/30 transition flex flex-col">
+                <div className="flex items-center justify-between mb-3">
+                  <div className="w-9 h-9 bg-blue-500/10 rounded-lg flex items-center justify-center">
+                    <svg className="w-4.5 h-4.5 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+                  </div>
+                  <span className="text-[#E8C547] font-bold text-sm" style={{ fontFamily: "Montserrat, sans-serif" }}>$5</span>
+                </div>
+                <h3 className="text-white font-semibold text-sm mb-2" style={{ fontFamily: "Montserrat, sans-serif" }}>ATS Resume Optimizer</h3>
+                <p className="text-gray-400 text-xs leading-relaxed flex-1">
+                  AI rewrites your resume to align with a specific job posting — keyword optimization, formatting fixes, and a detailed score breakdown.
+                </p>
+              </div>
+
+              {/* Cover Letter */}
+              <div className="bg-[#0A1A2F] border border-white/10 rounded-xl p-5 hover:border-[#E8C547]/30 transition flex flex-col">
+                <div className="flex items-center justify-between mb-3">
+                  <div className="w-9 h-9 bg-purple-500/10 rounded-lg flex items-center justify-center">
+                    <svg className="w-4.5 h-4.5 text-purple-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
+                  </div>
+                  <span className="text-[#E8C547] font-bold text-sm" style={{ fontFamily: "Montserrat, sans-serif" }}>$5</span>
+                </div>
+                <h3 className="text-white font-semibold text-sm mb-2" style={{ fontFamily: "Montserrat, sans-serif" }}>AI Cover Letter Generator</h3>
+                <p className="text-gray-400 text-xs leading-relaxed flex-1">
+                  Generates a unique, role-specific cover letter referencing the company, job requirements, and your experience.
+                </p>
+              </div>
+
+              {/* Resume Distribution */}
+              <div className="bg-[#0A1A2F] border border-white/10 rounded-xl p-5 hover:border-[#E8C547]/30 transition flex flex-col">
+                <div className="flex items-center justify-between mb-3">
+                  <div className="w-9 h-9 bg-orange-500/10 rounded-lg flex items-center justify-center">
+                    <svg className="w-4.5 h-4.5 text-orange-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" /></svg>
+                  </div>
+                  <span className="text-[#E8C547] font-bold text-sm" style={{ fontFamily: "Montserrat, sans-serif" }}>$149</span>
+                </div>
+                <h3 className="text-white font-semibold text-sm mb-2" style={{ fontFamily: "Montserrat, sans-serif" }}>ResumeBlast Distribution</h3>
+                <p className="text-gray-400 text-xs leading-relaxed flex-1">
+                  Your resume gets sent to 1,000+ recruiters and hiring managers in your target industry and location.
+                </p>
+              </div>
+
+              {/* Recruiter Assistance */}
+              <div className="bg-[#0A1A2F] border border-[#E8C547]/20 rounded-xl p-5 hover:border-[#E8C547]/40 transition flex flex-col relative">
+                <div className="absolute -top-2.5 right-4 bg-[#E8C547] text-[#0A1A2F] text-[10px] font-bold px-2.5 py-0.5 rounded-full" style={{ fontFamily: "Montserrat, sans-serif" }}>POPULAR</div>
+                <div className="flex items-center justify-between mb-3">
+                  <div className="w-9 h-9 bg-[#E8C547]/10 rounded-lg flex items-center justify-center">
+                    <svg className="w-4.5 h-4.5 text-[#E8C547]" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+                  </div>
+                  <span className="text-[#E8C547] font-bold text-sm" style={{ fontFamily: "Montserrat, sans-serif" }}>From $199/mo</span>
+                </div>
+                <h3 className="text-white font-semibold text-sm mb-2" style={{ fontFamily: "Montserrat, sans-serif" }}>Recruiter Assistance</h3>
+                <p className="text-gray-400 text-xs leading-relaxed flex-1">
+                  A dedicated recruiter submits 90–900 applications per month on your behalf — handling outreach, follow-ups, and coordination.
+                </p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* ═══════════════════════════════════════════════════ */}
+        {/* HOW IT WORKS                                        */}
+        {/* ═══════════════════════════════════════════════════ */}
+        <section className="max-w-5xl mx-auto px-4 sm:px-6 py-16 sm:py-20">
+          <h2 className="text-2xl sm:text-3xl font-bold text-white text-center mb-12" style={{ fontFamily: "Montserrat, sans-serif", fontWeight: 700 }}>
+            How It Works
           </h2>
-          <p className="text-gray-300 text-lg mb-4 max-w-xl mx-auto">
-            Join hundreds of job seekers who stopped guessing and started landing interviews with AI-powered tools and real market data.
-          </p>
-          <p className="text-[#E8C547] font-medium mb-8">
-            Free to sign up. Free ATS scan. Free market intelligence. No catch.
-          </p>
-          <Link
-            href={signupUrl}
-            className="inline-flex items-center justify-center bg-[#E8C547] text-[#0A1A2F] px-12 py-5 rounded-xl font-bold text-xl hover:bg-[#D4AF37] transition shadow-xl shadow-[#E8C547]/25 hover:shadow-[#E8C547]/40"
-          >
-            Create Your Free Account
-            <svg className="w-6 h-6 ml-2" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M13 7l5 5m0 0l-5 5m5-5H6" /></svg>
-          </Link>
-          <p className="text-gray-600 text-xs mt-4">No credit card required</p>
-        </div>
-      </section>
-
-      {/* ── Footer ─────────────────────────────────────────── */}
-      <footer className="border-t border-white/10 py-8">
-        <div className="max-w-6xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-4">
-          <div>
-            <p className="text-[#E8C547] font-bold text-sm">Career Accel Platform</p>
-            <p className="text-gray-600 text-xs">Powered by STAR Workforce Solutions &middot; A Startek LLC Property</p>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-6 sm:gap-8">
+            {[
+              { step: "1", title: "Create Account", desc: "Sign up free in 30 seconds. No credit card." },
+              { step: "2", title: "Scan Your Resume", desc: "Get a free ATS compatibility score and improvement areas." },
+              { step: "3", title: "Explore the Market", desc: "Browse rate data, hot industries, and exclusive contract roles." },
+              { step: "4", title: "Take Action", desc: "Optimize your resume, generate cover letters, or enlist recruiter help." },
+            ].map((item) => (
+              <div key={item.step} className="text-center">
+                <div className="w-10 h-10 bg-[#E8C547] text-[#0A1A2F] rounded-full flex items-center justify-center font-bold text-base mx-auto mb-3" style={{ fontFamily: "Montserrat, sans-serif" }}>
+                  {item.step}
+                </div>
+                <h3 className="text-white font-semibold text-sm mb-1.5" style={{ fontFamily: "Montserrat, sans-serif" }}>{item.title}</h3>
+                <p className="text-gray-400 text-xs leading-relaxed">{item.desc}</p>
+              </div>
+            ))}
           </div>
-          <p className="text-gray-600 text-xs">
-            &copy; {new Date().getFullYear()} Startek LLC. All rights reserved.
+        </section>
+
+        {/* ═══════════════════════════════════════════════════ */}
+        {/* STATS BAR                                           */}
+        {/* ═══════════════════════════════════════════════════ */}
+        <section className="bg-[#0D2137] border-y border-white/5">
+          <div className="max-w-5xl mx-auto px-4 sm:px-6 py-10">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-6 text-center">
+              <div>
+                <div className="text-2xl font-bold text-[#E8C547]" style={{ fontFamily: "Montserrat, sans-serif" }}>500+</div>
+                <div className="text-gray-500 text-xs mt-1">Active Job Listings</div>
+              </div>
+              <div>
+                <div className="text-2xl font-bold text-[#E8C547]" style={{ fontFamily: "Montserrat, sans-serif" }}>8+</div>
+                <div className="text-gray-500 text-xs mt-1">Industries Tracked</div>
+              </div>
+              <div>
+                <div className="text-2xl font-bold text-[#E8C547]" style={{ fontFamily: "Montserrat, sans-serif" }}>1,000+</div>
+                <div className="text-gray-500 text-xs mt-1">Recruiter Network</div>
+              </div>
+              <div>
+                <div className="text-2xl font-bold text-[#E8C547]" style={{ fontFamily: "Montserrat, sans-serif" }}>Daily</div>
+                <div className="text-gray-500 text-xs mt-1">Market Data Updates</div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* ═══════════════════════════════════════════════════ */}
+        {/* FINAL CTA                                           */}
+        {/* ═══════════════════════════════════════════════════ */}
+        <section className="max-w-4xl mx-auto px-4 sm:px-6 py-16 sm:py-20 text-center">
+          <h2 className="text-2xl sm:text-3xl font-bold text-white mb-4" style={{ fontFamily: "Montserrat, sans-serif", fontWeight: 700 }}>
+            Ready to Take the Next Step?
+          </h2>
+          <p className="text-gray-400 text-sm mb-3 max-w-lg mx-auto">
+            Create a free account to access your ATS scan, market intelligence dashboard, and exclusive contract roles. Upgrade to premium tools only when you&apos;re ready.
           </p>
-        </div>
-      </footer>
-    </div>
+          <p className="text-gray-600 text-xs mb-8">
+            Not a staffing agency. Services paid upfront. No placement guarantees.
+          </p>
+          <Link href={signupUrl} className="inline-flex items-center bg-[#E8C547] text-[#0A1A2F] px-10 py-4 rounded-lg font-bold text-base hover:bg-[#D4AF37] transition shadow-xl shadow-[#E8C547]/20" style={{ fontFamily: "Montserrat, sans-serif" }}>
+            Create Your Free Account
+            <svg className="w-4 h-4 ml-2" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M13 7l5 5m0 0l-5 5m5-5H6" /></svg>
+          </Link>
+          <p className="text-gray-600 text-[11px] mt-3">No credit card required</p>
+        </section>
+
+        {/* ═══════════════════════════════════════════════════ */}
+        {/* FOOTER                                              */}
+        {/* ═══════════════════════════════════════════════════ */}
+        <footer className="border-t border-white/10 bg-[#07111F]">
+          <div className="max-w-6xl mx-auto px-4 sm:px-6 py-10">
+            {/* Legal Disclaimer */}
+            <div className="mb-8 text-center">
+              <p className="text-gray-500 text-[11px] leading-relaxed max-w-3xl mx-auto">
+                STAR Workforce Solutions is a resume marketing and distribution service. We do not guarantee employment.
+                We are not a staffing agency or employment agency. We charge for resume marketing and recruiter support
+                services, not job placement. Offshore recruiters are independent contractors and not employees of the
+                job seeker or STAR Workforce Solutions. All services are paid upfront and are NOT contingent on job
+                placement. AI tools may be used to assist with resume analysis and distribution. Users must verify all
+                AI-generated output.
+              </p>
+            </div>
+
+            {/* Compliance badges */}
+            <div className="flex flex-wrap justify-center gap-4 mb-8">
+              {[
+                { label: "256-bit SSL", icon: "🔒" },
+                { label: "GDPR Compliant", icon: "🛡️" },
+                { label: "FTC Compliant", icon: "✓" },
+              ].map((badge) => (
+                <div key={badge.label} className="flex items-center gap-1.5 bg-white/5 border border-white/10 rounded-full px-3 py-1">
+                  <span className="text-xs">{badge.icon}</span>
+                  <span className="text-gray-400 text-[10px] font-medium">{badge.label}</span>
+                </div>
+              ))}
+            </div>
+
+            {/* Links */}
+            <div className="flex flex-wrap justify-center gap-4 mb-6 text-[11px]">
+              <Link href="/privacy" className="text-gray-500 hover:text-gray-300 transition">Privacy Policy</Link>
+              <Link href="/terms" className="text-gray-500 hover:text-gray-300 transition">Terms of Service</Link>
+              <Link href="/disclaimer" className="text-gray-500 hover:text-gray-300 transition">Disclaimer</Link>
+              <Link href="/contact" className="text-gray-500 hover:text-gray-300 transition">Contact</Link>
+            </div>
+
+            {/* Branding */}
+            <div className="text-center">
+              <p className="text-white font-bold text-sm" style={{ fontFamily: "Montserrat, sans-serif" }}>Career Accel Platform</p>
+              <p className="text-gray-600 text-[10px] mt-1">Powered by STAR Workforce Solutions</p>
+              <p className="text-gray-600 text-[10px] mt-2">
+                &copy; {new Date().getFullYear()} STAR Workforce Solutions. All rights reserved. Since 2013. Consulting &amp; Contract Services Only — USA &amp; Canada.
+              </p>
+            </div>
+          </div>
+        </footer>
+      </div>
+    </>
   )
 }
