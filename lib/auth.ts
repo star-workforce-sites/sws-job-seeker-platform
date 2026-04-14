@@ -17,6 +17,7 @@ const ADMIN_EMAILS = [
 ]
 
 // Determine auto-assigned role based on email
+// Note: "partner" role is assigned manually by admin, not auto-detected
 function getAutoRole(email: string): "admin" | "recruiter" | "jobseeker" {
   const lower = email.toLowerCase()
   if (ADMIN_EMAILS.includes(lower)) return "admin"

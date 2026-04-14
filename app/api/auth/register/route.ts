@@ -16,7 +16,7 @@ export async function POST(req: NextRequest) {
     )
   }
 
-  const { name, email, password } = body
+  const { name, email, password, referralCode } = body
 
   // ── Validate required fields ────────────────────────────────
   if (!name || !email || !password) {
@@ -73,6 +73,7 @@ export async function POST(req: NextRequest) {
         password,
         role,
         email_verified,
+        referred_by,
         updated_at
       ) VALUES (
         ${name.trim()},
@@ -80,12 +81,34 @@ export async function POST(req: NextRequest) {
         ${hashedPassword},
         'jobseeker',
         false,
+        ${referralCode || null},
         NOW()
       )
       RETURNING id, name, email, role
     `
 
     const newUser = result.rows[0]
+
+    // ── Create partner referral record (non-blocking) ─────────
+    if (referralCode) {
+      (async () => {
+        try {
+          const partnerResult = await sql`
+            SELECT id FROM partners WHERE referral_code = ${referralCode.toLowerCase()} AND status = 'active' LIMIT 1
+          `
+          if (partnerResult.rows.length > 0) {
+            await sql`
+              INSERT INTO partner_referrals (partner_id, user_id, referral_code, source)
+              VALUES (${partnerResult.rows[0].id}, ${newUser.id}, ${referralCode.toLowerCase()}, 'signup')
+              ON CONFLICT (user_id) DO NOTHING
+            `
+            console.log("[register] Partner referral recorded:", referralCode, "→", newUser.email)
+          }
+        } catch (refErr) {
+          console.error("[register] Referral tracking failed (non-blocking):", refErr)
+        }
+      })()
+    }
 
     // ── Send welcome email (non-blocking) ─────────────────────
     sendWelcomeEmail({

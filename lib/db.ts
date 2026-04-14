@@ -20,7 +20,7 @@ export interface User {
   name: string | null
   email: string
   emailVerified: Date | null
-  role: "jobseeker" | "employer" | "employer-pending" | "admin"
+  role: "jobseeker" | "employer" | "employer-pending" | "admin" | "recruiter" | "partner"
   atsPremium: boolean
   createdAt: Date
 }

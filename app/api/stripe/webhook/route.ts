@@ -5,12 +5,54 @@ import { neon } from "@neondatabase/serverless"
 import { sendSubscriptionConfirmationEmail, sendAdminNotificationEmail, sendPurchaseNotificationEmail, getPlanDetails } from "@/lib/send-recruiter-emails"
 import { triggerResumeDistribution } from "@/lib/resumeblast"
 import { getDbUrl } from "@/lib/db"
+import { getReferralByUserId, createCommission, calculateCommission } from "@/lib/partners"
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || "", {
   apiVersion: "2024-11-20.acacia",
 })
 
 const sqlNeon = neon(getDbUrl())
+
+// ── Partner commission helper (non-blocking) ─────────────────
+async function logPartnerCommission(
+  userId: string,
+  grossAmount: number,
+  product: string,
+  transactionType: "one_time" | "subscription",
+  stripeSessionId?: string
+) {
+  try {
+    const referral = await getReferralByUserId(userId)
+    if (!referral) return // Not a referred user
+
+    const { stripe_fee, overhead_amount, net_amount, commission_amount } = calculateCommission(
+      grossAmount,
+      referral.partner_tier as "affiliate" | "sales",
+      referral.partner_commission_rate,
+      referral.partner_overhead_pct,
+      0 // recruiter cost — admin can adjust manually
+    )
+
+    await createCommission({
+      partner_id: referral.partner_id,
+      referral_id: referral.id,
+      user_id: userId,
+      transaction_type: transactionType,
+      product,
+      gross_amount: grossAmount,
+      stripe_fee,
+      overhead_amount,
+      net_amount,
+      commission_rate: referral.partner_commission_rate,
+      commission_amount,
+      stripe_session_id: stripeSessionId,
+    })
+
+    console.log(`[Webhook] Partner commission logged: $${commission_amount} for ${product} (partner: ${referral.partner_id})`)
+  } catch (err) {
+    console.error("[Webhook] Partner commission logging failed (non-blocking):", err)
+  }
+}
 
 // Price IDs
 const NEW_PRICE_IDS = {
@@ -113,6 +155,17 @@ export async function POST(request: NextRequest) {
 
         console.log("[Webhook] Subscription record created")
 
+        // Log partner commission (non-blocking)
+        if (userId && session.amount_total) {
+          logPartnerCommission(
+            userId,
+            session.amount_total / 100,
+            subscriptionType,
+            "subscription",
+            session.id
+          ).catch(() => {})
+        }
+
         // NEW: Send email notifications (only for recruiter subscriptions)
         if (subscriptionType.startsWith('recruiter_')) {
           const planDetails = getPlanDetails(subscriptionType)
@@ -191,6 +244,20 @@ export async function POST(request: NextRequest) {
             })
           } catch (rbErr) {
             console.error("[Webhook] ResumeBlast trigger failed:", rbErr)
+          }
+        }
+
+        // Log partner commission for one-time purchase (non-blocking)
+        if (customerEmail && session.amount_total) {
+          const userLookup = await sqlNeon`SELECT id FROM users WHERE email = ${customerEmail} LIMIT 1`
+          if (userLookup.length > 0) {
+            logPartnerCommission(
+              userLookup[0].id,
+              session.amount_total / 100,
+              product,
+              "one_time",
+              session.id
+            ).catch(() => {})
           }
         }
 

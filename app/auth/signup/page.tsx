@@ -1,16 +1,19 @@
 'use client'
 
 import { signIn } from 'next-auth/react'
-import { useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { useState, Suspense } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import Navigation from '@/components/navigation'
 import Footer from '@/components/footer'
 
-export default function SignUp() {
+function SignUpForm() {
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const refCode = searchParams.get('ref') || ''
+
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -47,6 +50,7 @@ export default function SignUp() {
           name: formData.name,
           email: formData.email,
           password: formData.password,
+          ...(refCode ? { referralCode: refCode } : {}),
         }),
       })
 
@@ -64,7 +68,9 @@ export default function SignUp() {
   }
 
   const handleOAuthSignIn = (provider: 'google' | 'linkedin') => {
-    signIn(provider, { callbackUrl: '/dashboard' })
+    // Pass ref code through OAuth callback so it persists
+    const callbackUrl = refCode ? `/dashboard?ref=${refCode}` : '/dashboard'
+    signIn(provider, { callbackUrl })
   }
 
   return (
@@ -76,6 +82,11 @@ export default function SignUp() {
           <div className="text-center mb-8">
             <h1 className="text-3xl font-bold text-foreground premium-heading">Create Account</h1>
             <p className="text-muted-foreground mt-2 premium-body">Join STAR Workforce Solutions to accelerate your job search</p>
+            {refCode && (
+              <p className="text-sm text-[#E8C547] mt-2">
+                You were referred by a STAR Partner
+              </p>
+            )}
           </div>
 
           {error && (
@@ -195,5 +206,17 @@ export default function SignUp() {
 
       <Footer />
     </div>
+  )
+}
+
+export default function SignUp() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#E8C547]"></div>
+      </div>
+    }>
+      <SignUpForm />
+    </Suspense>
   )
 }
