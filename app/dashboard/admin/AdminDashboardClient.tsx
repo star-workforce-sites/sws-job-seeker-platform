@@ -17,7 +17,7 @@ import {
   Users, Clock, CheckCircle, AlertCircle, RefreshCw, UserCheck,
   Briefcase, Search, Shield, Ban, Plus, ChevronRight,
   BarChart3, Activity, Eye, BookmarkIcon, UserPlus, TrendingUp,
-  Loader2, XCircle,
+  Loader2, XCircle, Handshake, DollarSign, Link2, Copy, Check,
 } from "lucide-react"
 
 // ── Types ────────────────────────────────────────────────────
@@ -97,6 +97,37 @@ interface OverviewStats {
   }
 }
 
+interface PartnerRecord {
+  id: string
+  name: string
+  email: string
+  phone: string | null
+  referral_code: string
+  tier: "affiliate" | "sales"
+  commission_rate: number
+  status: string
+  overhead_pct: number
+  landing_headline: string | null
+  landing_bio: string | null
+  notes: string | null
+  created_at: string
+  referral_count: number
+  total_commission: number
+  pending_commission: number
+}
+
+interface PartnerCommission {
+  id: string
+  partner_name: string
+  partner_tier: string
+  user_email: string
+  product: string
+  gross_amount: number
+  commission_amount: number
+  status: string
+  created_at: string
+}
+
 interface RecruiterPerf {
   recruiter_id: string
   recruiter_name: string
@@ -127,11 +158,21 @@ function roleColor(r: string): string {
     recruiter: "bg-blue-100 text-blue-800",
     jobseeker: "bg-green-100 text-green-800",
     employer: "bg-purple-100 text-purple-800",
+    partner: "bg-amber-100 text-amber-800",
   }[r] ?? "bg-gray-100 text-gray-800")
 }
 function formatDate(d: string | null): string {
   if (!d) return "—"
   return new Date(d).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })
+}
+function productLabel(p: string): string {
+  const map: Record<string, string> = {
+    ATS_OPTIMIZER: "ATS Optimizer", COVER_LETTER: "Cover Letter",
+    "interview-prep": "Interview Prep", "resume-distribution": "Resume Distribution",
+    recruiter_basic: "Recruiter Basic", recruiter_standard: "Recruiter Standard",
+    recruiter_pro: "Recruiter Pro", diy_premium: "DIY Premium",
+  }
+  return map[p] || p
 }
 function daysSince(d: string): number {
   return Math.floor((Date.now() - new Date(d).getTime()) / 86400000)
@@ -207,6 +248,25 @@ export default function AdminDashboardClient({
     loading: boolean; error: string | null; success: boolean
   }>({ open: false, name: "", email: "", role: "recruiter", loading: false, error: null, success: false })
 
+  // Partners
+  const [partners, setPartners] = useState<PartnerRecord[]>([])
+  const [partnersLoading, setPartnersLoading] = useState(false)
+  const [pendingCommissions, setPendingCommissions] = useState<PartnerCommission[]>([])
+  const [commissionsLoading, setCommissionsLoading] = useState(false)
+  const [copiedCode, setCopiedCode] = useState<string | null>(null)
+
+  const [addPartnerModal, setAddPartnerModal] = useState<{
+    open: boolean; name: string; email: string; phone: string; referralCode: string;
+    tier: "affiliate" | "sales"; commissionRate: string; overheadPct: string;
+    landingHeadline: string; landingBio: string;
+    loading: boolean; error: string | null; success: boolean
+  }>({
+    open: false, name: "", email: "", phone: "", referralCode: "",
+    tier: "affiliate", commissionRate: "10", overheadPct: "15",
+    landingHeadline: "", landingBio: "",
+    loading: false, error: null, success: false,
+  })
+
   const [refreshing, setRefreshing] = useState(false)
 
   const unassigned = subscribers.filter((s) => !s.assignment_id)
@@ -258,6 +318,99 @@ export default function AdminDashboardClient({
   useEffect(() => {
     if (activeTab === "performance") loadRecruiterPerf()
   }, [activeTab, loadRecruiterPerf])
+
+  // ── Load partners ──────────────────────────────────────────
+  const loadPartners = useCallback(async () => {
+    setPartnersLoading(true)
+    try {
+      const res = await fetch("/api/admin/partners")
+      if (res.ok) {
+        const data = await res.json()
+        setPartners(data.partners ?? [])
+      }
+    } catch {} finally { setPartnersLoading(false) }
+  }, [])
+
+  const loadPendingCommissions = useCallback(async () => {
+    setCommissionsLoading(true)
+    try {
+      const res = await fetch("/api/admin/partners/commissions?status=pending")
+      if (res.ok) {
+        const data = await res.json()
+        setPendingCommissions(data.commissions ?? [])
+      }
+    } catch {} finally { setCommissionsLoading(false) }
+  }, [])
+
+  useEffect(() => {
+    if (activeTab === "partners") {
+      loadPartners()
+      loadPendingCommissions()
+    }
+  }, [activeTab, loadPartners, loadPendingCommissions])
+
+  // ── Create partner ─────────────────────────────────────────
+  async function handleCreatePartner() {
+    const m = addPartnerModal
+    if (!m.name || !m.email || !m.referralCode) {
+      setAddPartnerModal(p => ({ ...p, error: "Name, email, and referral code are required." }))
+      return
+    }
+    setAddPartnerModal(p => ({ ...p, loading: true, error: null }))
+    try {
+      const res = await fetch("/api/admin/partners", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: m.name,
+          email: m.email,
+          phone: m.phone || undefined,
+          referralCode: m.referralCode.toLowerCase().replace(/[^a-z0-9-]/g, ""),
+          tier: m.tier,
+          commissionRate: parseFloat(m.commissionRate) || (m.tier === "sales" ? 50 : 10),
+          overheadPct: parseFloat(m.overheadPct) || 0,
+          landingHeadline: m.landingHeadline || undefined,
+          landingBio: m.landingBio || undefined,
+          status: "active",
+        }),
+      })
+      const data = await res.json()
+      if (!res.ok) {
+        setAddPartnerModal(p => ({ ...p, loading: false, error: data.error ?? "Failed to create partner" }))
+        return
+      }
+      setAddPartnerModal(p => ({ ...p, loading: false, success: true }))
+      loadPartners()
+      setTimeout(() => setAddPartnerModal(p => ({ ...p, open: false, success: false, name: "", email: "", phone: "", referralCode: "", tier: "affiliate", commissionRate: "10", overheadPct: "15", landingHeadline: "", landingBio: "" })), 1500)
+    } catch {
+      setAddPartnerModal(p => ({ ...p, loading: false, error: "Network error" }))
+    }
+  }
+
+  // ── Update partner status ──────────────────────────────────
+  async function handlePartnerStatusChange(id: string, status: string) {
+    try {
+      await fetch("/api/admin/partners", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id, status }),
+      })
+      loadPartners()
+    } catch {}
+  }
+
+  // ── Approve/reject commissions ─────────────────────────────
+  async function handleCommissionAction(ids: string[], action: "approve" | "reject" | "pay") {
+    try {
+      await fetch("/api/admin/partners/commissions", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ids, action }),
+      })
+      loadPendingCommissions()
+      loadPartners()
+    } catch {}
+  }
 
   // ── Refresh assignments data ────────────────────────────────
   async function handleRefresh() {
@@ -410,6 +563,14 @@ export default function AdminDashboardClient({
             </TabsTrigger>
             <TabsTrigger value="performance" className="premium-heading">
               <TrendingUp className="w-4 h-4 mr-1.5" /> Recruiter Performance
+            </TabsTrigger>
+            <TabsTrigger value="partners" className="premium-heading">
+              <Handshake className="w-4 h-4 mr-1.5" /> Partners
+              {pendingCommissions.length > 0 && (
+                <span className="ml-1.5 bg-amber-500 text-white text-[10px] rounded-full px-1.5 py-0.5">
+                  {pendingCommissions.length}
+                </span>
+              )}
             </TabsTrigger>
           </TabsList>
 
@@ -787,8 +948,287 @@ export default function AdminDashboardClient({
               )}
             </Card>
           </TabsContent>
+
+          {/* ════════════════════════════════════════════════════ */}
+          {/* ── TAB: PARTNERS ────────────────────────────────── */}
+          {/* ════════════════════════════════════════════════════ */}
+          <TabsContent value="partners">
+            {/* Action bar */}
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="text-lg font-bold premium-heading">Partner Program</h3>
+              <Button size="sm" onClick={() => setAddPartnerModal(p => ({ ...p, open: true, error: null, success: false }))}>
+                <Plus className="w-4 h-4 mr-1.5" /> Add Partner
+              </Button>
+            </div>
+
+            {/* Pending Commissions */}
+            {pendingCommissions.length > 0 && (
+              <Card className="mb-6 border-amber-200 bg-amber-50/50">
+                <div className="p-4">
+                  <div className="flex items-center justify-between mb-3">
+                    <h4 className="font-semibold text-amber-900 flex items-center gap-2">
+                      <DollarSign className="w-4 h-4" />
+                      Pending Commission Approvals ({pendingCommissions.length})
+                    </h4>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="text-green-700 border-green-300 hover:bg-green-50"
+                      onClick={() => handleCommissionAction(pendingCommissions.map(c => c.id), "approve")}
+                    >
+                      <CheckCircle className="w-4 h-4 mr-1" /> Approve All
+                    </Button>
+                  </div>
+                  <div className="space-y-2 max-h-64 overflow-y-auto">
+                    {commissionsLoading ? (
+                      <div className="flex items-center gap-2 text-sm text-muted-foreground py-4 justify-center">
+                        <Loader2 className="w-4 h-4 animate-spin" /> Loading...
+                      </div>
+                    ) : pendingCommissions.map(c => (
+                      <div key={c.id} className="flex items-center justify-between bg-white rounded-lg p-3 border border-amber-100">
+                        <div>
+                          <p className="text-sm font-medium">{c.partner_name} <Badge className="text-[10px] ml-1 bg-gray-100 text-gray-700">{c.partner_tier}</Badge></p>
+                          <p className="text-xs text-muted-foreground">
+                            {productLabel(c.product)}
+                            {" · "}{c.user_email} · {formatDate(c.created_at)}
+                          </p>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <div className="text-right mr-2">
+                            <p className="text-sm font-bold text-amber-700">${Number(c.commission_amount).toFixed(2)}</p>
+                            <p className="text-[10px] text-muted-foreground">of ${Number(c.gross_amount).toFixed(2)}</p>
+                          </div>
+                          <Button size="sm" variant="outline" className="text-green-700 border-green-300 h-8 px-2"
+                            onClick={() => handleCommissionAction([c.id], "approve")}>
+                            <Check className="w-3.5 h-3.5" />
+                          </Button>
+                          <Button size="sm" variant="outline" className="text-red-600 border-red-200 h-8 px-2"
+                            onClick={() => handleCommissionAction([c.id], "reject")}>
+                            <XCircle className="w-3.5 h-3.5" />
+                          </Button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </Card>
+            )}
+
+            {/* Partner List */}
+            <Card className="p-4">
+              {partnersLoading ? (
+                <div className="flex items-center gap-2 text-sm text-muted-foreground py-8 justify-center">
+                  <Loader2 className="w-4 h-4 animate-spin" /> Loading partners...
+                </div>
+              ) : partners.length === 0 ? (
+                <div className="text-center py-8 text-muted-foreground">
+                  <Handshake className="w-10 h-10 mx-auto mb-3 opacity-40" />
+                  <p className="font-medium">No partners yet</p>
+                  <p className="text-sm">Click "Add Partner" to create your first affiliate or sales partner.</p>
+                </div>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="border-b text-left">
+                        <th className="pb-2 font-semibold">Partner</th>
+                        <th className="pb-2 font-semibold">Tier</th>
+                        <th className="pb-2 font-semibold">Rate</th>
+                        <th className="pb-2 font-semibold">Referrals</th>
+                        <th className="pb-2 font-semibold">Commission</th>
+                        <th className="pb-2 font-semibold">Pending</th>
+                        <th className="pb-2 font-semibold">Status</th>
+                        <th className="pb-2 font-semibold">Link</th>
+                        <th className="pb-2 font-semibold">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y">
+                      {partners.map(p => (
+                        <tr key={p.id} className="hover:bg-muted/30">
+                          <td className="py-3">
+                            <p className="font-medium">{p.name}</p>
+                            <p className="text-xs text-muted-foreground">{p.email}</p>
+                          </td>
+                          <td className="py-3">
+                            <Badge className={`text-xs ${p.tier === "sales" ? "bg-purple-100 text-purple-800" : "bg-blue-100 text-blue-800"}`}>
+                              {p.tier === "sales" ? "Sales" : "Affiliate"}
+                            </Badge>
+                          </td>
+                          <td className="py-3 font-mono text-xs">
+                            {p.commission_rate}%{p.tier === "sales" ? " net" : ""}
+                          </td>
+                          <td className="py-3 font-semibold">{n(p.referral_count)}</td>
+                          <td className="py-3 text-green-700 font-semibold">${Number(p.total_commission || 0).toFixed(2)}</td>
+                          <td className="py-3">
+                            {Number(p.pending_commission) > 0 ? (
+                              <span className="text-amber-600 font-semibold">${Number(p.pending_commission).toFixed(2)}</span>
+                            ) : "—"}
+                          </td>
+                          <td className="py-3">
+                            <Badge className={`text-xs ${
+                              p.status === "active" ? "bg-green-100 text-green-800" :
+                              p.status === "suspended" ? "bg-red-100 text-red-800" :
+                              p.status === "pending" ? "bg-yellow-100 text-yellow-800" :
+                              "bg-gray-100 text-gray-800"
+                            }`}>{p.status}</Badge>
+                          </td>
+                          <td className="py-3">
+                            <button
+                              className="flex items-center gap-1 text-xs text-blue-600 hover:text-blue-800 transition"
+                              onClick={() => {
+                                navigator.clipboard.writeText(`${window.location.origin}/partner/${p.referral_code}`)
+                                setCopiedCode(p.referral_code)
+                                setTimeout(() => setCopiedCode(null), 2000)
+                              }}
+                            >
+                              {copiedCode === p.referral_code ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
+                              /partner/{p.referral_code}
+                            </button>
+                          </td>
+                          <td className="py-3">
+                            <div className="flex gap-1">
+                              {p.status === "active" ? (
+                                <Button size="sm" variant="outline" className="h-7 text-xs text-red-600 border-red-200"
+                                  onClick={() => handlePartnerStatusChange(p.id, "suspended")}>
+                                  <Ban className="w-3 h-3 mr-1" /> Suspend
+                                </Button>
+                              ) : p.status === "suspended" ? (
+                                <Button size="sm" variant="outline" className="h-7 text-xs text-green-600 border-green-200"
+                                  onClick={() => handlePartnerStatusChange(p.id, "active")}>
+                                  <CheckCircle className="w-3 h-3 mr-1" /> Activate
+                                </Button>
+                              ) : p.status === "pending" ? (
+                                <Button size="sm" variant="outline" className="h-7 text-xs text-green-600 border-green-200"
+                                  onClick={() => handlePartnerStatusChange(p.id, "active")}>
+                                  <CheckCircle className="w-3 h-3 mr-1" /> Approve
+                                </Button>
+                              ) : null}
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </Card>
+          </TabsContent>
         </Tabs>
       </div>
+
+      {/* ════════════════════════════════════════════════════════ */}
+      {/* ── MODAL: Add Partner ─────────────────────────────── */}
+      {/* ════════════════════════════════════════════════════════ */}
+      <Dialog open={addPartnerModal.open} onOpenChange={(open) => !open && setAddPartnerModal(p => ({ ...p, open: false }))}>
+        <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="premium-heading">Add New Partner</DialogTitle>
+          </DialogHeader>
+          {addPartnerModal.success ? (
+            <div className="text-center py-6">
+              <CheckCircle className="w-12 h-12 text-green-500 mx-auto mb-3" />
+              <p className="font-semibold text-green-800">Partner created successfully!</p>
+            </div>
+          ) : (
+            <div className="space-y-4 py-2">
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-sm font-medium">Name *</label>
+                  <Input className="mt-1" placeholder="John Smith" value={addPartnerModal.name}
+                    onChange={e => setAddPartnerModal(p => ({ ...p, name: e.target.value }))} />
+                </div>
+                <div>
+                  <label className="text-sm font-medium">Email *</label>
+                  <Input className="mt-1" type="email" placeholder="john@email.com" value={addPartnerModal.email}
+                    onChange={e => setAddPartnerModal(p => ({ ...p, email: e.target.value }))} />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-sm font-medium">Phone</label>
+                  <Input className="mt-1" placeholder="+1 555-0123" value={addPartnerModal.phone}
+                    onChange={e => setAddPartnerModal(p => ({ ...p, phone: e.target.value }))} />
+                </div>
+                <div>
+                  <label className="text-sm font-medium">Referral Code * <span className="text-muted-foreground text-xs">(URL-friendly)</span></label>
+                  <Input className="mt-1 font-mono" placeholder="john" value={addPartnerModal.referralCode}
+                    onChange={e => setAddPartnerModal(p => ({ ...p, referralCode: e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, "") }))} />
+                  {addPartnerModal.referralCode && (
+                    <p className="text-xs text-muted-foreground mt-1 flex items-center gap-1">
+                      <Link2 className="w-3 h-3" /> /partner/{addPartnerModal.referralCode}
+                    </p>
+                  )}
+                </div>
+              </div>
+
+              <Separator />
+
+              <div>
+                <label className="text-sm font-medium">Partner Tier *</label>
+                <Select value={addPartnerModal.tier} onValueChange={(v: "affiliate" | "sales") => {
+                  setAddPartnerModal(p => ({
+                    ...p,
+                    tier: v,
+                    commissionRate: v === "sales" ? "50" : "10",
+                  }))
+                }}>
+                  <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="affiliate">Affiliate Partner (passive referrals, 10% of gross)</SelectItem>
+                    <SelectItem value="sales">Sales Partner (active sales, 50% of net profit)</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-sm font-medium">Commission Rate (%)</label>
+                  <Input className="mt-1" type="number" min="1" max="100" value={addPartnerModal.commissionRate}
+                    onChange={e => setAddPartnerModal(p => ({ ...p, commissionRate: e.target.value }))} />
+                </div>
+                {addPartnerModal.tier === "sales" && (
+                  <div>
+                    <label className="text-sm font-medium">Overhead % <span className="text-muted-foreground text-xs">(deducted before split)</span></label>
+                    <Input className="mt-1" type="number" min="0" max="50" value={addPartnerModal.overheadPct}
+                      onChange={e => setAddPartnerModal(p => ({ ...p, overheadPct: e.target.value }))} />
+                  </div>
+                )}
+              </div>
+
+              <Separator />
+
+              <div>
+                <label className="text-sm font-medium">Landing Page Headline <span className="text-muted-foreground text-xs">(optional)</span></label>
+                <Input className="mt-1" placeholder="Accelerate Your Career with AI-Powered Tools"
+                  value={addPartnerModal.landingHeadline}
+                  onChange={e => setAddPartnerModal(p => ({ ...p, landingHeadline: e.target.value }))} />
+              </div>
+              <div>
+                <label className="text-sm font-medium">Landing Page Bio <span className="text-muted-foreground text-xs">(optional)</span></label>
+                <textarea className="w-full mt-1 rounded-md border border-input bg-background px-3 py-2 text-sm resize-none" rows={3}
+                  placeholder="I partner with STAR Workforce Solutions to help job seekers..."
+                  value={addPartnerModal.landingBio}
+                  onChange={e => setAddPartnerModal(p => ({ ...p, landingBio: e.target.value }))} />
+              </div>
+
+              {addPartnerModal.error && (
+                <p className="text-xs text-red-600 flex items-center gap-1">
+                  <AlertCircle className="w-3 h-3" /> {addPartnerModal.error}
+                </p>
+              )}
+            </div>
+          )}
+          {!addPartnerModal.success && (
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setAddPartnerModal(p => ({ ...p, open: false }))}>Cancel</Button>
+              <Button onClick={handleCreatePartner} disabled={addPartnerModal.loading}
+                className="bg-[#E8C547] hover:bg-[#D4AF37] text-[#0A1A2F]">
+                {addPartnerModal.loading ? <><Loader2 className="w-4 h-4 mr-1.5 animate-spin" /> Creating...</> : "Create Partner"}
+              </Button>
+            </DialogFooter>
+          )}
+        </DialogContent>
+      </Dialog>
 
       {/* ════════════════════════════════════════════════════════ */}
       {/* ── MODAL: Assign Recruiter ────────────────────────── */}
