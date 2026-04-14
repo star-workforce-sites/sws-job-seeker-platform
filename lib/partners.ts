@@ -175,7 +175,7 @@ export async function getReferralByUserId(userId: string): Promise<(PartnerRefer
     WHERE pr.user_id = ${userId}
     LIMIT 1
   `
-  return result.rows[0] || null
+  return (result.rows[0] as (PartnerReferral & { partner_tier: string; partner_commission_rate: number; partner_overhead_pct: number })) || null
 }
 
 export async function getPartnerReferrals(partnerId: string): Promise<Array<{

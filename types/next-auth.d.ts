@@ -7,7 +7,7 @@ declare module "next-auth" {
   interface Session {
     user: {
       id: string
-      role: "jobseeker" | "employer" | "employer-pending" | "admin" | "recruiter"
+      role: "jobseeker" | "employer" | "employer-pending" | "admin" | "recruiter" | "partner"
       atsPremium: boolean
     } & DefaultSession["user"]
   }
