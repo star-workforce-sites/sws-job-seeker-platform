@@ -3,6 +3,8 @@ import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth"
 import { sql } from "@vercel/postgres"
 import { getAllPartners, createPartner, updatePartner } from "@/lib/partners"
+import { sendEmail } from "@/lib/send-email"
+import { emailTemplates } from "@/lib/email-templates"
 
 // GET all partners (admin only)
 export async function GET() {
@@ -82,6 +84,49 @@ export async function POST(req: NextRequest) {
 
       // Also update the user's role to 'partner'
       await sql`UPDATE users SET role = 'partner' WHERE id = ${userId}`
+    }
+
+    // ── Send welcome email to partner + admin notification (non-blocking) ──
+    if (partner) {
+      const baseUrl = process.env.NEXT_PUBLIC_URL || "https://www.starworkforcesolutions.com"
+      const refCode = partner.referral_code
+      const actualRate = partner.commission_rate
+
+      // Welcome email to partner
+      const welcomeTemplate = emailTemplates.partnerWelcome({
+        partnerName: partner.name,
+        partnerEmail: partner.email,
+        tier: partner.tier as "affiliate" | "sales",
+        referralCode: refCode,
+        commissionRate: actualRate,
+        landingPageUrl: `${baseUrl}/partner/${refCode}`,
+        signupUrl: `${baseUrl}/auth/signup?ref=${refCode}`,
+      })
+      sendEmail({
+        to: partner.email,
+        subject: welcomeTemplate.subject,
+        html: welcomeTemplate.html,
+        text: `Welcome to the Career Accel Partner Program! Your referral code is ${refCode.toUpperCase()}. Landing page: ${baseUrl}/partner/${refCode}`,
+      }).catch((err) => console.error("[Admin Partners] Failed to send partner welcome email:", err))
+
+      // Admin notification
+      const adminTemplate = emailTemplates.adminPartnerNotification({
+        partnerName: partner.name,
+        partnerEmail: partner.email,
+        tier: partner.tier,
+        referralCode: refCode,
+        commissionRate: actualRate,
+        createdAt: new Date().toLocaleString("en-US", { timeZone: "America/New_York" }),
+      })
+      const adminRecipients = ["Srikanth@startekk.net", "info@startekk.net"]
+      for (const admin of adminRecipients) {
+        sendEmail({
+          to: admin,
+          subject: adminTemplate.subject,
+          html: adminTemplate.html,
+          text: `New partner created: ${partner.name} (${partner.email}), tier: ${partner.tier}, code: ${refCode}`,
+        }).catch((err) => console.error("[Admin Partners] Failed to send admin notification:", err))
+      }
     }
 
     return NextResponse.json({ partner }, { status: 201 })

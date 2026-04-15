@@ -44,6 +44,27 @@ interface WelcomeNewUserParams {
   userEmail: string
 }
 
+// ── Partner welcome email params ────────────────────────────────
+interface PartnerWelcomeParams {
+  partnerName: string
+  partnerEmail: string
+  tier: "affiliate" | "sales"
+  referralCode: string
+  commissionRate: number
+  landingPageUrl: string
+  signupUrl: string
+}
+
+// ── Admin notification: new partner created ─────────────────────
+interface AdminPartnerNotificationParams {
+  partnerName: string
+  partnerEmail: string
+  tier: string
+  referralCode: string
+  commissionRate: number
+  createdAt: string
+}
+
 export const emailTemplates = {
 
   // ── Template 1: Subscription Confirmation (to Job Seeker) ──
@@ -302,7 +323,128 @@ export const emailTemplates = {
 </html>
     `,
   }),
-  // ── Template 5: Welcome email → New User ────────────────────
+  // ── Template 5: Partner Welcome Email ────────────────────────
+  partnerWelcome: (params: PartnerWelcomeParams) => ({
+    subject: `Welcome to the Career Accel Partner Program — Your Account Is Active`,
+    html: `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+<body style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
+  <div style="background: linear-gradient(135deg, #0A1A2F 0%, #132A47 100%); padding: 30px; text-align: center; border-radius: 10px 10px 0 0;">
+    <h1 style="color: #E8C547; margin: 0; font-size: 24px;">Career Accel Platform</h1>
+    <p style="color: #ffffff; margin: 8px 0 0 0; font-size: 12px;">Powered by STAR Workforce Solutions</p>
+    <p style="color: #ffffff; margin: 10px 0 0 0; font-size: 16px;">Partner Program</p>
+  </div>
+  <div style="background: #ffffff; padding: 30px; border: 1px solid #e5e7eb; border-top: none; border-radius: 0 0 10px 10px;">
+    <h2 style="color: #0A1A2F; margin-top: 0;">Welcome, ${params.partnerName}!</h2>
+    <p style="font-size: 16px; color: #374151;">
+      Your <strong>${params.tier === "sales" ? "Sales Partner" : "Affiliate Partner"}</strong> account has been created and is ready to go.
+      You can start sharing your referral links right away.
+    </p>
+
+    <div style="background: #E8C547; padding: 20px; border-radius: 8px; margin: 20px 0;">
+      <h3 style="color: #0A1A2F; margin-top: 0;">Your Partner Details</h3>
+      <table style="width: 100%; color: #0A1A2F;">
+        <tr><td style="padding: 5px 0;"><strong>Partner Tier:</strong></td><td style="padding: 5px 0;">${params.tier === "sales" ? "Sales Partner" : "Affiliate Partner"}</td></tr>
+        <tr><td style="padding: 5px 0;"><strong>Commission Rate:</strong></td><td style="padding: 5px 0;">${params.commissionRate}%${params.tier === "sales" ? " of net revenue" : " of gross revenue"}</td></tr>
+        <tr><td style="padding: 5px 0;"><strong>Referral Code:</strong></td><td style="padding: 5px 0; font-weight: bold; font-size: 18px; letter-spacing: 2px;">${params.referralCode.toUpperCase()}</td></tr>
+      </table>
+    </div>
+
+    <div style="background: #f3f4f6; padding: 20px; border-radius: 8px; margin: 20px 0;">
+      <h3 style="color: #0A1A2F; margin-top: 0;">Your Referral Links</h3>
+      <p style="color: #374151; font-size: 14px; margin-bottom: 10px;"><strong>Your Landing Page:</strong></p>
+      <div style="background: #ffffff; border: 1px solid #d1d5db; border-radius: 6px; padding: 12px; word-break: break-all;">
+        <a href="${params.landingPageUrl}" style="color: #0A1A2F; font-size: 13px;">${params.landingPageUrl}</a>
+      </div>
+      <p style="color: #374151; font-size: 14px; margin-bottom: 10px; margin-top: 15px;"><strong>Direct Signup Link:</strong></p>
+      <div style="background: #ffffff; border: 1px solid #d1d5db; border-radius: 6px; padding: 12px; word-break: break-all;">
+        <a href="${params.signupUrl}" style="color: #0A1A2F; font-size: 13px;">${params.signupUrl}</a>
+      </div>
+      <p style="color: #6b7280; font-size: 12px; margin-top: 10px;">
+        Share either link. When someone signs up and makes a purchase, your commission is automatically tracked.
+      </p>
+    </div>
+
+    <div style="background: #f3f4f6; padding: 20px; border-radius: 8px; margin: 20px 0;">
+      <h3 style="color: #0A1A2F; margin-top: 0;">How It Works</h3>
+      <ol style="color: #374151; padding-left: 20px;">
+        <li style="margin-bottom: 8px;">Share your referral link with potential job seekers</li>
+        <li style="margin-bottom: 8px;">They sign up and use Career Accel tools or subscribe to a recruiter plan</li>
+        <li style="margin-bottom: 8px;">Your commission is logged automatically on each purchase</li>
+        <li style="margin-bottom: 8px;">Track your referrals and earnings on your partner dashboard</li>
+      </ol>
+    </div>
+
+    <div style="text-align: center; margin: 30px 0;">
+      <a href="https://www.starworkforcesolutions.com/auth/login"
+         style="display: inline-block; background: #E8C547; color: #0A1A2F; padding: 15px 40px; text-decoration: none; border-radius: 5px; font-weight: bold; font-size: 16px;">
+        Log In to Your Partner Dashboard
+      </a>
+    </div>
+
+    <div style="background: #fef3c7; border-left: 4px solid #E8C547; padding: 15px; border-radius: 0 8px 8px 0; margin: 20px 0;">
+      <p style="color: #374151; margin: 0; font-size: 13px;">
+        <strong>Disclaimer:</strong> Commission payouts are subject to admin approval. Career Accel Platform does not guarantee any specific income.
+        This is an independent contractor arrangement — not employment.
+      </p>
+    </div>
+
+    <p style="color: #6b7280; font-size: 14px; margin-top: 30px;">
+      <strong>Questions?</strong><br>
+      Contact us at <a href="mailto:Srikanth@startekk.net" style="color: #E8C547;">Srikanth@startekk.net</a>
+    </p>
+    <p style="color: #374151; margin-top: 20px;">Best regards,<br><strong>STAR Workforce Solutions Team</strong></p>
+  </div>
+  <div style="text-align: center; padding: 20px; color: #6b7280; font-size: 12px;">
+    <p>Career Accel Platform &middot; Powered by STAR Workforce Solutions<br>
+    <a href="https://www.starworkforcesolutions.com" style="color: #E8C547;">www.starworkforcesolutions.com</a></p>
+  </div>
+</body>
+</html>
+    `,
+  }),
+
+  // ── Template 6: Admin Notification — New Partner Created ────
+  adminPartnerNotification: (params: AdminPartnerNotificationParams) => ({
+    subject: `New Partner Created: ${params.partnerName} (${params.tier})`,
+    html: `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+<body style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
+  <div style="background: #0A1A2F; padding: 20px; text-align: center; border-radius: 10px 10px 0 0;">
+    <h1 style="color: #E8C547; margin: 0; font-size: 20px;">New Partner Created</h1>
+  </div>
+  <div style="background: #ffffff; padding: 25px; border: 1px solid #e5e7eb; border-top: none; border-radius: 0 0 10px 10px;">
+    <table style="width: 100%; color: #374151; font-size: 14px;">
+      <tr><td style="padding: 8px 0; font-weight: bold; width: 35%;">Name:</td><td style="padding: 8px 0;">${params.partnerName}</td></tr>
+      <tr><td style="padding: 8px 0; font-weight: bold;">Email:</td><td style="padding: 8px 0;">${params.partnerEmail}</td></tr>
+      <tr><td style="padding: 8px 0; font-weight: bold;">Tier:</td><td style="padding: 8px 0;">${params.tier === "sales" ? "Sales Partner (net)" : "Affiliate Partner (gross)"}</td></tr>
+      <tr><td style="padding: 8px 0; font-weight: bold;">Commission:</td><td style="padding: 8px 0;">${params.commissionRate}%</td></tr>
+      <tr><td style="padding: 8px 0; font-weight: bold;">Referral Code:</td><td style="padding: 8px 0; font-weight: bold;">${params.referralCode}</td></tr>
+      <tr><td style="padding: 8px 0; font-weight: bold;">Created:</td><td style="padding: 8px 0;">${params.createdAt}</td></tr>
+    </table>
+    <div style="text-align: center; margin: 20px 0 10px;">
+      <a href="https://www.starworkforcesolutions.com/dashboard/admin"
+         style="display: inline-block; background: #E8C547; color: #0A1A2F; padding: 10px 30px; text-decoration: none; border-radius: 5px; font-weight: bold; font-size: 14px;">
+        View in Admin Dashboard
+      </a>
+    </div>
+  </div>
+</body>
+</html>
+    `,
+  }),
+
+  // ── Template 7: Welcome email → New User ────────────────────
   welcomeNewUser: (params: WelcomeNewUserParams) => ({
     subject: `Welcome to STAR Workforce Solutions!`,
     html: `
