@@ -17,7 +17,7 @@ import {
   Users, Clock, CheckCircle, AlertCircle, RefreshCw, UserCheck,
   Briefcase, Search, Shield, Ban, Plus, ChevronRight,
   BarChart3, Activity, Eye, BookmarkIcon, UserPlus, TrendingUp,
-  Loader2, XCircle, Handshake, DollarSign, Link2, Copy, Check,
+  Loader2, XCircle, Handshake, DollarSign, Link2, Copy, Check, Mail,
 } from "lucide-react"
 
 // ── Types ────────────────────────────────────────────────────
@@ -397,6 +397,29 @@ export default function AdminDashboardClient({
       })
       loadPartners()
     } catch {}
+  }
+
+  // ── Resend partner welcome email ────────────────────────────
+  const [resendingEmail, setResendingEmail] = useState<string | null>(null)
+  async function handleResendPartnerWelcome(partnerId: string) {
+    setResendingEmail(partnerId)
+    try {
+      const res = await fetch("/api/admin/partners/resend-welcome", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ partnerId }),
+      })
+      if (res.ok) {
+        alert("Welcome email sent successfully!")
+      } else {
+        const data = await res.json()
+        alert(`Failed to send: ${data.error || "Unknown error"}`)
+      }
+    } catch {
+      alert("Failed to send email")
+    } finally {
+      setResendingEmail(null)
+    }
   }
 
   // ── Approve/reject commissions ─────────────────────────────
@@ -1086,7 +1109,7 @@ export default function AdminDashboardClient({
                             </button>
                           </td>
                           <td className="py-3">
-                            <div className="flex gap-1">
+                            <div className="flex gap-1 flex-wrap">
                               {p.status === "active" ? (
                                 <Button size="sm" variant="outline" className="h-7 text-xs text-red-600 border-red-200"
                                   onClick={() => handlePartnerStatusChange(p.id, "suspended")}>
@@ -1103,6 +1126,15 @@ export default function AdminDashboardClient({
                                   <CheckCircle className="w-3 h-3 mr-1" /> Approve
                                 </Button>
                               ) : null}
+                              <Button size="sm" variant="outline" className="h-7 text-xs text-blue-600 border-blue-200"
+                                disabled={resendingEmail === p.id}
+                                onClick={() => handleResendPartnerWelcome(p.id)}>
+                                {resendingEmail === p.id ? (
+                                  <><Loader2 className="w-3 h-3 mr-1 animate-spin" /> Sending...</>
+                                ) : (
+                                  <><Mail className="w-3 h-3 mr-1" /> Resend Email</>
+                                )}
+                              </Button>
                             </div>
                           </td>
                         </tr>
