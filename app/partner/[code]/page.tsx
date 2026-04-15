@@ -446,9 +446,9 @@ export default async function PartnerLandingPage({ params }: Props) {
 
             {/* Links */}
             <div className="flex flex-wrap justify-center gap-4 mb-6 text-[11px]">
-              <Link href="/privacy" className="text-gray-500 hover:text-gray-300 transition">Privacy Policy</Link>
-              <Link href="/terms" className="text-gray-500 hover:text-gray-300 transition">Terms of Service</Link>
-              <Link href="/disclaimer" className="text-gray-500 hover:text-gray-300 transition">Disclaimer</Link>
+              <Link href="/legal/privacy" className="text-gray-500 hover:text-gray-300 transition">Privacy Policy</Link>
+              <Link href="/legal/terms" className="text-gray-500 hover:text-gray-300 transition">Terms of Service</Link>
+              <Link href="/legal/disclaimer" className="text-gray-500 hover:text-gray-300 transition">Disclaimer</Link>
               <Link href="/contact" className="text-gray-500 hover:text-gray-300 transition">Contact</Link>
             </div>
 

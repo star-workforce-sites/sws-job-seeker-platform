@@ -74,7 +74,11 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Missing stripe-signature header" }, { status: 400 })
     }
 
-    const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET!
+    const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET
+    if (!webhookSecret) {
+      console.error("[Webhook] STRIPE_WEBHOOK_SECRET is not configured")
+      return NextResponse.json({ error: "Webhook not configured" }, { status: 503 })
+    }
     const event = stripe.webhooks.constructEvent(body, signature, webhookSecret)
 
     console.log("[Webhook] Event received:", event.type)
@@ -103,6 +107,12 @@ export async function POST(request: NextRequest) {
         else if (priceId === NEW_PRICE_IDS.RECRUITER_STANDARD) subscriptionType = "recruiter_standard"
         else if (priceId === NEW_PRICE_IDS.RECRUITER_PRO) subscriptionType = "recruiter_pro"
         else if (priceId === NEW_PRICE_IDS.DIY_PREMIUM) subscriptionType = "diy_premium"
+
+        // Reject unknown subscription types
+        if (subscriptionType === "unknown") {
+          console.error(`[Webhook] Unknown price ID received: ${priceId}. Not inserting subscription.`)
+          return NextResponse.json({ received: true, warning: "Unknown price ID" })
+        }
 
         console.log("[Webhook] Subscription type:", subscriptionType)
 

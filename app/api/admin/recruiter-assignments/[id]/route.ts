@@ -95,6 +95,12 @@ export async function PUT(
       }
     }
 
+    // Validate status if provided
+    const validStatuses = ['active', 'inactive', 'paused']
+    if (status && !validStatuses.includes(status)) {
+      return NextResponse.json({ error: `Invalid status. Must be one of: ${validStatuses.join(', ')}` }, { status: 400 })
+    }
+
     // Parameterized update — safe from SQL injection
     const result = await sql`
       UPDATE recruiter_assignments

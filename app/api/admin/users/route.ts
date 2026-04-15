@@ -200,6 +200,12 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Invalid role" }, { status: 400 })
     }
 
+    // Validate email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+    if (!emailRegex.test(email)) {
+      return NextResponse.json({ error: "Invalid email format" }, { status: 400 })
+    }
+
     // Check if email already exists
     const existing = await sql`SELECT id FROM users WHERE email = ${email}`
     if (existing.rows.length > 0) {

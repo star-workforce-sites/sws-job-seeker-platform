@@ -15,11 +15,20 @@ export default function PaymentSuccessPage() {
   const sessionId = searchParams.get("session_id")
 
   useEffect(() => {
-    // Set cookie for client-side ATS premium access
-    if (sessionId) {
-      document.cookie = `atsPremium=true; path=/; max-age=${365 * 24 * 60 * 60}; secure; samesite=strict`
-      setTimeout(() => setIsVerifying(false), 1500)
+    if (!sessionId) {
+      setIsVerifying(false)
+      return
     }
+    // Verify the Stripe session server-side before granting access
+    fetch(`/api/payment/verify?session_id=${encodeURIComponent(sessionId)}`)
+      .then(res => res.json())
+      .then(data => {
+        if (data.verified) {
+          document.cookie = `atsPremium=true; path=/; max-age=${365 * 24 * 60 * 60}; secure; samesite=strict`
+        }
+      })
+      .catch(err => console.error("[Payment] Verification failed:", err))
+      .finally(() => setIsVerifying(false))
   }, [sessionId])
 
   if (isVerifying) {

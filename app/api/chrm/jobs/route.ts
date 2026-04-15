@@ -62,7 +62,7 @@ export async function GET(request: NextRequest) {
         responseText.substring(0, 500)
       )
       return NextResponse.json(
-        { error: `Failed to fetch jobs from provider (${response.status})`, details: responseText.substring(0, 200) },
+        { error: `Failed to fetch jobs from provider (${response.status})` },
         { status: 502 }
       )
     }

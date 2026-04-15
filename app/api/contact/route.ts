@@ -6,10 +6,23 @@ const resend = new Resend(process.env.RESEND_API_KEY)
 // ── Rate limiter: 2 submissions per IP per hour ───────────────────────────────
 const WINDOW_MS = 60 * 60 * 1000
 const MAX_REQUESTS = 2
+const MAX_IP_ENTRIES = 10000
 const ipLog = new Map<string, number[]>()
+let lastCleanup = Date.now()
 
 function isRateLimited(ip: string): boolean {
   const now = Date.now()
+
+  // Periodic cleanup: purge expired entries every 10 minutes or if map is too large
+  if (now - lastCleanup > 600_000 || ipLog.size > MAX_IP_ENTRIES) {
+    for (const [key, timestamps] of ipLog) {
+      const valid = timestamps.filter(t => now - t < WINDOW_MS)
+      if (valid.length === 0) ipLog.delete(key)
+      else ipLog.set(key, valid)
+    }
+    lastCleanup = now
+  }
+
   const timestamps = (ipLog.get(ip) || []).filter(t => now - t < WINDOW_MS)
   if (timestamps.length >= MAX_REQUESTS) return true
   timestamps.push(now)

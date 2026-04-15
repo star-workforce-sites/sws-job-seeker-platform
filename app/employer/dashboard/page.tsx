@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
-// import { useSession } from "next-auth/react"
+import { useSession } from "next-auth/react"
 import { useRouter } from "next/navigation"
 import Navigation from "@/components/navigation"
 import Footer from "@/components/footer"
@@ -27,20 +27,19 @@ interface Job {
 }
 
 export default function EmployerDashboardPage() {
-  const status = "authenticated"
-  const session = { user: { role: "employer" as const } }
+  const { data: session, status } = useSession()
 
   const router = useRouter()
   const [jobs, setJobs] = useState<Job[]>([])
   const [loading, setLoading] = useState(true)
 
-  // useEffect(() => {
-  //   if (status === "unauthenticated") {
-  //     router.push("/auth/login")
-  //   } else if (status === "authenticated" && session?.user?.role !== "employer") {
-  //     router.push("/dashboard")
-  //   }
-  // }, [status, router])
+  useEffect(() => {
+    if (status === "unauthenticated") {
+      router.push("/auth/login")
+    } else if (status === "authenticated" && session?.user?.role !== "employer") {
+      router.push("/dashboard")
+    }
+  }, [status, session, router])
 
   useEffect(() => {
     if (status === "authenticated" && session?.user?.role === "employer") {
@@ -115,12 +114,10 @@ export default function EmployerDashboardPage() {
               <h2 className="text-2xl font-heading font-bold text-[#0A1A2F]">Your Job Postings</h2>
               <p className="text-gray-600">Maximum 5 active jobs, auto-expire after 30 days</p>
             </div>
-            <Link href="/employer/jobs/create">
-              <Button disabled={activeJobs.length >= 5} className="bg-[#E8C547] hover:bg-[#d4b540] text-[#0A1A2F]">
-                <Plus className="h-4 w-4 mr-2" />
-                Post New Job
-              </Button>
-            </Link>
+            <Button disabled className="bg-gray-300 text-gray-500 cursor-not-allowed" title="Job posting coming soon">
+              <Plus className="h-4 w-4 mr-2" />
+              Post New Job (Coming Soon)
+            </Button>
           </div>
 
           {activeJobs.length >= 5 && (
