@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { useToast } from "@/hooks/use-toast"
+import { ToastAction } from "@/components/ui/toast"
 import Footer from "./footer"
 import Navigation from "./navigation"
 import Image from "next/image"
@@ -80,13 +81,14 @@ export default function CoverLetterClient() {
         "",
         `/tools/cover-letter${urlCoverLetterId ? `?coverLetterId=${urlCoverLetterId}` : ""}`,
       )
+      const titleElement = (
+        <div className="flex items-center gap-2">
+          <Image src="/favicon.svg" alt="STAR" width={24} height={24} />
+          <span className="text-[#D4AF37] font-bold">Premium Access Activated!</span>
+        </div>
+      ) as unknown as string
       toast({
-        title: (
-          <div className="flex items-center gap-2">
-            <Image src="/favicon.svg" alt="STAR" width={24} height={24} />
-            <span className="text-[#D4AF37] font-bold">Premium Access Activated!</span>
-          </div>
-        ),
+        title: titleElement,
         description: "You now have lifetime access to full cover letter generation.",
         className: "bg-white border-2 border-black",
         duration: 4000,
@@ -100,13 +102,14 @@ export default function CoverLetterClient() {
         "",
         `/tools/cover-letter${urlCoverLetterId ? `?coverLetterId=${urlCoverLetterId}` : ""}`,
       )
+      const cancelTitleElement = (
+        <div className="flex items-center gap-2">
+          <Image src="/favicon.svg" alt="STAR" width={24} height={24} />
+          <span className="text-[#E8C547] font-bold">Payment Cancelled</span>
+        </div>
+      ) as unknown as string
       toast({
-        title: (
-          <div className="flex items-center gap-2">
-            <Image src="/favicon.svg" alt="STAR" width={24} height={24} />
-            <span className="text-[#E8C547] font-bold">Payment Cancelled</span>
-          </div>
-        ),
+        title: cancelTitleElement,
         description: "You can try again anytime.",
         className: "bg-white border-2 border-black",
       })
@@ -291,15 +294,12 @@ export default function CoverLetterClient() {
     const emailToUse = restoreEmail || email
 
     if (!emailToUse) {
-      toast({
+      const { dismiss } = toast({
         title: "❌ Email Required",
         description: "Please enter your email to restore premium access.",
         variant: "destructive",
-        duration: null,
-        action: {
-          label: "OK",
-          onClick: () => toast.dismiss(),
-        },
+        duration: undefined,
+        action: <ToastAction altText="OK" onClick={() => dismiss()}>OK</ToastAction>,
       })
       return
     }
@@ -336,14 +336,11 @@ export default function CoverLetterClient() {
 
         window.history.replaceState({}, "", "/tools/cover-letter")
 
-        toast({
+        const { dismiss: dismissRestore } = toast({
           title: "✅ Cover Letter Access Restored Successfully!",
           description: "Upload your resume and job description to generate a full cover letter.",
-          duration: null,
-          action: {
-            label: "OK",
-            onClick: () => toast.dismiss(),
-          },
+          duration: undefined,
+          action: <ToastAction altText="OK" onClick={() => dismissRestore()}>OK</ToastAction>,
           className: "bg-white border-2 border-[#D4AF37]",
         })
 
@@ -356,15 +353,12 @@ export default function CoverLetterClient() {
           }, 500)
         }
       } else if (data.promptPay) {
-        toast({
+        const { dismiss: dismissNoPayment } = toast({
           title: "❌ No Payment Found",
           description: "No Cover Letter payment found for this email — unlock for $5?",
           variant: "destructive",
-          duration: null,
-          action: {
-            label: "OK",
-            onClick: () => toast.dismiss(),
-          },
+          duration: undefined,
+          action: <ToastAction altText="OK" onClick={() => dismissNoPayment()}>OK</ToastAction>,
         })
         setShowRestoreForm(false)
       } else {
@@ -376,15 +370,12 @@ export default function CoverLetterClient() {
       }
     } catch (error) {
       console.error("[CLIENT] Restore error:", error)
-      toast({
+      const { dismiss: dismissError } = toast({
         title: "❌ Restore Failed",
         description: "Please try again or contact support.",
         variant: "destructive",
-        duration: null,
-        action: {
-          label: "OK",
-          onClick: () => toast.dismiss(),
-        },
+        duration: undefined,
+        action: <ToastAction altText="OK" onClick={() => dismissError()}>OK</ToastAction>,
       })
     } finally {
       setRestoreLoading(false)
@@ -591,7 +582,6 @@ export default function CoverLetterClient() {
                   disabled={(!resumeFile || !jobDescription.trim()) && !coverLetterId}
                   className="w-full"
                   size="lg"
-                  loading={loading || uploading}
                 >
                   {uploading
                     ? "Uploading..."

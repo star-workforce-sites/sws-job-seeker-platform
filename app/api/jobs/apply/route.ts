@@ -37,7 +37,7 @@ export async function POST(request: NextRequest) {
       LIMIT 1
     `;
 
-    if (userResult.rowCount === 0) {
+    if ((userResult.rowCount ?? 0) === 0) {
       return NextResponse.json(
         { error: 'User not found' },
         { status: 404 }
@@ -66,7 +66,7 @@ export async function POST(request: NextRequest) {
       LIMIT 1
     `;
 
-    if (jobResult.rowCount === 0) {
+    if ((jobResult.rowCount ?? 0) === 0) {
       return NextResponse.json(
         { error: 'Job not found' },
         { status: 404 }
@@ -81,7 +81,7 @@ export async function POST(request: NextRequest) {
       WHERE "userId" = ${userId} AND "jobId" = ${jobId}::uuid
     `;
 
-    if (existingApp.rowCount > 0) {
+    if ((existingApp.rowCount ?? 0) > 0) {
       return NextResponse.json(
         { error: 'You have already applied to this job' },
         { status: 409 }
@@ -210,7 +210,7 @@ export async function GET(request: NextRequest) {
       LIMIT 1
     `;
 
-    if (userResult.rowCount === 0) {
+    if ((userResult.rowCount ?? 0) === 0) {
       return NextResponse.json({ applied: false }, { status: 200 });
     }
 
@@ -226,8 +226,8 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json(
       {
-        applied: result.rowCount > 0,
-        application: result.rowCount > 0 ? result.rows[0] : null,
+        applied: (result.rowCount ?? 0) > 0,
+        application: (result.rowCount ?? 0) > 0 ? result.rows[0] : null,
       },
       { status: 200 }
     );
@@ -276,17 +276,18 @@ async function sendApplicationEmails(data: {
     to: [applicant.email],
     subject: `Application Submitted: ${job.title} at ${job.company}`,
     html: `
+      <!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"></head><body style="margin:0;padding:0;background:#f4f4f4;">
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
         <div style="background: #0A1A2F; padding: 20px; text-align: center;">
           <h1 style="color: #E8C547; margin: 0;">STAR Workforce Solutions</h1>
         </div>
         <div style="padding: 30px; background: #f9f9f9;">
           <h2 style="color: #0A1A2F;">Application Submitted Successfully!</h2>
-          
+
           <p>Dear ${applicant.name},</p>
-          
+
           <p>Your application has been successfully submitted for the following position:</p>
-          
+
           <div style="background: white; padding: 20px; border-radius: 8px; margin: 20px 0;">
             <h3 style="color: #0A1A2F; margin-top: 0;">${job.title}</h3>
             <p style="margin: 5px 0;"><strong>Company:</strong> ${job.company}</p>
@@ -294,26 +295,27 @@ async function sendApplicationEmails(data: {
             <p style="margin: 5px 0;"><strong>Type:</strong> ${job.employmentType}</p>
             <p style="margin: 5px 0;"><strong>Applied:</strong> ${formattedDate}</p>
           </div>
-          
+
           <p><strong>What's next?</strong></p>
           <ul>
             <li>The employer will review your application</li>
             <li>You'll be notified if they're interested</li>
             <li>Track your applications in your dashboard</li>
           </ul>
-          
+
           <div style="text-align: center; margin: 30px 0;">
-            <a href="https://www.starworkforcesolutions.com/dashboard/job-seeker/applications" 
+            <a href="https://www.starworkforcesolutions.com/dashboard/job-seeker/applications"
                style="background: #E8C547; color: #0A1A2F; padding: 12px 30px; text-decoration: none; border-radius: 5px; font-weight: bold; display: inline-block;">
               View My Applications
             </a>
           </div>
-          
+
           <p style="color: #666; font-size: 12px; margin-top: 30px;">
             This is an automated confirmation email from STAR Workforce Solutions.
           </p>
         </div>
       </div>
+      </body></html>
     `,
   });
 
@@ -326,36 +328,38 @@ async function sendApplicationEmails(data: {
       to: [employer.email],
       subject: `New Application: ${applicant.name} for ${job.title}`,
       html: `
+        <!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"></head><body style="margin:0;padding:0;background:#f4f4f4;">
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
           <div style="background: #0A1A2F; padding: 20px; text-align: center;">
             <h1 style="color: #E8C547; margin: 0;">STAR Workforce Solutions</h1>
           </div>
           <div style="padding: 30px; background: #f9f9f9;">
             <h2 style="color: #0A1A2F;">New Job Application Received</h2>
-            
+
             <p>Dear ${employer.name},</p>
-            
+
             <p>You have received a new application for your job posting:</p>
-            
+
             <div style="background: white; padding: 20px; border-radius: 8px; margin: 20px 0;">
               <h3 style="color: #0A1A2F; margin-top: 0;">${job.title}</h3>
               <p style="margin: 10px 0;"><strong>Applicant:</strong> ${applicant.name}</p>
               <p style="margin: 10px 0;"><strong>Email:</strong> ${applicant.email}</p>
               <p style="margin: 10px 0;"><strong>Applied:</strong> ${formattedDate}</p>
             </div>
-            
+
             <div style="text-align: center; margin: 30px 0;">
-              <a href="https://www.starworkforcesolutions.com/employer/dashboard" 
+              <a href="https://www.starworkforcesolutions.com/employer/dashboard"
                  style="background: #E8C547; color: #0A1A2F; padding: 12px 30px; text-decoration: none; border-radius: 5px; font-weight: bold; display: inline-block;">
                 View Application
               </a>
             </div>
-            
+
             <p style="color: #666; font-size: 12px; margin-top: 30px;">
               This is an automated notification from STAR Workforce Solutions.
             </p>
           </div>
         </div>
+      </body></html>
       `,
     });
   }

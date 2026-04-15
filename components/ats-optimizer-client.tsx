@@ -9,6 +9,7 @@ import { Progress } from "@/components/ui/progress"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { useToast } from "@/hooks/use-toast"
+import { ToastAction } from "@/components/ui/toast"
 import Footer from "./footer"
 import Navigation from "./navigation"
 import Image from "next/image"
@@ -87,13 +88,14 @@ export default function ATSOptimizerClient() {
       }
 
       window.history.replaceState({}, "", `/tools/ats-optimizer${urlResumeId ? `?resumeId=${urlResumeId}` : ""}`)
+      const titleElement = (
+        <div className="flex items-center gap-2">
+          <Image src="/favicon.svg" alt="STAR" width={24} height={24} />
+          <span className="text-[#D4AF37] font-bold">Premium Access Restored!</span>
+        </div>
+      ) as unknown as string
       toast({
-        title: (
-          <div className="flex items-center gap-2">
-            <Image src="/favicon.svg" alt="STAR" width={24} height={24} />
-            <span className="text-[#D4AF37] font-bold">Premium Access Restored!</span>
-          </div>
-        ),
+        title: titleElement,
         description: "You now have lifetime access to full ATS reports.",
         className: "bg-white border-2 border-black",
         duration: 4000,
@@ -103,13 +105,14 @@ export default function ATSOptimizerClient() {
         setResumeId(urlResumeId)
       }
       window.history.replaceState({}, "", `/tools/ats-optimizer${urlResumeId ? `?resumeId=${urlResumeId}` : ""}`)
+      const cancelTitleElement = (
+        <div className="flex items-center gap-2">
+          <Image src="/favicon.svg" alt="STAR" width={24} height={24} />
+          <span className="text-[#E8C547] font-bold">Payment Cancelled</span>
+        </div>
+      ) as unknown as string
       toast({
-        title: (
-          <div className="flex items-center gap-2">
-            <Image src="/favicon.svg" alt="STAR" width={24} height={24} />
-            <span className="text-[#E8C547] font-bold">Payment Cancelled</span>
-          </div>
-        ),
+        title: cancelTitleElement,
         description: "You can try again anytime.",
         className: "bg-white border-2 border-black",
       })
@@ -291,15 +294,12 @@ export default function ATSOptimizerClient() {
     const emailToUse = restoreEmail || email
 
     if (!emailToUse) {
-      toast({
+      const { dismiss } = toast({
         title: "❌ Email Required",
         description: "Please enter your email to restore premium access.",
         variant: "destructive",
-        duration: null,
-        action: {
-          label: "OK",
-          onClick: () => toast.dismiss(),
-        },
+        duration: undefined,
+        action: <ToastAction altText="OK" onClick={() => dismiss()}>OK</ToastAction>,
       })
       return
     }
@@ -335,15 +335,12 @@ export default function ATSOptimizerClient() {
 
         window.history.replaceState({}, "", "/tools/ats-optimizer")
 
-        toast({
+        const { dismiss: dismissRestore } = toast({
           title: "✅ Premium Access Restored Successfully!",
           description:
             "You now have full access to the ATS Optimizer. Upload your resume to get the complete unblurred analysis report.",
-          duration: null,
-          action: {
-            label: "OK",
-            onClick: () => toast.dismiss(),
-          },
+          duration: undefined,
+          action: <ToastAction altText="OK" onClick={() => dismissRestore()}>OK</ToastAction>,
           className: "bg-white border-2 border-[#D4AF37]",
         })
 
@@ -356,15 +353,12 @@ export default function ATSOptimizerClient() {
           }, 500)
         }
       } else if (data.promptPay) {
-        toast({
+        const { dismiss: dismissNoPayment } = toast({
           title: "❌ No Payment Found",
           description: "No ATS Optimizer payment found for this email — unlock for $5?",
           variant: "destructive",
-          duration: null,
-          action: {
-            label: "OK",
-            onClick: () => toast.dismiss(),
-          },
+          duration: undefined,
+          action: <ToastAction altText="OK" onClick={() => dismissNoPayment()}>OK</ToastAction>,
         })
         setShowRestoreForm(false)
       } else {
@@ -376,15 +370,12 @@ export default function ATSOptimizerClient() {
       }
     } catch (error) {
       console.error("[CLIENT] Restore error:", error)
-      toast({
+      const { dismiss: dismissError } = toast({
         title: "❌ Restore Failed",
         description: "Please try again or contact support.",
         variant: "destructive",
-        duration: null,
-        action: {
-          label: "OK",
-          onClick: () => toast.dismiss(),
-        },
+        duration: undefined,
+        action: <ToastAction altText="OK" onClick={() => dismissError()}>OK</ToastAction>,
       })
     } finally {
       setRestoreLoading(false)

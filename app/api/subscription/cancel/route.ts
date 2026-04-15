@@ -5,7 +5,7 @@ import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth"
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: "2024-11-20.acacia",
+  apiVersion: "2025-11-17.clover",
 })
 
 /**
@@ -106,6 +106,7 @@ export async function POST(request: NextRequest) {
             to: ["Srikanth@startekk.net", "info@startekk.net"],
             subject: `[Cancellation] ${session.user.name || session.user.email} cancelled their ${planLabel}`,
             html: `
+              <!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"></head><body style="margin:0;padding:0;background:#f4f4f4;">
               <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
                 <div style="background: #0A1A2F; color: white; padding: 20px; border-radius: 8px 8px 0 0;">
                   <h2 style="margin: 0; color: #E8C547;">⚠️ Subscription Cancellation</h2>
@@ -136,6 +137,7 @@ export async function POST(request: NextRequest) {
                   </div>
                 </div>
               </div>
+            </body></html>
             `,
           }),
         })

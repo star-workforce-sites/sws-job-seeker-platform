@@ -3,7 +3,7 @@ import { sql } from "@vercel/postgres"
 import Stripe from "stripe"
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || "", {
-  apiVersion: "2024-11-20.acacia",
+  apiVersion: "2025-11-17.clover",
 })
 
 const COVER_LETTER_PRICE_ID = process.env.STRIPE_PRICE_COVER_LETTER!
@@ -55,8 +55,8 @@ export async function POST(request: NextRequest) {
     const sessions = await stripe.checkout.sessions.list({
       customer_email: email,
       limit: 100,
-      expand: ["data.line_items"], // Expand line_items to get price data
-    })
+      expand: ["data.line_items"],
+    } as any)
 
     console.log(`[COVER-RESTORE] Stripe sessions for ${email}:`, sessions.data.length, "sessions found")
 
@@ -77,12 +77,20 @@ export async function POST(request: NextRequest) {
     if (paidSession) {
       console.log("[COVER-RESTORE] Found Cover Letter payment in Stripe, creating DB record for:", email)
 
+      // Extract customer ID (handle string | Customer | DeletedCustomer | null)
+      let customerId: string | null = null
+      if (typeof paidSession.customer === "string") {
+        customerId = paidSession.customer
+      } else if (paidSession.customer && typeof paidSession.customer === "object" && "id" in paidSession.customer) {
+        customerId = paidSession.customer.id
+      }
+
       await sql`
-        INSERT INTO premium_access 
+        INSERT INTO premium_access
         (email, "stripeCustomerId", "stripeSessionId", "paidAt", product, "priceId", "expiresAt")
         VALUES (
           ${email},
-          ${paidSession.customer},
+          ${customerId},
           ${paidSession.id},
           NOW(),
           'COVER_LETTER',

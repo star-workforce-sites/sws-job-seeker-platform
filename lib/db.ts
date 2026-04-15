@@ -106,7 +106,7 @@ export async function createUser(data: {
 
     const result = await sql<User>`
       INSERT INTO users (name, email, "emailVerified", role)
-      VALUES (${data.name || null}, ${data.email}, ${data.emailVerified || null}, ${data.role || "jobseeker"})
+      VALUES (${data.name || null}, ${data.email}, ${data.emailVerified ? data.emailVerified.toISOString() : null}, ${data.role || "jobseeker"})
       RETURNING *
     `
     return result.rows[0] || null
@@ -135,25 +135,74 @@ export async function getActiveJobs(filters?: {
   employmentType?: string
 }): Promise<Job[]> {
   try {
-    let query = sql<Job>`
-      SELECT * FROM jobs WHERE "isActive" = TRUE AND "expiresAt" > NOW()
-    `
+    const hasIndustry = Boolean(filters?.industry)
+    const hasLocation = Boolean(filters?.location)
+    const hasEmploymentType = Boolean(filters?.employmentType)
 
-    if (filters?.industry) {
-      query = sql<Job>`${query} AND industry = ${filters.industry}`
+    let result: { rows: Job[] }
+
+    if (hasIndustry && hasLocation && hasEmploymentType) {
+      result = await sql<Job>`
+        SELECT * FROM jobs
+        WHERE "isActive" = TRUE AND "expiresAt" > NOW()
+        AND industry = ${filters!.industry}
+        AND location ILIKE ${`%${filters!.location}%`}
+        AND "employmentType" = ${filters!.employmentType}
+        ORDER BY "createdAt" DESC LIMIT 50
+      `
+    } else if (hasIndustry && hasLocation) {
+      result = await sql<Job>`
+        SELECT * FROM jobs
+        WHERE "isActive" = TRUE AND "expiresAt" > NOW()
+        AND industry = ${filters!.industry}
+        AND location ILIKE ${`%${filters!.location}%`}
+        ORDER BY "createdAt" DESC LIMIT 50
+      `
+    } else if (hasIndustry && hasEmploymentType) {
+      result = await sql<Job>`
+        SELECT * FROM jobs
+        WHERE "isActive" = TRUE AND "expiresAt" > NOW()
+        AND industry = ${filters!.industry}
+        AND "employmentType" = ${filters!.employmentType}
+        ORDER BY "createdAt" DESC LIMIT 50
+      `
+    } else if (hasLocation && hasEmploymentType) {
+      result = await sql<Job>`
+        SELECT * FROM jobs
+        WHERE "isActive" = TRUE AND "expiresAt" > NOW()
+        AND location ILIKE ${`%${filters!.location}%`}
+        AND "employmentType" = ${filters!.employmentType}
+        ORDER BY "createdAt" DESC LIMIT 50
+      `
+    } else if (hasIndustry) {
+      result = await sql<Job>`
+        SELECT * FROM jobs
+        WHERE "isActive" = TRUE AND "expiresAt" > NOW()
+        AND industry = ${filters!.industry}
+        ORDER BY "createdAt" DESC LIMIT 50
+      `
+    } else if (hasLocation) {
+      result = await sql<Job>`
+        SELECT * FROM jobs
+        WHERE "isActive" = TRUE AND "expiresAt" > NOW()
+        AND location ILIKE ${`%${filters!.location}%`}
+        ORDER BY "createdAt" DESC LIMIT 50
+      `
+    } else if (hasEmploymentType) {
+      result = await sql<Job>`
+        SELECT * FROM jobs
+        WHERE "isActive" = TRUE AND "expiresAt" > NOW()
+        AND "employmentType" = ${filters!.employmentType}
+        ORDER BY "createdAt" DESC LIMIT 50
+      `
+    } else {
+      result = await sql<Job>`
+        SELECT * FROM jobs
+        WHERE "isActive" = TRUE AND "expiresAt" > NOW()
+        ORDER BY "createdAt" DESC LIMIT 50
+      `
     }
 
-    if (filters?.location) {
-      query = sql<Job>`${query} AND location ILIKE ${`%${filters.location}%`}`
-    }
-
-    if (filters?.employmentType) {
-      query = sql<Job>`${query} AND "employmentType" = ${filters.employmentType}`
-    }
-
-    query = sql<Job>`${query} ORDER BY "createdAt" DESC LIMIT 50`
-
-    const result = await query
     return result.rows
   } catch (error) {
     console.error("[v0] Error fetching active jobs:", error)

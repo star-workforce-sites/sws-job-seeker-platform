@@ -161,6 +161,7 @@ export async function sendPurchaseNotificationEmail(params: {
     ].filter(Boolean).join('\n')
 
     const html = `
+      <!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"></head><body style="margin:0;padding:0;background:#f4f4f4;">
       <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;">
         <div style="background:#0A1A2F;color:white;padding:20px;border-radius:8px 8px 0 0;">
           <h2 style="margin:0;color:#E8C547;">💰 New Purchase — Career Accel</h2>
@@ -189,6 +190,7 @@ export async function sendPurchaseNotificationEmail(params: {
           </div>
         </div>
       </div>
+      </body></html>
     `
 
     const result = await resend.emails.send({
@@ -222,6 +224,7 @@ export async function sendRecruiterSubmissionNotificationEmail(params: {
 
     // ── Email to job seeker ──────────────────────
     const seekerHtml = `
+      <!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"></head><body style="margin:0;padding:0;background:#f4f4f4;">
       <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;">
         <div style="background:#0A1A2F;color:white;padding:20px;border-radius:8px 8px 0 0;">
           <h2 style="margin:0;color:#E8C547;">New Application Submitted</h2>
@@ -243,10 +246,12 @@ export async function sendRecruiterSubmissionNotificationEmail(params: {
           <p style="margin:16px 0 0;font-size:12px;color:#9CA3AF;">You're receiving this because you have a recruiter plan on Career Accel Platform.</p>
         </div>
       </div>
+      </body></html>
     `
 
     // ── Email to admin ───────────────────────────
     const adminHtml = `
+      <!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"></head><body style="margin:0;padding:0;background:#f4f4f4;">
       <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;">
         <div style="background:#0A1A2F;color:white;padding:20px;border-radius:8px 8px 0 0;">
           <h2 style="margin:0;color:#E8C547;">Recruiter Submission Logged</h2>
@@ -262,6 +267,7 @@ export async function sendRecruiterSubmissionNotificationEmail(params: {
           </table>
         </div>
       </div>
+      </body></html>
     `
 
     // Send both emails in parallel (fire-and-forget pattern)
@@ -304,6 +310,7 @@ export async function sendProfileUpdateNotificationEmail(params: {
       : '<li style="padding:2px 0;color:#374151;">General profile update</li>'
 
     const html = `
+      <!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"></head><body style="margin:0;padding:0;background:#f4f4f4;">
       <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;">
         <div style="background:#0A1A2F;color:white;padding:20px;border-radius:8px 8px 0 0;">
           <h2 style="margin:0;color:#E8C547;">Profile Updated — Career Accel</h2>
@@ -328,6 +335,7 @@ export async function sendProfileUpdateNotificationEmail(params: {
           </div>
         </div>
       </div>
+      </body></html>
     `
 
     const result = await resend.emails.send({

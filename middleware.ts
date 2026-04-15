@@ -86,7 +86,7 @@ export function middleware(request: NextRequest) {
 
   // Rate limiting for API routes
   if (request.nextUrl.pathname.startsWith("/api/")) {
-    const ip = request.ip || request.headers.get("x-forwarded-for") || request.headers.get("x-real-ip") || "anonymous"
+    const ip = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || request.headers.get("x-real-ip") || "anonymous"
 
     // Simple rate limit check (60 requests per minute per IP)
     // For production, consider using Vercel KV or Upstash Redis

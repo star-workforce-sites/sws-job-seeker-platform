@@ -200,6 +200,7 @@ export async function POST(request: NextRequest) {
       replyTo: email,
       subject: `[Contact Form] ${subjectLabel} - from ${name}`,
       html: `
+        <!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"></head><body style="margin:0;padding:0;background:#f4f4f4;">
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
           <div style="background: #0A1A2F; padding: 20px; text-align: center;">
             <h1 style="color: #E8C547; margin: 0;">STAR Workforce Solutions</h1>
@@ -231,6 +232,7 @@ export async function POST(request: NextRequest) {
             </p>
           </div>
         </div>
+        </body></html>
       `,
       text: `
 New Contact Form Submission

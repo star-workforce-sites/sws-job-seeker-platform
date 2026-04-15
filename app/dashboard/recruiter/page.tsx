@@ -23,7 +23,7 @@ export default async function RecruiterDashboardPage() {
     redirect("/dashboard")
   }
 
-  const recruiter = userResult.rows[0]
+  const recruiter = userResult.rows[0] as { id: string; name: string; email: string; role: string }
 
   // ── Fetch assigned clients with submission stats ──────────
   let clients: any[] = []

@@ -62,9 +62,9 @@ function addHeader(doc: jsPDF, title: string, yPos: number): number {
 function addSubsection(doc: jsPDF, title: string, yPos: number): number {
   doc.setFontSize(12)
   doc.setTextColor(NAVY.r, NAVY.g, NAVY.b)
-  doc.setFont(undefined, "bold")
+  doc.setFont("helvetica", "bold")
   doc.text(title, MARGIN_LEFT, yPos)
-  doc.setFont(undefined, "normal")
+  doc.setFont("helvetica", "normal")
   return yPos + 7
 }
 
@@ -89,7 +89,7 @@ function drawScoreBar(
 
   doc.setFontSize(11)
   doc.setTextColor(DARK_GRAY.r, DARK_GRAY.g, DARK_GRAY.b)
-  doc.setFont(undefined, "bold")
+  doc.setFont("helvetica", "bold")
   doc.text(label, x, yPos)
 
   yPos += 8
@@ -106,13 +106,13 @@ function drawScoreBar(
 
   doc.setFontSize(10)
   doc.setTextColor(DARK_GRAY.r, DARK_GRAY.g, DARK_GRAY.b)
-  doc.setFont(undefined, "bold")
+  doc.setFont("helvetica", "bold")
   doc.text(`${score}%`, x + barWidth + 8, yPos + 6)
 
   yPos += barHeight + 6
 
   // Add explanation text
-  doc.setFont(undefined, "normal")
+  doc.setFont("helvetica", "normal")
   doc.setFontSize(10)
   doc.setTextColor(DARK_GRAY.r, DARK_GRAY.g, DARK_GRAY.b)
   const explanationLines = doc.splitTextToSize(explanation, CONTENT_WIDTH - 20)
@@ -150,7 +150,7 @@ export async function GET(request: NextRequest) {
     }
 
     const { fileName, analysisCache, userEmail } = result.rows[0]
-    const analysis = analysisCache as Analysis
+    const analysis = (analysisCache || {}) as Analysis
 
     if (!analysis) {
       return NextResponse.json(
@@ -172,30 +172,30 @@ export async function GET(request: NextRequest) {
     // STAR header
     doc.setFontSize(18)
     doc.setTextColor(255, 255, 255)
-    doc.setFont(undefined, "bold")
+    doc.setFont("helvetica", "bold")
     doc.text("STAR Workforce Solutions", PAGE_WIDTH / 2, 15, { align: "center" })
 
     doc.setFontSize(10)
     doc.setTextColor(GOLD.r, GOLD.g, GOLD.b)
-    doc.setFont(undefined, "normal")
+    doc.setFont("helvetica", "normal")
     doc.text("Professional Career Optimization", PAGE_WIDTH / 2, 25, { align: "center" })
 
     // Title
     doc.setFontSize(24)
     doc.setTextColor(NAVY.r, NAVY.g, NAVY.b)
-    doc.setFont(undefined, "bold")
+    doc.setFont("helvetica", "bold")
     doc.text("ATS Resume Analysis Report", PAGE_WIDTH / 2, 70, { align: "center" })
 
     // Report date
     doc.setFontSize(11)
     doc.setTextColor(MEDIUM_GRAY.r, MEDIUM_GRAY.g, MEDIUM_GRAY.b)
-    doc.setFont(undefined, "normal")
+    doc.setFont("helvetica", "normal")
     doc.text(`Generated: ${new Date().toLocaleDateString()}`, PAGE_WIDTH / 2, 80, {
       align: "center",
     })
 
     if (userEmail) {
-      doc.text(`Candidate: ${userEmail}`, PAGE_WIDTH / 2, 87, { align: "center" })
+      doc.text(`Candidate: ${userEmail || ""}`, PAGE_WIDTH / 2, 87, { align: "center" })
     }
 
     // Score circle
@@ -206,30 +206,30 @@ export async function GET(request: NextRequest) {
 
     doc.setFontSize(36)
     doc.setTextColor(GOLD.r, GOLD.g, GOLD.b)
-    doc.setFont(undefined, "bold")
-    doc.text(`${analysis.score}`, PAGE_WIDTH / 2, scoreCircleY + 8, { align: "center" })
+    doc.setFont("helvetica", "bold")
+    doc.text(`${analysis.score ?? 0}`, PAGE_WIDTH / 2, scoreCircleY + 8, { align: "center" })
 
     doc.setFontSize(12)
     doc.setTextColor(255, 255, 255)
-    doc.setFont(undefined, "normal")
+    doc.setFont("helvetica", "normal")
     doc.text("ATS Score", PAGE_WIDTH / 2, scoreCircleY + 18, { align: "center" })
 
     // Summary text
     doc.setFontSize(13)
     doc.setTextColor(DARK_GRAY.r, DARK_GRAY.g, DARK_GRAY.b)
-    doc.setFont(undefined, "bold")
+    doc.setFont("helvetica", "bold")
     doc.text("Your Resume Summary", PAGE_WIDTH / 2, 175, { align: "center" })
 
     const scoreInterpretation =
-      analysis.score >= 80
+      (analysis.score ?? 0) >= 80
         ? "Excellent! Your resume is well-optimized for ATS systems and ready for submission."
-        : analysis.score >= 60
+        : (analysis.score ?? 0) >= 60
           ? "Good foundation. Your resume has solid ATS compatibility with room for improvement."
           : "Your resume needs optimization to improve ATS compatibility and increase visibility."
 
     doc.setFontSize(11)
     doc.setTextColor(DARK_GRAY.r, DARK_GRAY.g, DARK_GRAY.b)
-    doc.setFont(undefined, "normal")
+    doc.setFont("helvetica", "normal")
     const summaryLines = doc.splitTextToSize(scoreInterpretation, CONTENT_WIDTH)
     doc.text(summaryLines, PAGE_WIDTH / 2, 185, { align: "center" })
 
@@ -245,7 +245,7 @@ export async function GET(request: NextRequest) {
     yPos = addSubsection(doc, "Keywords Found", yPos)
     yPos += 3
 
-    if (analysis.keywords.found && analysis.keywords.found.length > 0) {
+    if (analysis.keywords?.found && analysis.keywords.found.length > 0) {
       const foundKeywords = analysis.keywords.found
       const columnWidth = CONTENT_WIDTH / 2 - 5
       let col = 0
@@ -282,7 +282,7 @@ export async function GET(request: NextRequest) {
     yPos = addSubsection(doc, "Missing Keywords", yPos)
     yPos += 3
 
-    if (analysis.keywords.missing && analysis.keywords.missing.length > 0) {
+    if (analysis.keywords?.missing && analysis.keywords.missing.length > 0) {
       const missingKeywords = analysis.keywords.missing.slice(0, 15)
       const columnWidth = CONTENT_WIDTH / 2 - 5
       let col = 0
@@ -320,7 +320,7 @@ export async function GET(request: NextRequest) {
       const colWidth = CONTENT_WIDTH / 2
       let sectionIndex = 0
 
-      analysis.sections.forEach((section) => {
+      ;(analysis.sections as any[]).forEach((section: any) => {
         if (yPos + 8 > PAGE_HEIGHT - MARGIN_BOTTOM - 15) {
           doc.addPage()
           yPos = MARGIN_TOP + 20
@@ -332,10 +332,10 @@ export async function GET(request: NextRequest) {
         const currentY = yPos + row * 8
 
         doc.setTextColor(DARK_GRAY.r, DARK_GRAY.g, DARK_GRAY.b)
-        doc.text(`${section.name}:`, x, currentY)
-        doc.setFont(undefined, "bold")
-        doc.text(`${section.score}%`, x + colWidth - 15, currentY)
-        doc.setFont(undefined, "normal")
+        doc.text(`${section?.name || ""}:`, x, currentY)
+        doc.setFont("helvetica", "bold")
+        doc.text(`${section?.score ?? 0}%`, x + colWidth - 15, currentY)
+        doc.setFont("helvetica", "normal")
 
         sectionIndex++
         if (col === 1) {
@@ -357,27 +357,27 @@ export async function GET(request: NextRequest) {
     // Full-Time Alignment
     yPos = drawScoreBar(
       doc,
-      analysis.jobAlignmentFullTime,
+      analysis.jobAlignmentFullTime ?? 0,
       yPos,
       "Full-Time Permanent Alignment",
-      analysis.jobAlignmentFullTimeExplanation,
+      analysis.jobAlignmentFullTimeExplanation ?? "",
     )
     yPos += 8
 
     // Contract Alignment
     yPos = drawScoreBar(
       doc,
-      analysis.jobAlignmentContract,
+      analysis.jobAlignmentContract ?? 0,
       yPos,
       "Contract/Consulting Alignment",
-      analysis.jobAlignmentContractExplanation,
+      analysis.jobAlignmentContractExplanation ?? "",
     )
     yPos += 12
 
     // Disclaimer
     doc.setFontSize(9)
     doc.setTextColor(MEDIUM_GRAY.r, MEDIUM_GRAY.g, MEDIUM_GRAY.b)
-    doc.setFont(undefined, "italic")
+    doc.setFont("helvetica", "italic")
     const disclaimerText = doc.splitTextToSize(
       "AI-generated analysis — for informational purposes only. This assessment is based on AI analysis and should be used as a guide alongside professional career counseling.",
       CONTENT_WIDTH,
@@ -398,27 +398,27 @@ export async function GET(request: NextRequest) {
       yPos += 5
 
       doc.setFontSize(9)
-      analysis.formatting.forEach((issue) => {
+      ;(analysis.formatting as any[]).forEach((issue: any) => {
         yPos = checkPageBreak(doc, yPos, 10)
 
         let color = LIGHT_GRAY
-        if (issue.severity === "high") color = RED
-        else if (issue.severity === "medium") color = ORANGE
-        else if (issue.severity === "low") color = YELLOW
+        if (issue?.severity === "high") color = RED
+        else if (issue?.severity === "medium") color = ORANGE
+        else if (issue?.severity === "low") color = YELLOW
 
         doc.setFillColor(color.r, color.g, color.b)
         doc.rect(MARGIN_LEFT, yPos - 3, 12, 5, "F")
 
         doc.setTextColor(DARK_GRAY.r, DARK_GRAY.g, DARK_GRAY.b)
         const severityLabel =
-          issue.severity === "high" ? "HIGH" : issue.severity === "medium" ? "MED" : "LOW"
-        doc.setFont(undefined, "bold")
+          issue?.severity === "high" ? "HIGH" : issue?.severity === "medium" ? "MED" : "LOW"
+        doc.setFont("helvetica", "bold")
         doc.setFontSize(8)
         doc.text(severityLabel, MARGIN_LEFT + 2, yPos + 1)
 
-        doc.setFont(undefined, "normal")
+        doc.setFont("helvetica", "normal")
         doc.setFontSize(9)
-        const issueLines = doc.splitTextToSize(issue.issue, CONTENT_WIDTH - 20)
+        const issueLines = doc.splitTextToSize(issue?.issue || "", CONTENT_WIDTH - 20)
         doc.text(issueLines, MARGIN_LEFT + 16, yPos, { maxWidth: CONTENT_WIDTH - 20 })
         yPos += Math.max(5, issueLines.length * 4) + 3
       })
@@ -434,12 +434,12 @@ export async function GET(request: NextRequest) {
 
       doc.setFontSize(10)
       doc.setTextColor(DARK_GRAY.r, DARK_GRAY.g, DARK_GRAY.b)
-      analysis.tips.slice(0, 8).forEach((tip, idx) => {
+      ;(analysis.tips as any[]).slice(0, 8).forEach((tip: any, idx: number) => {
         yPos = checkPageBreak(doc, yPos, 8)
-        doc.setFont(undefined, "bold")
+        doc.setFont("helvetica", "bold")
         doc.text(`${idx + 1}.`, MARGIN_LEFT, yPos)
-        doc.setFont(undefined, "normal")
-        const tipLines = doc.splitTextToSize(tip, CONTENT_WIDTH - 8)
+        doc.setFont("helvetica", "normal")
+        const tipLines = doc.splitTextToSize(tip || "", CONTENT_WIDTH - 8)
         doc.text(tipLines, MARGIN_LEFT + 6, yPos)
         yPos += tipLines.length * 4.5 + 2
       })
@@ -460,9 +460,9 @@ export async function GET(request: NextRequest) {
 
       doc.setFontSize(10)
       doc.setTextColor(DARK_GRAY.r, DARK_GRAY.g, DARK_GRAY.b)
-      analysis.missingCertifications.slice(0, 5).forEach((cert) => {
+      ;(analysis.missingCertifications as any[]).slice(0, 5).forEach((cert: any) => {
         yPos = checkPageBreak(doc, yPos, 6)
-        doc.text(`• ${cert}`, MARGIN_LEFT + 5, yPos)
+        doc.text(`• ${cert || ""}`, MARGIN_LEFT + 5, yPos)
         yPos += 5
       })
       yPos += 3
@@ -476,9 +476,9 @@ export async function GET(request: NextRequest) {
 
       doc.setFontSize(10)
       doc.setTextColor(DARK_GRAY.r, DARK_GRAY.g, DARK_GRAY.b)
-      analysis.recommendedTraining.slice(0, 5).forEach((training) => {
+      ;(analysis.recommendedTraining as any[]).slice(0, 5).forEach((training: any) => {
         yPos = checkPageBreak(doc, yPos, 6)
-        doc.text(`• ${training}`, MARGIN_LEFT + 5, yPos)
+        doc.text(`• ${training || ""}`, MARGIN_LEFT + 5, yPos)
         yPos += 5
       })
       yPos += 8
@@ -492,12 +492,12 @@ export async function GET(request: NextRequest) {
 
     doc.setFontSize(10)
     doc.setTextColor(NAVY.r, NAVY.g, NAVY.b)
-    doc.setFont(undefined, "bold")
+    doc.setFont("helvetica", "bold")
     doc.text("Additional Resources", MARGIN_LEFT + 8, yPos + 5)
 
     doc.setFontSize(9)
     doc.setTextColor(DARK_GRAY.r, DARK_GRAY.g, DARK_GRAY.b)
-    doc.setFont(undefined, "normal")
+    doc.setFont("helvetica", "normal")
     doc.text(
       "→ Interview Preparation: starworkforcesolutions.com/tools/interview-prep",
       MARGIN_LEFT + 8,
@@ -514,7 +514,7 @@ export async function GET(request: NextRequest) {
     // Footer
     doc.setFontSize(9)
     doc.setTextColor(LIGHT_GRAY.r, LIGHT_GRAY.g, LIGHT_GRAY.b)
-    doc.setFont(undefined, "normal")
+    doc.setFont("helvetica", "normal")
     doc.text(
       "Generated by STAR Workforce Solutions | starworkforcesolutions.com",
       PAGE_WIDTH / 2,
@@ -523,7 +523,7 @@ export async function GET(request: NextRequest) {
     )
 
     doc.setFontSize(8)
-    doc.setFont(undefined, "italic")
+    doc.setFont("helvetica", "italic")
     const footerDisclaimer = doc.splitTextToSize(
       "AI-generated analysis — for informational purposes only.",
       CONTENT_WIDTH,
@@ -536,7 +536,7 @@ export async function GET(request: NextRequest) {
 
     // Generate PDF buffer
     const pdfBuffer = Buffer.from(doc.output("arraybuffer"))
-    const originalName = fileName.replace(/\.[^/.]+$/, "")
+    const originalName = (fileName || "resume").replace(/\.[^/.]+$/, "")
 
     return new NextResponse(pdfBuffer, {
       headers: {

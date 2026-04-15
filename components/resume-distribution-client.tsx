@@ -66,13 +66,14 @@ export default function ResumeDistributionClient() {
       setStatus("success")
       setFormData((prev) => ({ ...prev, email: urlEmail || "" }))
 
+      const toastElement = (
+        <div className="flex items-center gap-2">
+          <Image src="/favicon.svg" alt="STAR" width={24} height={24} />
+          <span className="text-green-600 font-bold">Distribution Campaign Started!</span>
+        </div>
+      ) as unknown as string
       toast({
-        title: (
-          <div className="flex items-center gap-2">
-            <Image src="/favicon.svg" alt="STAR" width={24} height={24} />
-            <span className="text-green-600 font-bold">Distribution Campaign Started!</span>
-          </div>
-        ),
+        title: toastElement,
         description: "Your resume will be distributed to 500+ recruiters over the next 12 months.",
         className: "bg-white border-2 border-green-600",
         duration: 4000,
@@ -80,13 +81,14 @@ export default function ResumeDistributionClient() {
 
       window.history.replaceState({}, "", "/tools/resume-distribution")
     } else if (urlStatus === "cancelled") {
+      const cancelToastElement = (
+        <div className="flex items-center gap-2">
+          <Image src="/favicon.svg" alt="STAR" width={24} height={24} />
+          <span className="text-[#E8C547] font-bold">Payment Cancelled</span>
+        </div>
+      ) as unknown as string
       toast({
-        title: (
-          <div className="flex items-center gap-2">
-            <Image src="/favicon.svg" alt="STAR" width={24} height={24} />
-            <span className="text-[#E8C547] font-bold">Payment Cancelled</span>
-          </div>
-        ),
+        title: cancelToastElement,
         description: "You can try again anytime.",
         className: "bg-white border-2 border-black",
       })

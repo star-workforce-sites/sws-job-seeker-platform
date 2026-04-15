@@ -235,6 +235,5 @@ export const authOptions: NextAuthOptions = {
   },
 
   secret: process.env.NEXTAUTH_SECRET || "fallback-secret-for-development",
-  trustHost: true,
   debug: process.env.NODE_ENV === 'development',
-}
+} as NextAuthOptions

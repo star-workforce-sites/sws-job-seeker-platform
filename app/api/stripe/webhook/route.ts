@@ -8,7 +8,7 @@ import { getDbUrl } from "@/lib/db"
 import { getReferralByUserId, createCommission, calculateCommission } from "@/lib/partners"
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || "", {
-  apiVersion: "2024-11-20.acacia",
+  apiVersion: "2025-11-17.clover",
 })
 
 const sqlNeon = neon(getDbUrl())
@@ -127,6 +127,9 @@ export async function POST(request: NextRequest) {
         }
 
         // Create subscription record
+        const currentPeriodStart = (subscription as any).current_period_start
+        const currentPeriodEnd = (subscription as any).current_period_end
+
         await sqlNeon`
           INSERT INTO subscriptions (
             user_id,
@@ -144,13 +147,13 @@ export async function POST(request: NextRequest) {
             ${subscriptionId},
             ${priceId},
             ${subscription.status},
-            to_timestamp(${subscription.current_period_start}),
-            to_timestamp(${subscription.current_period_end})
+            to_timestamp(${currentPeriodStart}),
+            to_timestamp(${currentPeriodEnd})
           )
-          ON CONFLICT (stripe_subscription_id) 
+          ON CONFLICT (stripe_subscription_id)
           DO UPDATE SET
             status = ${subscription.status},
-            current_period_end = to_timestamp(${subscription.current_period_end})
+            current_period_end = to_timestamp(${currentPeriodEnd})
         `
 
         console.log("[Webhook] Subscription record created")
@@ -268,12 +271,13 @@ export async function POST(request: NextRequest) {
     // Handle subscription updates
     if (event.type === "customer.subscription.updated") {
       const subscription = event.data.object as Stripe.Subscription
+      const currentPeriodEnd = (subscription as any).current_period_end
 
       await sqlNeon`
         UPDATE subscriptions
-        SET 
+        SET
           status = ${subscription.status},
-          current_period_end = to_timestamp(${subscription.current_period_end}),
+          current_period_end = to_timestamp(${currentPeriodEnd}),
           cancel_at_period_end = ${subscription.cancel_at_period_end}
         WHERE stripe_subscription_id = ${subscription.id}
       `

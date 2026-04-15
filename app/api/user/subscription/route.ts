@@ -53,11 +53,11 @@ export async function GET(request: NextRequest) {
 
     console.log('[Subscription API] User lookup result:', {
       rowCount: userResult.rowCount,
-      found: userResult.rowCount > 0,
+      found: (userResult.rowCount ?? 0) > 0,
       searchedEmail: userEmail
     });
 
-    if (userResult.rowCount === 0) {
+    if ((userResult.rowCount ?? 0) === 0) {
       console.log('[Subscription API] User not found in database');
       return NextResponse.json(
         { 
@@ -99,11 +99,11 @@ export async function GET(request: NextRequest) {
 
     console.log('[Subscription API] Subscription lookup result:', {
       rowCount: subResult.rowCount,
-      hasSubscription: subResult.rowCount > 0,
+      hasSubscription: (subResult.rowCount ?? 0) > 0,
       userId
     });
 
-    if (subResult.rowCount === 0) {
+    if ((subResult.rowCount ?? 0) === 0) {
       console.log('[Subscription API] No active subscription found');
       return NextResponse.json(
         { 
@@ -125,10 +125,10 @@ export async function GET(request: NextRequest) {
       'diy_premium': 'DIY Premium'
     };
 
-    const planName = planMapping[subscription.subscription_type] || 
+    const planName = planMapping[subscription.subscription_type] ||
                      subscription.subscription_type.replace(/_/g, ' ')
                        .split(' ')
-                       .map(w => w.charAt(0).toUpperCase() + w.slice(1))
+                       .map((w: string) => w.charAt(0).toUpperCase() + w.slice(1))
                        .join(' ');
 
     console.log('[Subscription API] Returning subscription:', {
