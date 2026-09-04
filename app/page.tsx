@@ -153,10 +153,10 @@ export default function Home() {
                 </div>
                 <h3 className="text-lg font-bold mb-2 text-foreground premium-heading">Interview Prep</h3>
                 <p className="text-sm text-muted-foreground leading-relaxed premium-body">
-                  Practice unlimited interview questions tailored to job descriptions with instant scoring.
+                  Practice interview questions tailored to job descriptions with instant AI scoring.
                 </p>
                 <div className="mt-4 inline-flex items-center gap-2 text-accent text-sm font-semibold">
-                  <span>100% FREE</span>
+                  <span>5 FREE QUESTIONS</span>
                   <span className="text-xs px-2 py-1 bg-accent/20 rounded">NEW</span>
                 </div>
               </Card>
