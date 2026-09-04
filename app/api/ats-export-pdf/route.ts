@@ -254,10 +254,13 @@ export async function GET(request: NextRequest) {
       doc.setFontSize(10)
       doc.setTextColor(GREEN.r, GREEN.g, GREEN.b)
       foundKeywords.forEach((keyword) => {
-        if (colY + 5 > PAGE_HEIGHT - MARGIN_BOTTOM - 20) {
-          yPos = PAGE_HEIGHT - MARGIN_BOTTOM - 20
+        if (colY + 5 > PAGE_HEIGHT - MARGIN_BOTTOM) {
+          doc.addPage()
+          doc.setFontSize(10)
+          doc.setTextColor(GREEN.r, GREEN.g, GREEN.b)
           col = 0
-          colY = yPos + 5
+          colY = MARGIN_TOP
+          yPos = MARGIN_TOP
         }
 
         const x = MARGIN_LEFT + col * (columnWidth + 5)
@@ -291,10 +294,13 @@ export async function GET(request: NextRequest) {
       doc.setFontSize(10)
       doc.setTextColor(RED.r, RED.g, RED.b)
       missingKeywords.forEach((keyword) => {
-        if (colY + 5 > PAGE_HEIGHT - MARGIN_BOTTOM - 20) {
-          yPos = PAGE_HEIGHT - MARGIN_BOTTOM - 20
+        if (colY + 5 > PAGE_HEIGHT - MARGIN_BOTTOM) {
+          doc.addPage()
+          doc.setFontSize(10)
+          doc.setTextColor(RED.r, RED.g, RED.b)
           col = 0
-          colY = yPos + 5
+          colY = MARGIN_TOP
+          yPos = MARGIN_TOP
         }
 
         const x = MARGIN_LEFT + col * (columnWidth + 5)
