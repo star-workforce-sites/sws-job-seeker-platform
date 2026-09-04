@@ -4,6 +4,7 @@ export const revalidate = 0
 import { type NextRequest, NextResponse } from "next/server"
 import { sql } from "@vercel/postgres"
 import { generateATSAnalysis } from "@/lib/ats-ai-analysis"
+import { extractResumeText } from "@/lib/extract-resume-text"
 
 export async function POST(request: NextRequest) {
   try {
@@ -94,9 +95,7 @@ export async function POST(request: NextRequest) {
     let resumeText = ''
     try {
       const buffer = Buffer.from(resume.fileContent, 'base64')
-      resumeText = buffer.toString('utf-8')
-      // Clean up non-printable characters
-      resumeText = resumeText.replace(/[^\x20-\x7E\n\r\t]/g, ' ').replace(/\s+/g, ' ').trim()
+      resumeText = await extractResumeText(buffer, resume.fileType, resume.fileName)
     } catch (e) {
       console.error(`[ATS ${requestId}] Text extraction failed:`, e)
       resumeText = 'Unable to extract text from resume'
