@@ -1,6 +1,11 @@
 import mammoth from "mammoth"
+// pdf-parse@1.1.1's root index.js has a "debug mode" check (!module.parent)
+// that misfires under Turbopack bundling and tries to read its own test
+// fixture file at import time, crashing the build. Requiring the inner
+// module directly skips that check entirely. Confirmed pdf-parse@1.1.1 has
+// no "exports" restriction blocking this path (unlike newer 2.x releases).
 // eslint-disable-next-line @typescript-eslint/no-var-requires
-const pdfParse = require("pdf-parse")
+const pdfParse = require("pdf-parse/lib/pdf-parse.js")
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const WordExtractor = require("word-extractor")
 
