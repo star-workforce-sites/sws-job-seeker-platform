@@ -1,10 +1,6 @@
 import mammoth from "mammoth"
-// Import the inner module directly -- pdf-parse's package index.js has a
-// known debug-mode side effect (tries to read a local test PDF) that only
-// triggers when required as a package entrypoint in some bundlers. Using
-// the lib path directly avoids that entirely.
 // eslint-disable-next-line @typescript-eslint/no-var-requires
-const pdfParse = require("pdf-parse/lib/pdf-parse.js")
+const pdfParse = require("pdf-parse")
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const WordExtractor = require("word-extractor")
 
