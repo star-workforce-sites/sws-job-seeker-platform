@@ -18,9 +18,9 @@ import {
   Bookmark,
 } from "lucide-react"
 import CHRMJobSeekerPanel from "./CHRMJobSeekerPanel"
-import CHRMMarketIntelSnapshot from "./CHRMMarketIntelSnapshot"
 import PlanManagerClient from "./PlanManagerClient"
 import DashboardSupportCard from "./DashboardSupportCard"
+import DashboardTabs from "./DashboardTabs"
 
 export const dynamic = "force-dynamic"
 
@@ -231,236 +231,207 @@ export default async function JobSeekerDashboard() {
           </Link>
         </div>
 
-        {/* ── Top Row: Plan Manager (2 cols) + Market Intel (1 col) ── */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
-          {/* Columns 1-2: Plan + Recruiter (inline upgrade/downgrade) */}
-          <PlanManagerClient
-            currentPlan={hasRecruiterSubscription ? subscription?.subscription_type : null}
-            renewalDate={subscription?.current_period_end || null}
-            cancelAtPeriodEnd={cancelAtPeriodEnd}
-            pendingCancelPlanName={cancelAtPeriodEnd ? subscription?.subscription_type : null}
-            assignedRecruiter={assignedRecruiter}
-            isAssigned={!!assignedRecruiter}
-          />
+        <DashboardTabs
+          planManagerSlot={
+            <PlanManagerClient
+              currentPlan={hasRecruiterSubscription ? subscription?.subscription_type : null}
+              renewalDate={subscription?.current_period_end || null}
+              cancelAtPeriodEnd={cancelAtPeriodEnd}
+              pendingCancelPlanName={cancelAtPeriodEnd ? subscription?.subscription_type : null}
+              assignedRecruiter={assignedRecruiter}
+              isAssigned={!!assignedRecruiter}
+            />
+          }
+          statsAndSubmissionsSlot={
+            <div className="space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <Card className="p-4">
+                  <div className="flex items-center gap-3">
+                    <Briefcase className="w-6 h-6 text-primary shrink-0" />
+                    <div>
+                      <p className="text-xs text-muted-foreground premium-body">
+                        {hasRecruiterSubscription ? "Applications by Recruiter" : "Applications"}
+                      </p>
+                      <p className="text-xl font-bold text-foreground premium-heading">
+                        {hasRecruiterSubscription ? totalSubmissions : legacyApplicationCount}
+                      </p>
+                    </div>
+                  </div>
+                </Card>
+                <Card className="p-4">
+                  <div className="flex items-center gap-3">
+                    <TrendingUp className="w-6 h-6 text-green-500 shrink-0" />
+                    <div>
+                      <p className="text-xs text-muted-foreground premium-body">Interview Stage</p>
+                      <p className="text-xl font-bold text-foreground premium-heading">
+                        {interviewCount}
+                      </p>
+                    </div>
+                  </div>
+                </Card>
+                <Card className="p-4">
+                  <div className="flex items-center gap-3">
+                    <Mail className="w-6 h-6 text-blue-500 shrink-0" />
+                    <div>
+                      <p className="text-xs text-muted-foreground premium-body">Responses</p>
+                      <p className="text-xl font-bold text-foreground premium-heading">
+                        {responseCount}
+                      </p>
+                    </div>
+                  </div>
+                </Card>
+              </div>
 
-          {/* Column 3: Market Intelligence Snapshot (client component) */}
-          <CHRMMarketIntelSnapshot />
-        </div>
+              {(hasRecruiterSubscription || totalSubmissions > 0) && (
+                <Card className="p-6">
+                  <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
+                    <div>
+                      <h2 className="text-xl font-bold text-foreground premium-heading">
+                        Applications Submitted by Your Recruiter
+                      </h2>
+                      <p className="text-sm text-muted-foreground premium-body mt-0.5">
+                        {totalSubmissions > 0
+                          ? `${totalSubmissions} total · ${todayCount} today`
+                          : hasRecruiterSubscription
+                            ? "No submissions yet — your recruiter will start soon"
+                            : "Your submission history from previous plans"}
+                      </p>
+                    </div>
+                  </div>
 
-        {/* ── Stats Grid ────────────────────────────────────── */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-          <Card className="p-6">
-            <div className="flex items-center gap-4">
-              <Briefcase className="w-8 h-8 text-primary" />
-              <div>
-                <p className="text-sm text-muted-foreground premium-body">
-                  {hasRecruiterSubscription ? "Applications by Recruiter" : "Applications"}
-                </p>
-                <p className="text-2xl font-bold text-foreground premium-heading">
-                  {hasRecruiterSubscription ? totalSubmissions : legacyApplicationCount}
-                </p>
-              </div>
-            </div>
-          </Card>
-          <Card className="p-6">
-            <div className="flex items-center gap-4">
-              <TrendingUp className="w-8 h-8 text-green-500" />
-              <div>
-                <p className="text-sm text-muted-foreground premium-body">Interview Stage</p>
-                <p className="text-2xl font-bold text-foreground premium-heading">
-                  {interviewCount}
-                </p>
-              </div>
-            </div>
-          </Card>
-          <Card className="p-6">
-            <div className="flex items-center gap-4">
-              <Mail className="w-8 h-8 text-blue-500" />
-              <div>
-                <p className="text-sm text-muted-foreground premium-body">Responses</p>
-                <p className="text-2xl font-bold text-foreground premium-heading">
-                  {responseCount}
-                </p>
-              </div>
-            </div>
-          </Card>
-        </div>
-
-        {/* ── Submissions Table (show when subscribed OR has past submissions) ── */}
-        {(hasRecruiterSubscription || totalSubmissions > 0) && (
-          <Card className="mb-8 p-6">
-            <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
-              <div>
-                <h2 className="text-xl font-bold text-foreground premium-heading">
-                  Applications Submitted by Your Recruiter
-                </h2>
-                <p className="text-sm text-muted-foreground premium-body mt-0.5">
-                  {totalSubmissions > 0
-                    ? `${totalSubmissions} total · ${todayCount} today`
-                    : hasRecruiterSubscription
-                      ? "No submissions yet — your recruiter will start soon"
-                      : "Your submission history from previous plans"}
-                </p>
-              </div>
-            </div>
-
-            {submissions.length === 0 ? (
-              <div className="text-center py-12 border rounded-lg bg-muted/20">
-                <Briefcase className="w-12 h-12 text-muted-foreground mx-auto mb-3" />
-                {assignedRecruiter ? (
-                  <>
-                    <p className="text-foreground font-medium premium-heading">
-                      {assignedRecruiter.name} hasn't logged any applications yet
-                    </p>
-                    <p className="text-sm text-muted-foreground premium-body mt-1">
-                      Applications will appear here as your recruiter submits them
-                    </p>
-                  </>
-                ) : (
-                  <>
-                    <p className="text-foreground font-medium premium-heading">
-                      Awaiting recruiter assignment
-                    </p>
-                    <p className="text-sm text-muted-foreground premium-body mt-1">
-                      Applications will appear here once your recruiter is assigned and starts working
-                    </p>
-                  </>
-                )}
-              </div>
-            ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="border-b border-border">
-                      <th className="px-3 py-3 text-left font-semibold text-foreground premium-heading">Date</th>
-                      <th className="px-3 py-3 text-left font-semibold text-foreground premium-heading">Job Title</th>
-                      <th className="px-3 py-3 text-left font-semibold text-foreground premium-heading">Company</th>
-                      <th className="px-3 py-3 text-left font-semibold text-foreground premium-heading">Status</th>
-                      <th className="px-3 py-3 text-left font-semibold text-foreground premium-heading">Feedback</th>
-                      <th className="px-3 py-3 text-left font-semibold text-foreground premium-heading">Link</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {submissions.map((sub) => (
-                      <tr
-                        key={sub.id}
-                        className="border-b border-border hover:bg-muted/30 transition-colors"
-                      >
-                        <td className="px-3 py-3 text-muted-foreground premium-body whitespace-nowrap">
-                          {formatDate(sub.application_date || sub.submitted_at)}
-                        </td>
-                        <td className="px-3 py-3 text-foreground premium-body max-w-[200px]">
-                          <div className="font-medium truncate">{sub.job_title}</div>
-                          {sub.notes && (
-                            <div className="text-xs text-muted-foreground truncate mt-0.5">
-                              {sub.notes}
-                            </div>
-                          )}
-                        </td>
-                        <td className="px-3 py-3 text-foreground premium-body whitespace-nowrap">
-                          {sub.company_name}
-                        </td>
-                        <td className="px-3 py-3">
-                          <span className={`inline-flex items-center px-2.5 py-1 rounded text-xs font-medium ${statusColor(sub.status)}`}>
-                            {statusLabel(sub.status)}
-                          </span>
-                        </td>
-                        <td className="px-3 py-3 text-sm premium-body">
-                          {sub.feedback_received ? (
-                            <div className="flex items-center gap-1 text-green-600">
-                              <CheckCircle className="w-3.5 h-3.5" />
-                              <span className="text-xs">
-                                {sub.feedback_notes
-                                  ? sub.feedback_notes.length > 40
-                                    ? sub.feedback_notes.slice(0, 40) + "..."
-                                    : sub.feedback_notes
-                                  : "Received"}
-                              </span>
-                            </div>
-                          ) : (
-                            <span className="text-xs text-muted-foreground">—</span>
-                          )}
-                        </td>
-                        <td className="px-3 py-3">
-                          {sub.job_url ? (
-                            <a
-                              href={sub.job_url}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="text-[#0A1A2F] hover:text-[#E8C547] transition"
+                  {submissions.length === 0 ? (
+                    <div className="text-center py-12 border rounded-lg bg-muted/20">
+                      <Briefcase className="w-12 h-12 text-muted-foreground mx-auto mb-3" />
+                      {assignedRecruiter ? (
+                        <>
+                          <p className="text-foreground font-medium premium-heading">
+                            {assignedRecruiter.name} hasn't logged any applications yet
+                          </p>
+                          <p className="text-sm text-muted-foreground premium-body mt-1">
+                            Applications will appear here as your recruiter submits them
+                          </p>
+                        </>
+                      ) : (
+                        <>
+                          <p className="text-foreground font-medium premium-heading">
+                            Awaiting recruiter assignment
+                          </p>
+                          <p className="text-sm text-muted-foreground premium-body mt-1">
+                            Applications will appear here once your recruiter is assigned and starts working
+                          </p>
+                        </>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-sm">
+                        <thead>
+                          <tr className="border-b border-border">
+                            <th className="px-3 py-3 text-left font-semibold text-foreground premium-heading">Date</th>
+                            <th className="px-3 py-3 text-left font-semibold text-foreground premium-heading">Job Title</th>
+                            <th className="px-3 py-3 text-left font-semibold text-foreground premium-heading">Company</th>
+                            <th className="px-3 py-3 text-left font-semibold text-foreground premium-heading">Status</th>
+                            <th className="px-3 py-3 text-left font-semibold text-foreground premium-heading">Feedback</th>
+                            <th className="px-3 py-3 text-left font-semibold text-foreground premium-heading">Link</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {submissions.map((sub) => (
+                            <tr
+                              key={sub.id}
+                              className="border-b border-border hover:bg-muted/30 transition-colors"
                             >
-                              <ExternalLink className="w-4 h-4" />
-                            </a>
-                          ) : (
-                            <span className="text-muted-foreground text-xs">—</span>
-                          )}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
-          </Card>
-        )}
+                              <td className="px-3 py-3 text-muted-foreground premium-body whitespace-nowrap">
+                                {formatDate(sub.application_date || sub.submitted_at)}
+                              </td>
+                              <td className="px-3 py-3 text-foreground premium-body max-w-[200px]">
+                                <div className="font-medium truncate">{sub.job_title}</div>
+                                {sub.notes && (
+                                  <div className="text-xs text-muted-foreground truncate mt-0.5">
+                                    {sub.notes}
+                                  </div>
+                                )}
+                              </td>
+                              <td className="px-3 py-3 text-foreground premium-body whitespace-nowrap">
+                                {sub.company_name}
+                              </td>
+                              <td className="px-3 py-3">
+                                <span className={`inline-flex items-center px-2.5 py-1 rounded text-xs font-medium ${statusColor(sub.status)}`}>
+                                  {statusLabel(sub.status)}
+                                </span>
+                              </td>
+                              <td className="px-3 py-3 text-sm premium-body">
+                                {sub.feedback_received ? (
+                                  <div className="flex items-center gap-1 text-green-600">
+                                    <CheckCircle className="w-3.5 h-3.5" />
+                                    <span className="text-xs">
+                                      {sub.feedback_notes
+                                        ? sub.feedback_notes.length > 40
+                                          ? sub.feedback_notes.slice(0, 40) + "..."
+                                          : sub.feedback_notes
+                                        : "Received"}
+                                    </span>
+                                  </div>
+                                ) : (
+                                  <span className="text-xs text-muted-foreground">—</span>
+                                )}
+                              </td>
+                              <td className="px-3 py-3">
+                                {sub.job_url ? (
+                                  <a
+                                    href={sub.job_url}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="text-[#0A1A2F] hover:text-[#E8C547] transition"
+                                  >
+                                    <ExternalLink className="w-4 h-4" />
+                                  </a>
+                                ) : (
+                                  <span className="text-muted-foreground text-xs">—</span>
+                                )}
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                </Card>
+              )}
+            </div>
+          }
+          quickActionsSlot={
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+              <Link href="/tools/ats-optimizer">
+                <Card className="p-3 hover:shadow-md transition cursor-pointer h-full">
+                  <FileText className="w-5 h-5 text-primary mb-1.5" />
+                  <h3 className="text-sm font-semibold text-foreground premium-heading">ATS Optimizer</h3>
+                </Card>
+              </Link>
 
-        {/* ── Quick Actions (preserved exactly) ────────────── */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          <Link href="/tools/ats-optimizer">
-            <Card className="p-6 hover:shadow-lg transition cursor-pointer">
-              <FileText className="w-8 h-8 text-primary mb-3" />
-              <h3 className="text-lg font-semibold text-foreground mb-2 premium-heading">ATS Optimizer</h3>
-              <p className="text-sm text-muted-foreground premium-body">
-                Optimize your resume for ATS systems
-              </p>
-            </Card>
-          </Link>
+              <Link href="/tools/cover-letter">
+                <Card className="p-3 hover:shadow-md transition cursor-pointer h-full">
+                  <Upload className="w-5 h-5 text-primary mb-1.5" />
+                  <h3 className="text-sm font-semibold text-foreground premium-heading">Cover Letter</h3>
+                </Card>
+              </Link>
 
-          <Link href="/tools/cover-letter">
-            <Card className="p-6 hover:shadow-lg transition cursor-pointer">
-              <Upload className="w-8 h-8 text-primary mb-3" />
-              <h3 className="text-lg font-semibold text-foreground mb-2 premium-heading">Cover Letter</h3>
-              <p className="text-sm text-muted-foreground premium-body">
-                Generate AI-powered cover letters
-              </p>
-            </Card>
-          </Link>
+              <Link href="/dashboard/job-seeker/saved-jobs">
+                <Card className="p-3 hover:shadow-md transition cursor-pointer h-full">
+                  <Bookmark className="w-5 h-5 text-primary mb-1.5" />
+                  <h3 className="text-sm font-semibold text-foreground premium-heading">Saved Jobs</h3>
+                </Card>
+              </Link>
 
-          <a href="#job-feed">
-            <Card className="p-6 hover:shadow-lg transition cursor-pointer">
-              <Briefcase className="w-8 h-8 text-primary mb-3" />
-              <h3 className="text-lg font-semibold text-foreground mb-2 premium-heading">Browse Jobs</h3>
-              <p className="text-sm text-muted-foreground premium-body">
-                Search and apply to consulting roles
-              </p>
-            </Card>
-          </a>
-
-          <Link href="/dashboard/job-seeker/saved-jobs">
-            <Card className="p-6 hover:shadow-lg transition cursor-pointer">
-              <Bookmark className="w-8 h-8 text-primary mb-3" />
-              <h3 className="text-lg font-semibold text-foreground mb-2 premium-heading">Saved Jobs</h3>
-              <p className="text-sm text-muted-foreground premium-body">
-                View all your bookmarked roles
-              </p>
-            </Card>
-          </Link>
-
-          <Link href="/dashboard/job-seeker/profile">
-            <Card className="p-6 hover:shadow-lg transition cursor-pointer border-dashed">
-              <UserCircle className="w-8 h-8 text-primary mb-3" />
-              <h3 className="text-lg font-semibold text-foreground mb-2 premium-heading">My Profile</h3>
-              <p className="text-sm text-muted-foreground premium-body">
-                Skills, work auth, resume & job preferences
-              </p>
-            </Card>
-          </Link>
-        </div>
-
-        {/* ── Job Feed, Market Intelligence & Hot Jobs ── */}
-        <div id="job-feed" className="mt-8">
-          <CHRMJobSeekerPanel />
-        </div>
+              <Link href="/dashboard/job-seeker/profile">
+                <Card className="p-3 hover:shadow-md transition cursor-pointer h-full border-dashed">
+                  <UserCircle className="w-5 h-5 text-primary mb-1.5" />
+                  <h3 className="text-sm font-semibold text-foreground premium-heading">My Profile</h3>
+                </Card>
+              </Link>
+            </div>
+          }
+        />
 
         {/* ── Support / Contact (embedded — no page navigation) ── */}
         <div className="mt-8">

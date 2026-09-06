@@ -275,7 +275,13 @@ const VISA_TYPES = [
 ]
 
 // ── Main Component ───────────────────────────────────────────
-export default function CHRMJobSeekerPanel() {
+export default function CHRMJobSeekerPanel({
+  section = "all",
+  onViewAllJobs,
+}: {
+  section?: "all" | "intelligence" | "jobs" | "hotjobs-preview"
+  onViewAllJobs?: () => void
+} = {}) {
   const { showToast } = useToast()
 
   // Intelligence data
@@ -488,6 +494,7 @@ export default function CHRMJobSeekerPanel() {
       {/* ══════════════════════════════════════════════════════ */}
       {/* ── MARKET INTELLIGENCE PANEL ─────────────────────── */}
       {/* ══════════════════════════════════════════════════════ */}
+      {(section === "all" || section === "intelligence") && (
       <div id="market-intelligence">
         <Card className="p-6 bg-gradient-to-br from-[#0A1A2F] to-[#132A47] text-white">
           <div className="flex items-center gap-3 mb-4">
@@ -828,10 +835,12 @@ export default function CHRMJobSeekerPanel() {
           )}
         </Card>
       </div>
+      )}
 
       {/* ══════════════════════════════════════════════════════ */}
       {/* ── HOT JOBS SECTION — always visible ─────────────── */}
       {/* ══════════════════════════════════════════════════════ */}
+      {(section === "all" || section === "jobs" || section === "hotjobs-preview") && (
       <Card className="p-6">
         <div className="flex items-center gap-3 mb-4">
           <Flame className="w-6 h-6 text-orange-500" />
@@ -848,8 +857,9 @@ export default function CHRMJobSeekerPanel() {
             <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
           </div>
         ) : hotJobs.length > 0 ? (
+          <>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {hotJobs.map((job) => (
+            {hotJobs.slice(0, section === "hotjobs-preview" ? 3 : hotJobs.length).map((job) => (
               <Card
                 key={job.job_id}
                 className="p-4 hover:shadow-md transition cursor-pointer border-l-4 border-l-orange-400"
@@ -896,6 +906,15 @@ export default function CHRMJobSeekerPanel() {
               </Card>
             ))}
           </div>
+                {section === "hotjobs-preview" && hotJobs.length > 0 && onViewAllJobs && (
+                  <div className="mt-4 text-center">
+                    <Button variant="outline" onClick={onViewAllJobs} className="gap-2">
+                      View All Live Jobs
+                      <ExternalLink className="w-4 h-4" />
+                    </Button>
+                  </div>
+                )}
+          </>
         ) : (
           <div className="text-center py-8 bg-orange-50/50 rounded-lg border border-dashed border-orange-200">
             <Flame className="w-10 h-10 text-orange-300 mx-auto mb-2" />
@@ -909,10 +928,12 @@ export default function CHRMJobSeekerPanel() {
           </div>
         )}
       </Card>
+      )}
 
       {/* ══════════════════════════════════════════════════════ */}
       {/* ── JOB FEED WITH FILTERS ─────────────────────────── */}
       {/* ══════════════════════════════════════════════════════ */}
+      {(section === "all" || section === "jobs") && (
       <Card className="p-6">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-3">
@@ -1190,6 +1211,7 @@ export default function CHRMJobSeekerPanel() {
           </div>
         )}
       </Card>
+      )}
 
       {/* ── Apply Modal ────────────────────────────────────── */}
       <ApplyModal

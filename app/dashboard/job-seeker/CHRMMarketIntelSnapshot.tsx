@@ -5,7 +5,7 @@ import { Card } from "@/components/ui/card"
 import { BarChart3, TrendingUp, Loader2 } from "lucide-react"
 import type { CHRMIntelligenceData } from "@/types/chrm-nexus"
 
-export default function CHRMMarketIntelSnapshot() {
+export default function CHRMMarketIntelSnapshot({ onViewFull }: { onViewFull?: () => void } = {}) {
   const [intel, setIntel] = useState<CHRMIntelligenceData | null>(null)
   const [loading, setLoading] = useState(true)
 
@@ -75,12 +75,22 @@ export default function CHRMMarketIntelSnapshot() {
             </div>
           )}
 
-          <a
-            href="#market-intelligence"
-            className="block text-center text-[10px] text-[#E8C547] hover:text-[#D4AF37] font-semibold mt-1 transition"
-          >
-            View Full Market Intelligence &darr;
-          </a>
+          {onViewFull ? (
+            <button
+              type="button"
+              onClick={onViewFull}
+              className="block w-full text-center text-[10px] text-[#E8C547] hover:text-[#D4AF37] font-semibold mt-1 transition"
+            >
+              View Full Market Intelligence &rarr;
+            </button>
+          ) : (
+            <a
+              href="#market-intelligence"
+              className="block text-center text-[10px] text-[#E8C547] hover:text-[#D4AF37] font-semibold mt-1 transition"
+            >
+              View Full Market Intelligence &darr;
+            </a>
+          )}
         </div>
       ) : (
         <p className="text-xs text-white/40 premium-body">Market data unavailable</p>
