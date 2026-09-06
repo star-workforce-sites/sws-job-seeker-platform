@@ -53,18 +53,29 @@ export const authOptions: NextAuthOptions = {
       },
       async authorize(credentials) {
         if (!credentials?.email || !credentials?.password) {
+          console.error('[DIAG-AUTH] missing credentials.email or credentials.password');
           throw new Error('Email and password are required');
         }
 
-        const user = await prisma.users.findUnique({
-          where: { email: credentials.email.toLowerCase() },
-        });
+        let user;
+        try {
+          user = await prisma.users.findUnique({
+            where: { email: credentials.email.toLowerCase() },
+          });
+        } catch (e: any) {
+          console.error('[DIAG-AUTH] prisma.users.findUnique threw:', e?.message, e?.stack);
+          throw new Error('Invalid email or password');
+        }
+
+        console.error('[DIAG-AUTH] user found:', !!user, 'keys:', user ? Object.keys(user).join(',') : 'n/a', 'hasPassword:', user ? !!user.password : 'n/a');
 
         if (!user || !user.password) {
+          console.error('[DIAG-AUTH] failing because user missing or user.password falsy');
           throw new Error('Invalid email or password');
         }
 
         const passwordMatch = await bcrypt.compare(credentials.password, user.password);
+        console.error('[DIAG-AUTH] passwordMatch:', passwordMatch);
 
         if (!passwordMatch) {
           throw new Error('Invalid email or password');
