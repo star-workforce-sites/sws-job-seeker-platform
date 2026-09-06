@@ -65,7 +65,60 @@ interface AdminPartnerNotificationParams {
   createdAt: string
 }
 
+interface PaymentFailedParams {
+  jobSeekerName: string
+  jobSeekerEmail: string
+  planName: string
+  attemptCount: number
+}
+
 export const emailTemplates = {
+  // ── Template: Payment Failed (to Job Seeker) ───────────────
+  paymentFailed: (params: PaymentFailedParams) => ({
+    subject: `Action Needed: Your ${params.planName} payment didn't go through`,
+    html: `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+<body style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
+  <div style="background: linear-gradient(135deg, #0A1A2F 0%, #132A47 100%); padding: 30px; text-align: center; border-radius: 10px 10px 0 0;">
+    <h1 style="color: #E8C547; margin: 0; font-size: 28px;">STAR Workforce Solutions</h1>
+    <p style="color: #ffffff; margin: 10px 0 0 0; font-size: 16px;">Payment Issue on Your Account</p>
+  </div>
+  <div style="background: #ffffff; padding: 30px; border: 1px solid #e5e7eb; border-top: none; border-radius: 0 0 10px 10px;">
+    <h2 style="color: #0A1A2F; margin-top: 0;">Hi ${params.jobSeekerName},</h2>
+    <p style="font-size: 16px; color: #374151;">
+      We tried to charge your card for your <strong>${params.planName}</strong> subscription, but the payment didn't go through
+      ${params.attemptCount > 1 ? `(attempt #${params.attemptCount})` : ''}.
+    </p>
+    <p style="font-size: 16px; color: #374151;">
+      To avoid any interruption to your recruiter service, please update your payment method as soon as possible.
+    </p>
+    <div style="text-align: center; margin: 30px 0;">
+      <a href="https://www.starworkforcesolutions.com/dashboard/job-seeker"
+         style="display: inline-block; background: #E8C547; color: #0A1A2F; padding: 15px 40px; text-decoration: none; border-radius: 5px; font-weight: bold; font-size: 16px;">
+        Update Payment Method
+      </a>
+    </div>
+    <p style="color: #6b7280; font-size: 14px; margin-top: 30px;">
+      <strong>Questions?</strong><br>
+      Reply to this email or contact us at
+      <a href="mailto:support@starworkforcesolutions.com" style="color: #E8C547;">support@starworkforcesolutions.com</a>
+    </p>
+    <p style="color: #374151; margin-top: 20px;">Best regards,<br><strong>STAR Workforce Solutions Team</strong></p>
+  </div>
+  <div style="text-align: center; padding: 20px; color: #6b7280; font-size: 12px;">
+    <p>STAR Workforce Solutions<br>
+    <a href="https://www.starworkforcesolutions.com" style="color: #E8C547;">www.starworkforcesolutions.com</a></p>
+  </div>
+</body>
+</html>
+    `,
+  }),
+
 
   // ── Template 1: Subscription Confirmation (to Job Seeker) ──
   subscriptionConfirmation: (params: SubscriptionConfirmationParams) => ({

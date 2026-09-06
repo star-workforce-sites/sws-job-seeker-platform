@@ -2,7 +2,7 @@ import { type NextRequest, NextResponse } from "next/server"
 import Stripe from "stripe"
 import { sql } from "@vercel/postgres"
 import { neon } from "@neondatabase/serverless"
-import { sendSubscriptionConfirmationEmail, sendAdminNotificationEmail, sendPurchaseNotificationEmail, getPlanDetails } from "@/lib/send-recruiter-emails"
+import { sendSubscriptionConfirmationEmail, sendAdminNotificationEmail, sendPurchaseNotificationEmail, sendPaymentFailedEmail, getPlanDetails } from "@/lib/send-recruiter-emails"
 import { triggerResumeDistribution } from "@/lib/resumeblast"
 import { getDbUrl } from "@/lib/db"
 import { getReferralByUserId, createCommission, calculateCommission } from "@/lib/partners"
@@ -293,6 +293,71 @@ export async function POST(request: NextRequest) {
       `
 
       console.log("[Webhook] Subscription updated")
+    }
+
+    // Handle invoice payment success — covers subscription RENEWALS
+    // (checkout.session.completed only fires on the initial signup, not
+    // on subsequent billing cycles, so this is what keeps
+    // current_period_end accurate going forward).
+    if (event.type === "invoice.payment_succeeded") {
+      const invoice = event.data.object as Stripe.Invoice
+      const subscriptionId = (invoice as any).subscription as string | null
+
+      if (subscriptionId && invoice.billing_reason === "subscription_cycle") {
+        try {
+          const subscription = await stripe.subscriptions.retrieve(subscriptionId)
+          const currentPeriodEnd = (subscription as any).current_period_end
+
+          await sqlNeon`
+            UPDATE subscriptions
+            SET
+              status = ${subscription.status},
+              current_period_end = to_timestamp(${currentPeriodEnd})
+            WHERE stripe_subscription_id = ${subscriptionId}
+          `
+
+          console.log("[Webhook] Subscription renewed, period extended:", subscriptionId)
+        } catch (renewErr) {
+          console.error("[Webhook] Failed to process subscription renewal:", renewErr)
+        }
+      }
+    }
+
+    // Handle invoice payment failure — notify the job seeker and mark
+    // the subscription past_due so the dashboard can reflect it.
+    if (event.type === "invoice.payment_failed") {
+      const invoice = event.data.object as Stripe.Invoice
+      const subscriptionId = (invoice as any).subscription as string | null
+      const customerEmail = invoice.customer_email
+
+      if (subscriptionId) {
+        try {
+          await sqlNeon`
+            UPDATE subscriptions
+            SET status = 'past_due'
+            WHERE stripe_subscription_id = ${subscriptionId}
+          `
+
+          console.log("[Webhook] Subscription marked past_due:", subscriptionId)
+
+          if (customerEmail) {
+            const subResult = await sqlNeon`
+              SELECT subscription_type FROM subscriptions WHERE stripe_subscription_id = ${subscriptionId} LIMIT 1
+            `
+            const subscriptionType = subResult[0]?.subscription_type
+            const planName = subscriptionType ? getPlanDetails(subscriptionType).name : "your subscription"
+
+            await sendPaymentFailedEmail({
+              jobSeekerName: invoice.customer_name || "Valued Customer",
+              jobSeekerEmail: customerEmail,
+              planName,
+              attemptCount: invoice.attempt_count || 1,
+            })
+          }
+        } catch (failErr) {
+          console.error("[Webhook] Failed to process payment failure:", failErr)
+        }
+      }
     }
 
     // Handle subscription deletion

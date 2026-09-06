@@ -41,6 +41,29 @@ export async function sendSubscriptionConfirmationEmail(params: {
   }
 }
 
+// ── Template: Payment Failed → Job Seeker ─────────────────────
+export async function sendPaymentFailedEmail(params: {
+  jobSeekerName: string
+  jobSeekerEmail: string
+  planName: string
+  attemptCount: number
+}) {
+  try {
+    const template = emailTemplates.paymentFailed(params)
+    const result = await resend.emails.send({
+      from: 'STAR Workforce <noreply@starworkforcesolutions.com>',
+      to: params.jobSeekerEmail,
+      subject: template.subject,
+      html: template.html,
+    })
+    console.log('[Email] Payment failed notice sent to:', params.jobSeekerEmail)
+    return { success: true, result }
+  } catch (error) {
+    console.error('[Email] Failed to send payment failed notice:', error)
+    return { success: false, error }
+  }
+}
+
 // ── Template 2: Admin alert → jobs@starworkforcesolutions.com ─
 export async function sendAdminNotificationEmail(params: {
   jobSeekerName: string
