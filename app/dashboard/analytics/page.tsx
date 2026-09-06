@@ -2,7 +2,6 @@
 
 import { useState } from 'react'
 import { Card } from '@/components/ui/card'
-import Navigation from '@/components/navigation'
 import Footer from '@/components/footer'
 import { LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts'
 import { TrendingUp, Users, Briefcase, CheckCircle } from 'lucide-react'
@@ -38,7 +37,6 @@ export default function AnalyticsDashboard() {
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
-      <Navigation />
 
       {/* Header */}
       <div className="bg-gradient-to-br from-primary/5 to-accent/5 border-b border-border py-8 px-4 sm:px-6 lg:px-8">

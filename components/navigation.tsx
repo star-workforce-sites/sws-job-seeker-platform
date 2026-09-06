@@ -39,7 +39,7 @@ export default function Navigation() {
                 STAR
               </div>
               <div className="text-[#E8C547] text-xs font-bold uppercase" style={{ fontFamily: 'Montserrat, sans-serif', fontWeight: 700, letterSpacing: '0.05em' }}>
-                Workforce Solutions
+                {status === 'authenticated' ? 'Career Accel Platform' : 'Workforce Solutions'}
               </div>
             </div>
           </Link>

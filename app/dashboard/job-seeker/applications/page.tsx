@@ -3,7 +3,6 @@
 import { useEffect, useState } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
-import Navigation from '@/components/navigation';
 import Footer from '@/components/footer';
 import { LoadingPage } from '@/components/loading';
 import Link from 'next/link';
@@ -53,7 +52,6 @@ export default function ApplicationsPage() {
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
-      <Navigation />
 
       <main className="flex-1 max-w-7xl mx-auto px-4 py-8 w-full">
         <div className="mb-8">
