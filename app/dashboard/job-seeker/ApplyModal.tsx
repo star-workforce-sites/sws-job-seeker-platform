@@ -162,17 +162,15 @@ export default function ApplyModal({ job, open, onOpenChange, onSuccess }: Apply
                 {job.city}, {job.state} · {job.work_model}
                 {rateInfo && <span> · {rateInfo}</span>}
               </p>
-              {job.employer_email ? (
-                <p className="text-[11px] text-green-600 flex items-center gap-1 mt-1">
-                  <CheckCircle className="w-3 h-3" />
-                  Direct apply — your application goes straight to the employer
-                </p>
-              ) : (
-                <p className="text-[11px] text-amber-600 flex items-center gap-1 mt-1">
-                  <AlertTriangle className="w-3 h-3" />
-                  Our team will forward your application to the employer
-                </p>
-              )}
+              {/* NOTE: getJobs.employer_email is always a masked, non-null string
+                  as of the CHRM NEXUS Sep 2026 API update, so its presence can no
+                  longer be used to predict whether a real recruiter address exists.
+                  Whether this routes directly is only known after submission. */}
+              <p className="text-[11px] text-muted-foreground flex items-center gap-1 mt-1">
+                <CheckCircle className="w-3 h-3" />
+                We'll route your application to the employer directly when possible,
+                or our team will follow up otherwise
+              </p>
             </div>
 
             {/* Resume picker */}

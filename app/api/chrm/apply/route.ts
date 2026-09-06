@@ -7,6 +7,64 @@ export const dynamic = "force-dynamic"
 
 const ADMIN_EMAILS = ["Srikanth@startekk.net", "info@startekk.net"]
 
+const CHRM_APPLY_URL = "https://us-central1-chrm-nexus.cloudfunctions.net/applyToJob"
+
+/**
+ * Calls CHRM NEXUS's applyToJob endpoint — this is the ONLY supported way to get
+ * a real (unmasked) recruiter email address, per the CHRM NEXUS API update
+ * (2026.09). getJobs.employer_email is masked as of 15 July 2026 and must never
+ * be used to send mail — see CHRM_NEXUS_API_Update_CareerAccel_20260906.
+ */
+async function callChrmApplyToJob(params: {
+  job_id: string
+  applicant_name: string
+  applicant_email: string
+  cover_letter?: string | null
+}): Promise<
+  | { ok: true; employer_email: string | null; chrm_application_id: string }
+  | { ok: false; status: number; reason: "not_found" | "expired" | "auth" | "error" }
+> {
+  const apiKey = process.env.CHRM_NEXUS_API_KEY || process.env.CHRM_API_KEY
+  if (!apiKey) {
+    console.error("[CHRM Apply] Neither CHRM_NEXUS_API_KEY nor CHRM_API_KEY configured")
+    return { ok: false, status: 503, reason: "error" }
+  }
+
+  try {
+    const res = await fetch(CHRM_APPLY_URL, {
+      method: "POST",
+      headers: { "x-api-key": apiKey, "Content-Type": "application/json" },
+      body: JSON.stringify({
+        job_id: params.job_id,
+        applicant_name: params.applicant_name,
+        applicant_email: params.applicant_email,
+        cover_letter: params.cover_letter ?? undefined,
+        source_platform: "career-accel",
+      }),
+    })
+
+    if (res.status === 201) {
+      const data = await res.json()
+      return {
+        ok: true,
+        employer_email: data.employer_email ?? null,
+        chrm_application_id: data.application_id ?? "N/A",
+      }
+    }
+    if (res.status === 404) return { ok: false, status: 404, reason: "not_found" }
+    if (res.status === 410) return { ok: false, status: 410, reason: "expired" }
+    if (res.status === 401 || res.status === 403) {
+      console.error("[CHRM Apply] Auth error calling applyToJob:", res.status)
+      return { ok: false, status: res.status, reason: "auth" }
+    }
+    console.error("[CHRM Apply] applyToJob error:", res.status, await res.text().catch(() => ""))
+    return { ok: false, status: res.status, reason: "error" }
+  } catch (err) {
+    console.error("[CHRM Apply] applyToJob request failed:", err)
+    return { ok: false, status: 500, reason: "error" }
+  }
+}
+
 // ── Email helper ─────────────────────────────────────────────
 async function sendEmail(payload: {
   to: string | string[]
@@ -58,7 +116,9 @@ export async function POST(request: NextRequest) {
       location,
       work_model,
       rate_info,
-      employer_email,   // from CHRM API — may be null
+      // employer_email from the client is the getJobs listing value — NEVER used to
+      // send mail (it's masked as of 15 July 2026). Kept only as a pre-CHRM-call
+      // fallback label; the real address always comes from callChrmApplyToJob below.
       resume_id,        // UUID from resume_uploads — optional
       resume_name,      // filename for display
       cover_note,       // optional short message
@@ -71,6 +131,36 @@ export async function POST(request: NextRequest) {
     const userId = session.user.id
     const applicantEmail = session.user.email
     const applicantName = session.user.name || applicantEmail
+
+    // ── Call CHRM NEXUS applyToJob for the REAL recruiter address ──
+    // This is the supported, unchanged flow per the Sep 2026 API update.
+    // getJobs.employer_email is masked and must not be used for sending mail.
+    const chrmResult = await callChrmApplyToJob({
+      job_id,
+      applicant_name: applicantName,
+      applicant_email: applicantEmail,
+      cover_letter: cover_note ?? null,
+    })
+
+    if (!chrmResult.ok) {
+      if (chrmResult.reason === "not_found" || chrmResult.reason === "expired") {
+        return NextResponse.json(
+          {
+            error:
+              chrmResult.reason === "expired"
+                ? "This job listing has expired. Please refresh your job list."
+                : "This job listing is no longer available. Please refresh your job list.",
+          },
+          { status: 410 }
+        )
+      }
+      // auth/error: don't silently fail the candidate — record locally without a
+      // verified employer address so admin can follow up, but tell the truth about it.
+      console.error("[CHRM Apply] applyToJob failed, falling back to admin-only routing:", chrmResult)
+    }
+
+    const employer_email = chrmResult.ok ? chrmResult.employer_email : null
+    const chrmApplicationId = chrmResult.ok ? chrmResult.chrm_application_id : null
 
     // ── Rate limiting: reuse existing chrm_activity_events ───
     // Check if already applied (dedup)
@@ -263,6 +353,7 @@ export async function POST(request: NextRequest) {
               <tr><td style="padding:6px 0;color:#666">Resume attached</td><td style="padding:6px 0">${resume_name ? `✅ ${resume_name}` : "None uploaded"}</td></tr>
               <tr><td style="padding:6px 0;color:#666">Plan type</td><td style="padding:6px 0">${hasRecruiterPlan ? "Recruiter plan" : "Free"}</td></tr>
               <tr><td style="padding:6px 0;color:#666">App ID</td><td style="padding:6px 0;font-family:monospace;font-size:12px">${applicationId}</td></tr>
+              <tr><td style="padding:6px 0;color:#666">CHRM App ID</td><td style="padding:6px 0;font-family:monospace;font-size:12px">${chrmApplicationId ?? "not recorded (CHRM call failed — see server logs)"}</td></tr>
             </table>
             ${cover_note ? `<div style="background:#f9fafb;border-left:3px solid #E8C547;padding:12px 16px;border-radius:0 4px 4px 0"><p style="margin:0 0 4px;font-size:12px;color:#666">Cover note from applicant</p><p style="margin:0;font-size:14px">${cover_note}</p></div>` : ""}
           </div>

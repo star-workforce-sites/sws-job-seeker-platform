@@ -402,12 +402,17 @@ export default function CHRMJobSeekerPanel() {
         const data = await res.json()
         let fetchedJobs: CHRMJob[] = data.jobs ?? []
 
-        // Apply visa filter client-side
+        // Apply visa filter client-side.
+        // NOTE (CHRM NEXUS API update, Sep 2026): visa_restrictions holds free-text
+        // negative phrases from the original posting (e.g. "No OPT", "No CPT"), not
+        // status codes — an exact-match filter never fires against a status like
+        // "OPT" alone. Use substring matching instead, and per CHRM's guidance an
+        // empty array is the only value that's safely treated as "no restriction."
         if (filterVisaType && filterVisaType !== "none") {
           fetchedJobs = fetchedJobs.filter((job) => {
             if (!job.visa_restrictions || job.visa_restrictions.length === 0) return true
-            return !job.visa_restrictions.some(
-              (r) => r.toLowerCase() === filterVisaType.toLowerCase()
+            return !job.visa_restrictions.some((r) =>
+              r.toLowerCase().includes(filterVisaType.toLowerCase())
             )
           })
         }
