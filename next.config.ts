@@ -11,14 +11,45 @@ const nextConfig: NextConfig = {
     return [
       // Old site pages that no longer exist — redirect to relevant pages
       // Both with and without trailing slash to cover all GSC 404 variants
+      // NOTE: /about is a real page now (app/about/page.tsx) — do not redirect it
       {
-        source: '/about',
-        destination: '/',
+        source: '/tos',
+        destination: '/legal/terms',
         permanent: true,
       },
       {
-        source: '/about/',
-        destination: '/',
+        source: '/terms-of-service',
+        destination: '/legal/terms',
+        permanent: true,
+      },
+      {
+        source: '/terms',
+        destination: '/legal/terms',
+        permanent: true,
+      },
+      {
+        source: '/privacy',
+        destination: '/legal/privacy',
+        permanent: true,
+      },
+      {
+        source: '/compliance',
+        destination: '/legal/disclaimer',
+        permanent: true,
+      },
+      {
+        source: '/security/compliance',
+        destination: '/legal/disclaimer',
+        permanent: true,
+      },
+      {
+        source: '/trustcenter',
+        destination: '/legal/disclaimer',
+        permanent: true,
+      },
+      {
+        source: '/en-us/trustcenter',
+        destination: '/legal/disclaimer',
         permanent: true,
       },
       {

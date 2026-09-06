@@ -110,7 +110,7 @@ export default function Pricing() {
                 <div className="flex items-start gap-2">
                   <Check className="w-5 h-5 text-primary flex-shrink-0 mt-0.5" />
                   <span className="text-sm text-foreground premium-body">
-                    FREE Interview Prep with unlimited quizzes
+                    Interview Prep — free preview, full report $9
                   </span>
                 </div>
                 <div className="flex items-start gap-2">

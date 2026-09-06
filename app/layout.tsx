@@ -19,7 +19,7 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: {
     default: "Career Accel Platform | AI Resume Optimizer, Interview Prep & Recruiter Job Search",
-    template: "%s | STAR Workforce Solutions",
+    template: "%s | Career Accel Platform",
   },
   description: "Land your next job faster with AI-powered resume optimization for ATS, mock interview coaching, cover letter generation, and recruiter-assisted job search. Free tools to start.",
   keywords: [
@@ -44,7 +44,7 @@ export const metadata: Metadata = {
     type: "website",
     locale: "en_US",
     url: "https://www.starworkforcesolutions.com",
-    siteName: "STAR Workforce Solutions",
+    siteName: "Career Accel Platform",
     title: "Career Accel Platform | AI Resume Optimizer, Interview Prep & Recruiter Job Search",
     description: "AI-powered career tools: ATS resume optimizer, interview coach, cover letter generator, and recruiter-assisted job search. Start free.",
     images: [
@@ -104,6 +104,7 @@ export default function RootLayout({
                   "@type": "Organization",
                   "name": "STAR Workforce Solutions",
                   "legalName": "Startek LLC",
+                  "description": "STAR Workforce Solutions operates Career Accel Platform, an AI-powered career services platform helping individual job seekers optimize resumes for ATS, prepare for interviews, generate cover letters, and connect with recruiters for their job search.",
                   "url": "https://www.starworkforcesolutions.com",
                   "logo": "https://www.starworkforcesolutions.com/favicon.svg",
                   "contactPoint": {
@@ -126,7 +127,7 @@ export default function RootLayout({
                 },
                 {
                   "@type": "WebSite",
-                  "name": "STAR Workforce Solutions",
+                  "name": "Career Accel Platform",
                   "url": "https://www.starworkforcesolutions.com",
                   "potentialAction": {
                     "@type": "SearchAction",
