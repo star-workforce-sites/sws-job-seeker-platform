@@ -4,6 +4,7 @@ import { sql } from "@vercel/postgres"
 import { neon } from "@neondatabase/serverless"
 import { sendSubscriptionConfirmationEmail, sendAdminNotificationEmail, sendPurchaseNotificationEmail, sendPaymentFailedEmail, getPlanDetails } from "@/lib/send-recruiter-emails"
 import { triggerResumeDistribution } from "@/lib/resumeblast"
+import { triggerRecruiterEmailBlast } from "@/lib/mailercloud"
 import { getDbUrl } from "@/lib/db"
 import { getReferralByUserId, createCommission, calculateCommission } from "@/lib/partners"
 
@@ -257,6 +258,22 @@ export async function POST(request: NextRequest) {
             })
           } catch (rbErr) {
             console.error("[Webhook] ResumeBlast trigger failed:", rbErr)
+          }
+
+          // Mailercloud recruiter blast -- only fires if MAILERCLOUD_API_KEY +
+          // MAILERCLOUD_LIST_ID are set. See lib/mailercloud.ts for open
+          // questions (filtering, list setup, rate limits) still pending
+          // user confirmation before this should be relied on in production.
+          try {
+            await triggerRecruiterEmailBlast({
+              customerName,
+              targetRoles: metadata.targetRoles || "",
+              targetLocations: metadata.targetLocations || "",
+              industry: metadata.industry || "",
+              experience: metadata.experience || "",
+            })
+          } catch (mcErr) {
+            console.error("[Webhook] Mailercloud trigger failed:", mcErr)
           }
         }
 
