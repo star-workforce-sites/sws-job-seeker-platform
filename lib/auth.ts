@@ -2,6 +2,8 @@ import type { NextAuthOptions } from "next-auth"
 import GoogleProvider from "next-auth/providers/google"
 import LinkedInProvider from "next-auth/providers/linkedin"
 import CredentialsProvider from "next-auth/providers/credentials"
+import { sql } from "@vercel/postgres"
+import bcrypt from "bcryptjs"
 
 // Internal domains that get automatic recruiter role (no payment required)
 const INTERNAL_RECRUITER_DOMAINS = [
@@ -78,7 +80,44 @@ export const authOptions: NextAuthOptions = {
         password: { label: "Password", type: "password" },
       },
       async authorize(credentials) {
-        return null
+        if (!credentials?.email || !credentials?.password) {
+          throw new Error("Email and password are required")
+        }
+
+        if (!isDatabaseConfigured()) {
+          console.error("[NextAuth] authorize: database not configured")
+          throw new Error("Invalid email or password")
+        }
+
+        let row
+        try {
+          const result = await sql`
+            SELECT id, name, email, role, password
+            FROM users
+            WHERE email = ${credentials.email.toLowerCase()}
+            LIMIT 1
+          `
+          row = result.rows[0]
+        } catch (error) {
+          console.error("[NextAuth] authorize: query failed:", error)
+          throw new Error("Invalid email or password")
+        }
+
+        if (!row || !row.password) {
+          throw new Error("Invalid email or password")
+        }
+
+        const passwordMatch = await bcrypt.compare(credentials.password, row.password)
+        if (!passwordMatch) {
+          throw new Error("Invalid email or password")
+        }
+
+        return {
+          id: row.id,
+          email: row.email,
+          name: row.name,
+          role: row.role,
+        }
       },
     }),
     GoogleProvider({
