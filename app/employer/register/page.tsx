@@ -7,10 +7,13 @@ import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import Navigation from "@/components/navigation"
 import Footer from "@/components/footer"
-import { Check, ChevronRight } from "lucide-react"
+import { Check, ChevronRight, AlertTriangle } from "lucide-react"
 
 export default function EmployerRegister() {
   const [formStep, setFormStep] = useState(1)
+  const [submitting, setSubmitting] = useState(false)
+  const [submitStatus, setSubmitStatus] = useState<"idle" | "success" | "error">("idle")
+  const [submitError, setSubmitError] = useState<string | null>(null)
   const [formData, setFormData] = useState({
     companyName: "",
     email: "",
@@ -42,6 +45,9 @@ export default function EmployerRegister() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    if (submitting) return
+    setSubmitting(true)
+    setSubmitError(null)
 
     try {
       const response = await fetch("/api/employer/register", {
@@ -53,16 +59,22 @@ export default function EmployerRegister() {
       const data = await response.json()
 
       if (response.ok) {
-        alert(
-          "Registration successful! Sign in with this email (via Google, LinkedIn, or a magic link) to access your employer dashboard.",
-        )
-        window.location.href = "/auth/login"
+        setSubmitStatus("success")
+        // Give the user a moment to see the confirmation before redirecting,
+        // rather than a blocking alert() which freezes the page until dismissed.
+        setTimeout(() => {
+          window.location.href = "/auth/login"
+        }, 2500)
       } else {
-        alert(data.error || "Registration failed. Please try again.")
+        setSubmitStatus("error")
+        setSubmitError(data.error || "Registration failed. Please try again.")
+        setSubmitting(false)
       }
     } catch (error) {
       console.error("Registration error:", error)
-      alert("An error occurred. Please try again.")
+      setSubmitStatus("error")
+      setSubmitError("An error occurred. Please try again.")
+      setSubmitting(false)
     }
   }
 
@@ -116,7 +128,25 @@ export default function EmployerRegister() {
           </div>
 
           <Card className="p-8 border border-border mb-8">
+            {submitStatus === "success" ? (
+              <div className="text-center py-8 space-y-3">
+                <div className="mx-auto w-14 h-14 rounded-full bg-green-100 flex items-center justify-center">
+                  <Check className="w-7 h-7 text-green-600" />
+                </div>
+                <h2 className="text-2xl font-bold text-foreground">Registration successful!</h2>
+                <p className="text-muted-foreground max-w-md mx-auto">
+                  Sign in with this email (via Google, LinkedIn, or a magic link) to access your
+                  employer dashboard. Redirecting you to sign in…
+                </p>
+              </div>
+            ) : (
             <form onSubmit={handleSubmit} className="space-y-6">
+              {submitStatus === "error" && submitError && (
+                <div className="flex items-start gap-2 bg-destructive/10 border border-destructive/30 text-destructive rounded-md px-4 py-3">
+                  <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />
+                  <p className="text-sm">{submitError}</p>
+                </div>
+              )}
               {/* Step 1: Company Info */}
               {formStep === 1 && (
                 <div className="space-y-6">
@@ -347,13 +377,18 @@ export default function EmployerRegister() {
                     Next <ChevronRight className="w-4 h-4" />
                   </Button>
                 ) : (
-                  <Button type="submit" className="bg-primary hover:bg-primary/90 text-primary-foreground gap-2">
+                  <Button
+                    type="submit"
+                    disabled={submitting}
+                    className="bg-primary hover:bg-primary/90 text-primary-foreground gap-2"
+                  >
                     <Check className="w-4 h-4" />
-                    Complete Registration
+                    {submitting ? "Submitting…" : "Complete Registration"}
                   </Button>
                 )}
               </div>
             </form>
+            )}
           </Card>
 
           {/* Info Section */}
