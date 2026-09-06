@@ -8,6 +8,57 @@ export const dynamic = "force-dynamic"
 const CHRM_JOBS_URL =
   "https://us-central1-chrm-nexus.cloudfunctions.net/getJobs"
 
+// -- Aggregator filter (stopgap, added 2026-09-06) --------------
+// CHRM NEXUS's getJobs feed includes listings sourced from third-party job
+// AGGREGATORS (meta-search sites that re-post other sites' listings, not
+// actual employers). Applying to these routes to the aggregator's own
+// generic mailbox (e.g. Careerjet's applyToJob response returned
+// "jobalert@careerjet.com" for a "Careerjet" listing) instead of a real
+// recruiter/company contact, wasting the candidate's application. Several
+// aggregators keep reappearing under slightly different names even after
+// being unsubscribed from directly, so this list is matched by substring,
+// and a generic-alert-email pattern catches ones not yet named below.
+// This is a client-side stopgap until CHRM NEXUS excludes or flags
+// aggregator-sourced / generic-alert-email listings upstream -- see the
+// bug report sent to CHRM NEXUS, Sept 2026. Remove once CHRM NEXUS
+// confirms a permanent fix on their side.
+const AGGREGATOR_COMPANY_BLOCKLIST = [
+  "careerjet",
+  "indeed",
+  "ziprecruiter",
+  "simplyhired",
+  "jooble",
+  "adzuna",
+  "trovit",
+  "jobrapido",
+  "linkup",
+  "jobisjob",
+  "talent.com",
+  "neuvoo",
+  "jora",
+  "recruit.net",
+  "google jobs",
+  "getwork",
+  "whatjobs",
+  "jobg8",
+  "jobsora",
+]
+
+// A real recruiter's email almost never looks like this -- catches
+// aggregators not yet in the name list above.
+const GENERIC_ALERT_EMAIL_PATTERN = /^(jobalert|job-alert|jobs-noreply|noreply|no-reply|alerts?|notifications?|do-not-reply)@/i
+
+function isAggregatorListing(companyName: string | null | undefined, employerEmail?: string | null): boolean {
+  const normalizedCompany = (companyName || "").trim().toLowerCase()
+  const byName = normalizedCompany
+    ? AGGREGATOR_COMPANY_BLOCKLIST.some(
+        (blocked) => normalizedCompany === blocked || normalizedCompany.includes(blocked)
+      )
+    : false
+  const byEmail = employerEmail ? GENERIC_ALERT_EMAIL_PATTERN.test(employerEmail.trim()) : false
+  return byName || byEmail
+}
+
 export async function GET(request: NextRequest) {
   try {
     // Auth required — only logged-in users can query the job board
@@ -78,9 +129,25 @@ export async function GET(request: NextRequest) {
       )
     }
 
-    console.log("[CHRM Jobs] Success:", { total: data.total, count: data.count, jobsReturned: data.jobs?.length ?? 0 })
+    const rawJobs = data.jobs ?? []
+    const filteredJobs = rawJobs.filter((job) => !isAggregatorListing(job.company_name, job.employer_email))
+    const removedCount = rawJobs.length - filteredJobs.length
+    if (removedCount > 0) {
+      console.log(`[CHRM Jobs] Filtered out ${removedCount} aggregator-sourced listing(s) this page`)
+    }
 
-    return NextResponse.json(data)
+    const filteredData: CHRMJobsResponse = {
+      ...data,
+      jobs: filteredJobs,
+      count: filteredJobs.length,
+      // NOTE: `total` still reflects CHRM NEXUS's unfiltered feed size since it is
+      // computed upstream -- this can slightly overstate the true available count
+      // until CHRM NEXUS filters aggregator listings out of `total` as well.
+    }
+
+    console.log("[CHRM Jobs] Success:", { total: filteredData.total, count: filteredData.count, jobsReturned: filteredData.jobs?.length ?? 0 })
+
+    return NextResponse.json(filteredData)
   } catch (error) {
     console.error("[CHRM Jobs] Error:", error)
     return NextResponse.json(
