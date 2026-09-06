@@ -297,6 +297,7 @@ export default function CHRMJobSeekerPanel({
   // Hot jobs
   const [hotJobIds, setHotJobIds] = useState<Map<string, number>>(new Map())
   const [hotJobs, setHotJobs] = useState<CHRMJob[]>([])
+  const [recentJobs, setRecentJobs] = useState<CHRMJob[]>([])
   const [hotLoading, setHotLoading] = useState(true)
 
   // User state
@@ -380,6 +381,23 @@ export default function CHRMJobSeekerPanel({
                 .map((id) => allJobs.find((j) => j.job_id === id))
                 .filter((j): j is CHRMJob => j !== undefined)
               setHotJobs(matched)
+            }
+          } else {
+            // No view-tracked hot jobs yet (e.g. a fresh platform with no traffic) --
+            // fall back to showing jobs posted/ingested in the last 12 hours so the
+            // section never just sits empty.
+            const recentRes = await fetch("/api/chrm/jobs?limit=50&sort_by=posted_date")
+            if (recentRes.ok) {
+              const recentData = await recentRes.json()
+              const candidates: CHRMJob[] = recentData.jobs ?? []
+              const twelveHoursAgo = Date.now() - 12 * 60 * 60 * 1000
+              const withinLast12h = candidates.filter((job) => {
+                const ts = job.posted_date || job.ingested_at
+                if (!ts) return false
+                const t = new Date(ts).getTime()
+                return !isNaN(t) && t >= twelveHoursAgo
+              })
+              setRecentJobs(withinLast12h.slice(0, 6))
             }
           }
         }
@@ -848,7 +866,11 @@ export default function CHRMJobSeekerPanel({
             Hot Jobs
           </h2>
           <span className="text-xs text-muted-foreground premium-body">
-            Most viewed this week
+            {hotJobs.length > 0
+              ? "Most viewed this week"
+              : recentJobs.length > 0
+                ? "New in the last 12 hours"
+                : "Most viewed this week"}
           </span>
         </div>
 
@@ -856,10 +878,12 @@ export default function CHRMJobSeekerPanel({
           <div className="flex items-center justify-center py-8">
             <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
           </div>
-        ) : hotJobs.length > 0 ? (
+        ) : hotJobs.length > 0 || recentJobs.length > 0 ? (
           <>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {hotJobs.slice(0, section === "hotjobs-preview" ? 3 : hotJobs.length).map((job) => (
+            {(hotJobs.length > 0 ? hotJobs : recentJobs)
+              .slice(0, section === "hotjobs-preview" ? 3 : (hotJobs.length > 0 ? hotJobs : recentJobs).length)
+              .map((job) => (
               <Card
                 key={job.job_id}
                 className="p-4 hover:shadow-md transition cursor-pointer border-l-4 border-l-orange-400"
@@ -870,10 +894,19 @@ export default function CHRMJobSeekerPanel({
                     {job.title}
                   </h3>
                   <div className="flex items-center gap-1 text-orange-500 shrink-0">
-                    <Eye className="w-3.5 h-3.5" />
-                    <span className="text-xs font-medium">
-                      {hotJobIds.get(job.job_id) ?? 0}
-                    </span>
+                    {hotJobs.length > 0 ? (
+                      <>
+                        <Eye className="w-3.5 h-3.5" />
+                        <span className="text-xs font-medium">
+                          {hotJobIds.get(job.job_id) ?? 0}
+                        </span>
+                      </>
+                    ) : (
+                      <>
+                        <Clock className="w-3.5 h-3.5" />
+                        <span className="text-xs font-medium">New</span>
+                      </>
+                    )}
                   </div>
                 </div>
                 <div className="space-y-1 text-xs text-muted-foreground premium-body">
@@ -906,10 +939,10 @@ export default function CHRMJobSeekerPanel({
               </Card>
             ))}
           </div>
-                {section === "hotjobs-preview" && hotJobs.length > 0 && onViewAllJobs && (
+                {section === "hotjobs-preview" && onViewAllJobs && (
                   <div className="mt-4 text-center">
                     <Button variant="outline" onClick={onViewAllJobs} className="gap-2">
-                      View All Live Jobs
+                      Click here for Live Jobs
                       <ExternalLink className="w-4 h-4" />
                     </Button>
                   </div>
@@ -923,8 +956,18 @@ export default function CHRMJobSeekerPanel({
             </p>
             <p className="text-xs text-muted-foreground mt-1 premium-body">
               Hot jobs appear here once job seekers and recruiters start viewing listings.
-              Browse the Job Feed below to discover opportunities!
+              {section === "hotjobs-preview" ? "" : " Browse the Job Feed below to discover opportunities!"}
             </p>
+            {section === "hotjobs-preview" && onViewAllJobs && (
+              <button
+                type="button"
+                onClick={onViewAllJobs}
+                className="inline-flex items-center gap-1.5 text-sm font-semibold text-[#0A1A2F] hover:text-[#E8C547] mt-3 transition"
+              >
+                Click here for Live Jobs
+                <ExternalLink className="w-3.5 h-3.5" />
+              </button>
+            )}
           </div>
         )}
       </Card>
