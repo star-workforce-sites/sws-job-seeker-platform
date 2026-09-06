@@ -407,7 +407,7 @@ export default function Jobs() {
               Want Someone to Apply for You?
             </h2>
             <p className="text-white/80 mb-6 max-w-2xl mx-auto premium-body">
-              Skip the daily grind of applications. A dedicated recruiter submits 4-10 applications per day
+              Skip the daily grind of applications. A dedicated recruiter submits 3-30 applications per day
               on your behalf — so you can focus on interview prep and networking.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">

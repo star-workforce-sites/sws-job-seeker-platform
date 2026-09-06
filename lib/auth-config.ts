@@ -56,7 +56,7 @@ export const authOptions: NextAuthOptions = {
           throw new Error('Email and password are required');
         }
 
-        const user = await prisma.user.findUnique({
+        const user = await prisma.users.findUnique({
           where: { email: credentials.email.toLowerCase() },
         });
 
@@ -84,13 +84,13 @@ export const authOptions: NextAuthOptions = {
     async signIn({ user, account, profile }) {
       // For OAuth providers, ensure user has a role
       if (account?.provider !== 'credentials') {
-        const dbUser = await prisma.user.findUnique({
+        const dbUser = await prisma.users.findUnique({
           where: { email: user.email! },
         });
 
         // If user was created via OAuth and doesn't have a role, set default
         if (dbUser && !dbUser.role) {
-          await prisma.user.update({
+          await prisma.users.update({
             where: { id: dbUser.id },
             data: { role: 'job_seeker' },
           });
@@ -111,7 +111,7 @@ export const authOptions: NextAuthOptions = {
         token.role = user.role;
       } else if (token.sub) {
         // Refresh role from database on each request
-        const dbUser = await prisma.user.findUnique({
+        const dbUser = await prisma.users.findUnique({
           where: { id: token.sub },
           select: { role: true },
         });
