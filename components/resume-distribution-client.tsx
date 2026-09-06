@@ -74,7 +74,7 @@ export default function ResumeDistributionClient() {
       ) as unknown as string
       toast({
         title: toastElement,
-        description: "Your resume will be distributed to 500+ recruiters over the next 12 months.",
+        description: "Your resume will be distributed to 1,300+ recruiters over the next 12 months.",
         className: "bg-white border-2 border-green-600",
         duration: 4000,
       })
@@ -271,7 +271,7 @@ export default function ResumeDistributionClient() {
               Distribution Campaign Started!
             </h1>
             <p className="text-lg text-white/90 max-w-2xl mx-auto premium-body">
-              Your resume has been submitted for distribution to 500+ recruiters.
+              Your resume has been submitted for distribution to 1,300+ recruiters.
             </p>
           </div>
         </section>
@@ -284,7 +284,7 @@ export default function ResumeDistributionClient() {
               </div>
               <h2 className="text-3xl font-bold mb-4 premium-heading text-green-600">Success!</h2>
               <p className="text-lg text-muted-foreground mb-6 premium-body">
-                Your resume will be actively distributed to 500+ recruiters over the next 12 months.
+                Your resume will be actively distributed to 1,300+ recruiters over the next 12 months.
               </p>
 
               <div className="bg-muted/50 p-6 rounded-lg mb-6 text-left">
@@ -408,7 +408,7 @@ export default function ResumeDistributionClient() {
                 <ul className="space-y-2">
                   <li className="flex items-center gap-2 premium-body">
                     <CheckCircle className="w-4 h-4 text-primary" />
-                    Resume distribution to 500+ recruiters
+                    Resume distribution to 1,300+ recruiters
                   </li>
                   <li className="flex items-center gap-2 premium-body">
                     <CheckCircle className="w-4 h-4 text-primary" />
@@ -512,7 +512,7 @@ export default function ResumeDistributionClient() {
             Resume Distribution Service
           </h1>
           <p className="text-xl text-white/90 max-w-2xl mx-auto premium-body mb-4">
-            Get Your Resume in Front of 500+ Recruiters
+            Get Your Resume in Front of 1,300+ Recruiters
           </p>
           <p className="text-2xl font-bold text-accent premium-heading">$149 one-time — 12 months of active distribution</p>
         </div>

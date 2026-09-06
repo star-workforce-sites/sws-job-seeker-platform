@@ -320,7 +320,7 @@ export default async function PartnerLandingPage({ params }: Props) {
                 </div>
                 <h3 className="text-white font-semibold text-sm mb-2" style={{ fontFamily: "Montserrat, sans-serif" }}>ResumeBlast Distribution</h3>
                 <p className="text-gray-400 text-xs leading-relaxed flex-1">
-                  Your resume gets sent to 1,000+ recruiters and hiring managers in your target industry and location.
+                  Your resume gets sent to 1,300+ recruiters and hiring managers in your target industry and location.
                 </p>
               </div>
 
@@ -382,7 +382,7 @@ export default async function PartnerLandingPage({ params }: Props) {
                 <div className="text-gray-500 text-xs mt-1">Industries Tracked</div>
               </div>
               <div>
-                <div className="text-2xl font-bold text-[#E8C547]" style={{ fontFamily: "Montserrat, sans-serif" }}>1,000+</div>
+                <div className="text-2xl font-bold text-[#E8C547]" style={{ fontFamily: "Montserrat, sans-serif" }}>1,300+</div>
                 <div className="text-gray-500 text-xs mt-1">Recruiter Network</div>
               </div>
               <div>

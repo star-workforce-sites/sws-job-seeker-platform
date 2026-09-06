@@ -233,7 +233,7 @@ function LoginForm() {
               </div>
               <div>
                 <h3 className="font-bold text-lg mb-1">Resume Distribution</h3>
-                <p className="text-[#0A1A2F]/80">Get your resume in front of 1000+ recruiters</p>
+                <p className="text-[#0A1A2F]/80">Get your resume in front of 1,300+ recruiters</p>
               </div>
             </div>
           </div>

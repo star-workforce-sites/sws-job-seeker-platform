@@ -309,7 +309,7 @@ export default function HireRecruiterClient() {
               {
                 name: "Resume Distribution",
                 price: "$149",
-                description: "Distribute your resume to 1,000+ recruiters and hiring managers across the US",
+                description: "Distribute your resume to 1,300+ recruiters and hiring managers across the US",
                 href: "/tools/resume-distribution",
               },
               {

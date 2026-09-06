@@ -83,7 +83,7 @@ export default function Footer() {
             <ul className="space-y-2">
               <li>
                 <Link
-                  href="/contact?subject=About Us Inquiry"
+                  href="/about"
                   className="text-[#CBD5E1] hover:text-[#E8C547] transition-colors duration-200"
                   style={{ fontFamily: "Open Sans, sans-serif" }}
                 >
@@ -92,7 +92,7 @@ export default function Footer() {
               </li>
               <li>
                 <Link
-                  href="/contact?subject=Blog Inquiry"
+                  href="/blog"
                   className="text-[#CBD5E1] hover:text-[#E8C547] transition-colors duration-200"
                   style={{ fontFamily: "Open Sans, sans-serif" }}
                 >
@@ -101,7 +101,7 @@ export default function Footer() {
               </li>
               <li>
                 <Link
-                  href="/contact?subject=Careers Inquiry"
+                  href="/careers"
                   className="text-[#CBD5E1] hover:text-[#E8C547] transition-colors duration-200"
                   style={{ fontFamily: "Open Sans, sans-serif" }}
                 >

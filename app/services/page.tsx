@@ -4,7 +4,7 @@ import ServicesClient from "./ServicesClient"
 export const metadata: Metadata = {
   title: "Career Services | Resume Distribution, AI Tools & Recruiter Job Search",
   description:
-    "All-in-one career acceleration for tech professionals. Resume distribution to 500+ recruiters, AI-powered ATS optimizer, cover letter generator, interview coach, and dedicated recruiter job search. Software, AI, Cloud, Cybersecurity.",
+    "All-in-one career acceleration for tech professionals. Resume distribution to 1,300+ recruiters, AI-powered ATS optimizer, cover letter generator, interview coach, and dedicated recruiter job search. Software, AI, Cloud, Cybersecurity.",
   keywords: [
     "career acceleration services", "resume distribution service",
     "all-in-one job search tool", "career services for tech professionals",

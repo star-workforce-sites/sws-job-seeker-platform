@@ -14,9 +14,9 @@ export default function Pricing() {
       name: "Basic",
       price: "$199",
       period: "/month",
-      applications: "4 applications/day (Mon-Fri)",
+      applications: "3-5 applications/day (Mon-Fri)",
       features: [
-        "~80-90 applications per month",
+        "90-150 applications per month",
         "Basic activity dashboard",
         "Email support",
         "Job title targeting",
@@ -29,9 +29,9 @@ export default function Pricing() {
       name: "Standard",
       price: "$399",
       period: "/month",
-      applications: "6 applications/day (Mon-Fri)",
+      applications: "10-15 applications/day (Mon-Fri)",
       features: [
-        "~120-130 applications per month",
+        "300-450 applications per month",
         "Advanced dashboard & analytics",
         "Priority support",
         "Job title + location targeting",
@@ -45,9 +45,9 @@ export default function Pricing() {
       name: "Pro",
       price: "$599",
       period: "/month",
-      applications: "10 applications/day (Mon-Fri)",
+      applications: "20-30 applications/day (Mon-Fri)",
       features: [
-        "~200-220 applications per month",
+        "600-900 applications per month",
         "Full analytics dashboard",
         "24/7 priority support",
         "Custom job criteria & filters",
@@ -65,7 +65,7 @@ export default function Pricing() {
       <section className="abstract-gradient text-primary-foreground py-16 px-4 sm:px-6 lg:px-8 relative">
         <div className="max-w-6xl mx-auto text-center relative z-10">
           <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold mb-4 text-white premium-heading">
-            Simple Pricing – Get Hired Faster, No Subscriptions
+            Simple Pricing – Get Hired Faster
           </h1>
           <p className="text-lg text-white/90 max-w-2xl mx-auto premium-body">
             Pay once, optimize forever. Built by recruiters – 75% of resumes fail ATS; fix yours today.
@@ -104,7 +104,7 @@ export default function Pricing() {
                 <div className="flex items-start gap-2">
                   <Check className="w-5 h-5 text-primary flex-shrink-0 mt-0.5" />
                   <span className="text-sm text-foreground premium-body">
-                    5 job applications per week
+                    5 job applications per day
                   </span>
                 </div>
                 <div className="flex items-start gap-2">
@@ -235,7 +235,7 @@ export default function Pricing() {
               Let professionals handle your job search while you focus on interviews
             </p>
             <p className="text-sm text-muted-foreground premium-body">
-              80-220 applications per month (Mon-Fri) • Real-time tracking • 90% feedback rate
+              90-900 applications per month (Mon-Fri) • Real-time tracking • 90% feedback rate
             </p>
           </div>
 

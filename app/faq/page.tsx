@@ -38,7 +38,7 @@ const faqJsonLd = {
       "name": "How does the resume distribution service work?",
       "acceptedAnswer": {
         "@type": "Answer",
-        "text": "Submit your resume once for $149. Your professional profile is distributed to 500+ recruiters and hiring managers in your industry for 12 months. Recruiters contact you directly with matching opportunities."
+        "text": "Submit your resume once for $149. Your professional profile is distributed to 1,300+ recruiters and hiring managers in your industry for 12 months. Recruiters contact you directly with matching opportunities."
       }
     },
     {

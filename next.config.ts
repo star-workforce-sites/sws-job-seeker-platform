@@ -51,17 +51,6 @@ const nextConfig: NextConfig = {
         destination: '/contact',
         permanent: true,
       },
-      // Old employer register path from static sitemap
-      {
-        source: '/employer/register',
-        destination: '/auth/register',
-        permanent: true,
-      },
-      {
-        source: '/employer/register/',
-        destination: '/auth/register',
-        permanent: true,
-      },
       // HTTP → HTTPS and non-www → www are handled by Vercel automatically,
       // but capture common legacy paths that may appear in external links
       {

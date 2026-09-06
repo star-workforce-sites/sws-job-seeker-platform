@@ -53,9 +53,10 @@ export default function EmployerRegister() {
       const data = await response.json()
 
       if (response.ok) {
-        alert("Registration successful! Check your email for confirmation.")
-        // TODO: Redirect to employer dashboard once auth is enabled
-        // window.location.href = '/employer/dashboard'
+        alert(
+          "Registration successful! Sign in with this email (via Google, LinkedIn, or a magic link) to access your employer dashboard.",
+        )
+        window.location.href = "/auth/login"
       } else {
         alert(data.error || "Registration failed. Please try again.")
       }

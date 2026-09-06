@@ -93,9 +93,9 @@ export default function ServicesClient() {
                       <ul className="text-sm text-muted-foreground space-y-1 premium-body">
                         <li>1. Upload your resume</li>
                         <li>2. Paste the job description</li>
-                        <li>3. Get AI-generated cover letter</li>
-                        <li>4. Edit and customize as needed</li>
-                        <li>5. Download and apply</li>
+                        <li>3. Get your ATS compatibility score</li>
+                        <li>4. Review keyword and formatting fixes</li>
+                        <li>5. Download your optimized report</li>
                       </ul>
                     </div>
                   </div>
@@ -194,9 +194,9 @@ export default function ServicesClient() {
                     <div className="bg-muted p-4 rounded">
                       <p className="font-semibold text-foreground mb-2 premium-heading">3 Plans Available:</p>
                       <ul className="text-sm text-muted-foreground space-y-1 premium-body">
-                        <li>• <strong>Basic:</strong> $199/mo - 4 apps/day</li>
-                        <li>• <strong>Standard:</strong> $399/mo - 6 apps/day</li>
-                        <li>• <strong>Pro:</strong> $599/mo - 10 apps/day</li>
+                        <li>• <strong>Basic:</strong> $199/mo - 3-5 apps/day</li>
+                        <li>• <strong>Standard:</strong> $399/mo - 10-15 apps/day</li>
+                        <li>• <strong>Pro:</strong> $599/mo - 20-30 apps/day</li>
                       </ul>
                     </div>
                   </div>
@@ -215,7 +215,7 @@ export default function ServicesClient() {
                     <h2 className="text-2xl font-bold text-foreground premium-heading">Resume Distribution</h2>
                   </div>
                   <p className="text-muted-foreground mb-6 leading-relaxed premium-body">
-                    Get your resume in front of 500+ verified recruiters specializing in consulting and contract roles.
+                    Get your resume in front of 1,300+ verified recruiters specializing in consulting and contract roles.
                     Your profile gets reviewed by experienced hiring professionals.
                   </p>
                   <ul className="space-y-3 mb-6">
@@ -225,7 +225,7 @@ export default function ServicesClient() {
                     </li>
                     <li className="flex items-center gap-2 text-foreground premium-body">
                       <Check className="w-5 h-5 text-primary" />
-                      Access to 500+ verified recruiters
+                      Access to 1,300+ verified recruiters
                     </li>
                     <li className="flex items-center gap-2 text-foreground premium-body">
                       <Check className="w-5 h-5 text-primary" />

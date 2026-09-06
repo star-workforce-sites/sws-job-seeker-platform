@@ -17,6 +17,7 @@ export default function Navigation() {
     { href: '/jobs', label: 'Job Search' },
     { href: '/pricing', label: 'Pricing' },
     { href: '/hire-recruiter', label: 'Hire Recruiter' },
+    { href: '/employer/register', label: 'For Employers' },
     { href: '/contact', label: 'Contact' },
   ]
 

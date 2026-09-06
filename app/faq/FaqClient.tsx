@@ -43,7 +43,7 @@ export default function FAQPage() {
       category: "Services",
       question: "How does the resume distribution work?",
       answer:
-        "You submit your resume once for a one-time fee ($149). Your profile is then distributed to 500+ verified recruiters for 12 months. Recruiters can contact you directly if they have suitable opportunities.",
+        "You submit your resume once for a one-time fee ($149). Your profile is then distributed to 1,300+ verified recruiters for 12 months. Recruiters can contact you directly if they have suitable opportunities.",
     },
     {
       id: "6",

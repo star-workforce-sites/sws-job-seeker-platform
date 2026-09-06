@@ -2,9 +2,9 @@ import type { Metadata } from "next"
 import ResumeDistributionClient from "@/components/resume-distribution-client"
 
 export const metadata: Metadata = {
-  title: "Resume Distribution Service | Reach 500+ Recruiters in 24 Hours",
+  title: "Resume Distribution Service | Reach 1,300+ Recruiters in 24 Hours",
   description:
-    "Get your resume in front of 500+ hiring managers and recruiters in your industry. One-time $149 professional distribution with 12-month active placement. Bypass job boards and reach decision-makers directly.",
+    "Get your resume in front of 1,300+ hiring managers and recruiters in your industry. One-time $149 professional distribution with 12-month active placement. Bypass job boards and reach decision-makers directly.",
   keywords: [
     "resume distribution service", "resume blast to recruiters",
     "direct resume delivery service", "get resume to hiring managers",
@@ -14,8 +14,8 @@ export const metadata: Metadata = {
     "professional resume marketing", "24-hour recruiter targeting",
   ],
   openGraph: {
-    title: "Resume Distribution Service | Reach 500+ Recruiters in 24 Hours",
-    description: "One-time $149 — your resume distributed to 500+ recruiters. 12-month active placement. Reach decision-makers directly.",
+    title: "Resume Distribution Service | Reach 1,300+ Recruiters in 24 Hours",
+    description: "One-time $149 — your resume distributed to 1,300+ recruiters. 12-month active placement. Reach decision-makers directly.",
     type: "website",
     url: "https://www.starworkforcesolutions.com/tools/resume-distribution",
   },
