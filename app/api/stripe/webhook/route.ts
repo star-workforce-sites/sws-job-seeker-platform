@@ -267,6 +267,7 @@ export async function POST(request: NextRequest) {
           try {
             await triggerRecruiterEmailBlast({
               customerName,
+              customerEmail,
               targetRoles: metadata.targetRoles || "",
               targetLocations: metadata.targetLocations || "",
               industry: metadata.industry || "",

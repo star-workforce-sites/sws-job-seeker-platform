@@ -37,6 +37,7 @@ interface CampaignResult {
  */
 export async function triggerRecruiterEmailBlast(params: {
   customerName: string
+  customerEmail: string
   targetRoles: string
   targetLocations: string
   industry: string
@@ -45,8 +46,12 @@ export async function triggerRecruiterEmailBlast(params: {
 }): Promise<CampaignResult> {
   const apiKey = process.env.MAILERCLOUD_API_KEY
   const listId = process.env.MAILERCLOUD_LIST_ID
+  // From address stays on our verified/authenticated domain (required by Mailercloud
+  // sender authentication), but the display name and Reply-To are mapped to the
+  // candidate so recruiters see the candidate's name and can reply directly to them.
   const senderEmail = process.env.MAILERCLOUD_SENDER_EMAIL || "noreply@starworkforcesolutions.com"
-  const senderName = process.env.MAILERCLOUD_SENDER_NAME || "STAR Workforce Solutions"
+  const senderName = params.customerName || process.env.MAILERCLOUD_SENDER_NAME || "STAR Workforce Solutions"
+  const replyEmail = params.customerEmail
 
   // Feature-flagged -- only runs when Mailercloud credentials are configured
   if (!apiKey || !listId) {
@@ -80,6 +85,7 @@ export async function triggerRecruiterEmailBlast(params: {
         name: `Resume Distribution - ${params.customerName} - ${new Date().toISOString()}`,
         list_ids: [listId],
         sender: { sender_email: senderEmail, sender_name: senderName },
+        reply_email: replyEmail,
         subject,
         html,
       }),
