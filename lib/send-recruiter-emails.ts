@@ -88,6 +88,42 @@ export async function sendAdminNotificationEmail(params: {
   }
 }
 
+// ── Alert: Mailercloud reply-id missing (blast blocked) ──────
+export async function sendReplyIdMissingAlertEmail(params: {
+  customerName: string
+  customerEmail: string
+  stripeSessionId: string
+}) {
+  try {
+    const result = await resend.emails.send({
+      from: 'STAR Workforce System <noreply@starworkforcesolutions.com>',
+      to: ADMIN_EMAILS,
+      subject: `ACTION NEEDED: Recruiter blast blocked for ${params.customerName}`,
+      html: `
+        <div style="font-family: Arial, sans-serif; color: #333;">
+          <h2 style="color: #b91c1c;">Recruiter blast did not send</h2>
+          <p><strong>${params.customerEmail}</strong> just paid for Resume Distribution, but Mailercloud
+          rejected the campaign because this email is not yet a verified Reply ID.</p>
+          <p><strong>To fix:</strong></p>
+          <ol>
+            <li>Go to Mailercloud &rarr; Account &rarr; Authentication &rarr; Reply IDs</li>
+            <li>Add <strong>${params.customerEmail}</strong> as a Reply ID (verifies instantly)</li>
+            <li>Retry the blast from the admin dashboard, or call
+              <code>POST /api/admin/retry-recruiter-blast</code> with
+              <code>{ "stripeSessionId": "${params.stripeSessionId}" }</code></li>
+          </ol>
+          <p style="color: #6b7280; font-size: 12px;">Stripe session: ${params.stripeSessionId}</p>
+        </div>
+      `,
+    })
+    console.log('[Email] Reply-id-missing alert sent')
+    return { success: true, result }
+  } catch (error) {
+    console.error('[Email] Failed to send reply-id-missing alert:', error)
+    return { success: false, error }
+  }
+}
+
 // ── Template 3: Assignment confirmation → Job Seeker ─────────
 export async function sendAssignmentConfirmationToJobSeeker(params: {
   jobSeekerName: string

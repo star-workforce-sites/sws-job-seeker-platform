@@ -22,6 +22,12 @@
  * API docs: https://apidoc.mailercloud.com/
  */
 
+import { neon } from "@neondatabase/serverless"
+import { getDbUrl } from "@/lib/db"
+import { sendReplyIdMissingAlertEmail } from "@/lib/send-recruiter-emails"
+
+const sqlNeon = neon(getDbUrl())
+
 const MAILERCLOUD_BASE_URL = "https://cloudapi.mailercloud.com/v1"
 
 interface CampaignResult {
@@ -43,6 +49,7 @@ export async function triggerRecruiterEmailBlast(params: {
   industry: string
   experience: string
   resumeDownloadUrl?: string
+  stripeSessionId: string
 }): Promise<CampaignResult> {
   const apiKey = process.env.MAILERCLOUD_API_KEY
   const listId = process.env.MAILERCLOUD_LIST_ID
@@ -57,6 +64,24 @@ export async function triggerRecruiterEmailBlast(params: {
   if (!apiKey || !listId) {
     console.log("[Mailercloud] API not configured (MAILERCLOUD_API_KEY / MAILERCLOUD_LIST_ID missing) -- skipping recruiter blast for:", params.customerName)
     return { success: false, skipped: true }
+  }
+
+  // Log this attempt up front (status 'pending') so we have a durable record
+  // even if the process crashes before we get a response back.
+  try {
+    await sqlNeon`
+      INSERT INTO recruiter_blast_log (
+        stripe_session_id, customer_name, customer_email, target_roles,
+        target_locations, industry, experience, status
+      ) VALUES (
+        ${params.stripeSessionId}, ${params.customerName}, ${params.customerEmail},
+        ${params.targetRoles}, ${params.targetLocations}, ${params.industry},
+        ${params.experience}, 'pending'
+      )
+      ON CONFLICT (stripe_session_id) DO NOTHING
+    `
+  } catch (logErr) {
+    console.error("[Mailercloud] Failed to write initial blast-log row (non-blocking):", logErr)
   }
 
   try {
@@ -95,14 +120,60 @@ export async function triggerRecruiterEmailBlast(params: {
 
     if (!response.ok) {
       console.error("[Mailercloud] API error:", response.status, data)
-      return { success: false, error: data.error || `HTTP ${response.status}` }
+      const errors = Array.isArray(data.errors) ? data.errors : []
+      const replyIdIssue = errors.find((e: any) => e.field === "reply_email")
+      const status = replyIdIssue ? "failed_reply_id" : "failed_other"
+      const errorMessage = replyIdIssue ? replyIdIssue.message : (data.error || `HTTP ${response.status}`)
+
+      try {
+        await sqlNeon`
+          UPDATE recruiter_blast_log
+          SET status = ${status}, error_message = ${errorMessage}
+          WHERE stripe_session_id = ${params.stripeSessionId}
+        `
+      } catch (logErr) {
+        console.error("[Mailercloud] Failed to update blast-log row (non-blocking):", logErr)
+      }
+
+      if (replyIdIssue) {
+        // The candidate's email hasn't been manually added as a Mailercloud
+        // Reply ID yet -- alert the admin so they can add it and retry,
+        // instead of this failing silently.
+        sendReplyIdMissingAlertEmail({
+          customerName: params.customerName,
+          customerEmail: params.customerEmail,
+          stripeSessionId: params.stripeSessionId,
+        }).catch((alertErr) => console.error("[Mailercloud] Failed to send reply-id-missing alert:", alertErr))
+      }
+
+      return { success: false, error: errorMessage }
     }
 
-    console.log("[Mailercloud] Campaign created:", data.id || data.campaign_id, "for", params.customerName)
-    return { success: true, campaignId: data.id || data.campaign_id }
+    const campaignId = data.id || data.campaign_id
+    try {
+      await sqlNeon`
+        UPDATE recruiter_blast_log
+        SET status = 'sent', campaign_id = ${campaignId}, sent_at = now()
+        WHERE stripe_session_id = ${params.stripeSessionId}
+      `
+    } catch (logErr) {
+      console.error("[Mailercloud] Failed to update blast-log row (non-blocking):", logErr)
+    }
+
+    console.log("[Mailercloud] Campaign created:", campaignId, "for", params.customerName)
+    return { success: true, campaignId }
   } catch (error) {
     const msg = error instanceof Error ? error.message : String(error)
     console.error("[Mailercloud] Unexpected error:", msg)
+    try {
+      await sqlNeon`
+        UPDATE recruiter_blast_log
+        SET status = 'failed_other', error_message = ${msg}
+        WHERE stripe_session_id = ${params.stripeSessionId}
+      `
+    } catch (logErr) {
+      console.error("[Mailercloud] Failed to update blast-log row (non-blocking):", logErr)
+    }
     return { success: false, error: msg }
   }
 }

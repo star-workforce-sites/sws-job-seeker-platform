@@ -272,6 +272,7 @@ export async function POST(request: NextRequest) {
               targetLocations: metadata.targetLocations || "",
               industry: metadata.industry || "",
               experience: metadata.experience || "",
+              stripeSessionId: session.id,
             })
           } catch (mcErr) {
             console.error("[Webhook] Mailercloud trigger failed:", mcErr)
