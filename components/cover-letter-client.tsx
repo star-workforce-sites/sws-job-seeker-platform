@@ -658,15 +658,23 @@ export default function CoverLetterClient() {
                             <p className="font-bold text-2xl text-primary">$5 One-Time Payment</p>
                             <p className="text-xs text-muted-foreground">Lifetime access, no subscription</p>
                           </div>
-                          {!email && (
-                            <Input
-                              type="email"
-                              placeholder="Enter your email"
-                              value={email}
-                              onChange={(e) => setEmail(e.target.value)}
-                              className="max-w-xs mx-auto"
-                            />
-                          )}
+                          {/* Fixed Sept 8, 2026 (see claude/knowledge-base.md): this
+                              input used to be gated on `!email`, the same state it
+                              writes to via onChange. That meant the first keystroke
+                              set `email` truthy and unmounted the input on the very
+                              next render, so every user was left with only the first
+                              character they typed as their `email` state -- which
+                              Stripe then rejected, causing the $5 unlock button to
+                              fail with a 500 for every real user. Always render the
+                              input instead; it stays pre-filled from any known email
+                              (free-step or ?email= URL param) but is always editable. */}
+                          <Input
+                            type="email"
+                            placeholder="Enter your email"
+                            value={email}
+                            onChange={(e) => setEmail(e.target.value)}
+                            className="max-w-xs mx-auto"
+                          />
                           <Button onClick={handleUnlock} size="lg" className="w-full max-w-xs">
                             Get Full Cover Letter - $5
                           </Button>
