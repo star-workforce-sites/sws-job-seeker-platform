@@ -10,16 +10,27 @@ export default function Navigation() {
   const [isOpen, setIsOpen] = useState(false)
   const { data: session, status } = useSession()
 
-  const navLinks = [
+  // Grouped per the Sept 2026 job-seeker-mindset flow audit:
+  // "Do It Yourself" tools first, then the paid "AI + Recruiter" service
+  // cluster, then site-level links. Cover Letter Generator and Interview
+  // Prep were previously missing from the nav entirely.
+  const diyLinks = [
     { href: '/services', label: 'Services' },
     { href: '/tools/ats-optimizer', label: 'ATS Optimizer' },
-    { href: '/distribution-wizard', label: 'Distribution Wizard' },
-    { href: '/jobs', label: 'Job Search' },
+    { href: '/tools/cover-letter', label: 'Cover Letter Generator' },
+    { href: '/tools/interview-prep', label: 'Interview Prep' },
+    { href: '/jobs', label: 'Job Board' },
+  ]
+  const serviceLinks = [
+    { href: '/hire-recruiter', label: 'AI + Recruiter' },
+    { href: '/tools/resume-distribution', label: 'Resume Distribution' },
+  ]
+  const siteLinks = [
     { href: '/pricing', label: 'Pricing' },
-    { href: '/hire-recruiter', label: 'Hire Recruiter' },
     { href: '/employer/register', label: 'For Employers' },
     { href: '/contact', label: 'Contact' },
   ]
+  const navLinks = [...diyLinks, ...serviceLinks, ...siteLinks]
 
   const handleSignOut = () => {
     signOut({ callbackUrl: '/' })
@@ -45,11 +56,33 @@ export default function Navigation() {
           </Link>
 
           {/* Desktop Navigation Links */}
-          <div className="hidden md:flex items-center gap-8">
-            {navLinks.map((link) => (
-              <Link 
-                key={link.href} 
-                href={link.href} 
+          <div className="hidden lg:flex items-center gap-5 xl:gap-6">
+            {diyLinks.map((link) => (
+              <Link
+                key={link.href}
+                href={link.href}
+                className="text-sm font-medium text-gray-300 hover:text-[#E8C547] transition-colors duration-200"
+                style={{ fontFamily: 'Open Sans, sans-serif', fontWeight: 500 }}
+              >
+                {link.label}
+              </Link>
+            ))}
+            <div className="w-px h-5 bg-white/15" aria-hidden="true" />
+            {serviceLinks.map((link) => (
+              <Link
+                key={link.href}
+                href={link.href}
+                className="text-sm font-medium text-gray-300 hover:text-[#E8C547] transition-colors duration-200"
+                style={{ fontFamily: 'Open Sans, sans-serif', fontWeight: 500 }}
+              >
+                {link.label}
+              </Link>
+            ))}
+            <div className="w-px h-5 bg-white/15" aria-hidden="true" />
+            {siteLinks.map((link) => (
+              <Link
+                key={link.href}
+                href={link.href}
                 className="text-sm font-medium text-gray-300 hover:text-[#E8C547] transition-colors duration-200"
                 style={{ fontFamily: 'Open Sans, sans-serif', fontWeight: 500 }}
               >
@@ -126,7 +159,7 @@ export default function Navigation() {
 
           {/* Mobile Menu Button */}
           <button
-            className="md:hidden p-2 hover:bg-white/10 rounded transition-colors"
+            className="lg:hidden p-2 hover:bg-white/10 rounded transition-colors"
             onClick={() => setIsOpen(!isOpen)}
             aria-label="Toggle menu"
           >
@@ -140,9 +173,10 @@ export default function Navigation() {
 
         {/* Mobile Menu */}
         {isOpen && (
-          <div className="md:hidden py-4 border-t border-white/10">
-            <div className="flex flex-col gap-2">
-              {navLinks.map((link) => (
+          <div className="lg:hidden py-4 border-t border-white/10">
+            <div className="flex flex-col gap-1">
+              <p className="px-4 pt-1 pb-1 text-[11px] uppercase tracking-wider text-gray-500">Do It Yourself</p>
+              {diyLinks.map((link) => (
                 <Link
                   key={link.href}
                   href={link.href}
@@ -152,7 +186,29 @@ export default function Navigation() {
                   {link.label}
                 </Link>
               ))}
-              
+              <p className="px-4 pt-3 pb-1 text-[11px] uppercase tracking-wider text-gray-500">Let Someone Do It</p>
+              {serviceLinks.map((link) => (
+                <Link
+                  key={link.href}
+                  href={link.href}
+                  className="text-gray-300 hover:text-[#E8C547] hover:bg-white/5 px-4 py-2 rounded transition-colors"
+                  onClick={() => setIsOpen(false)}
+                >
+                  {link.label}
+                </Link>
+              ))}
+              <div className="border-t border-white/10 my-2"></div>
+              {siteLinks.map((link) => (
+                <Link
+                  key={link.href}
+                  href={link.href}
+                  className="text-gray-300 hover:text-[#E8C547] hover:bg-white/5 px-4 py-2 rounded transition-colors"
+                  onClick={() => setIsOpen(false)}
+                >
+                  {link.label}
+                </Link>
+              ))}
+
               <div className="border-t border-white/10 my-2"></div>
               
               {session ? (

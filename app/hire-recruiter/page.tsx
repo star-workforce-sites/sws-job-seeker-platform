@@ -2,14 +2,15 @@ import type { Metadata } from "next"
 import HireRecruiterClient from "./HireRecruiterClient"
 
 export const metadata: Metadata = {
-  title: "Recruiter Job Search Service | A Real Recruiter Applies to Jobs for You",
+  title: "AI + Recruiter | A Dedicated Recruiter Applies to Jobs for You",
   description:
-    "Stop applying alone. Hire a dedicated recruiter who applies to 90-900 jobs per month on your behalf. Monthly subscription for consulting and contract positions in tech. Plans from $199/month.",
+    "Stop applying alone. AI + Recruiter pairs you with a dedicated recruiter who applies to 90-900 jobs per month on your behalf. Monthly subscription for consulting and contract positions in tech. Plans from $199/month.",
   keywords: [
     "recruiter applies for jobs for you", "monthly recruiter service",
     "done-for-you job search", "job search automation service",
     "recruiter subscription service", "personal recruiter service",
     "hire a recruiter for job search", "dedicated recruiter service",
+    "ai recruiter job search", "ai matched recruiter service",
     "automated job application service", "recruiter-managed job search",
     "professional job search assistant", "job application service",
     "consulting job recruiter", "contract job placement service",
@@ -20,14 +21,14 @@ export const metadata: Metadata = {
     "job search support for immigrants", "H1B transfer jobs recruiter",
   ],
   openGraph: {
-    title: "Recruiter Job Search Service | A Real Recruiter Applies for You",
-    description: "Hire a dedicated recruiter who applies to 90-900 jobs monthly on your behalf. Plans from $199/month. No placement fees.",
+    title: "AI + Recruiter | A Real Recruiter Applies for You",
+    description: "AI + Recruiter pairs you with a dedicated recruiter who applies to 90-900 jobs monthly on your behalf. Plans from $199/month. No placement fees.",
     type: "website",
     url: "https://www.starworkforcesolutions.com/hire-recruiter",
   },
   twitter: {
     card: "summary_large_image",
-    title: "Recruiter Applies to Jobs for You | Monthly Subscription",
+    title: "AI + Recruiter Applies to Jobs for You | Monthly Subscription",
     description: "A dedicated recruiter handles your job applications. 90-900 applications per month. From $199/mo.",
   },
   alternates: {

@@ -98,7 +98,7 @@ export default function HireRecruiterClient() {
       <section className="abstract-gradient text-primary-foreground py-20 px-4 sm:px-6 lg:px-8 relative">
         <div className="max-w-6xl mx-auto text-center relative z-10">
           <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold mb-6 text-white premium-heading">
-            Hire a Dedicated Offshore Recruiter for Your Job Search
+            AI + Recruiter: A Dedicated Recruiter Applies for Your Job Search
           </h1>
           <p className="text-xl md:text-2xl mb-4 text-white/90 premium-body">
             Job Application Automation Service — 90 to 900 Applications per Month

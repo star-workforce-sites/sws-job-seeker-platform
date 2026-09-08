@@ -57,7 +57,7 @@ export default function AboutPage() {
                   subscription required.
                 </li>
                 <li>
-                  <strong>Hire a Dedicated Recruiter</strong> — a professional offshore recruiter applies to
+                  <strong>AI + Recruiter</strong> — a professional, dedicated recruiter applies to
                   consulting and contract roles on your behalf every day, so you can focus on interview prep
                   instead of the job boards.
                 </li>

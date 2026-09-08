@@ -69,7 +69,7 @@ export default function Home() {
                   variant="outline"
                   className="border-2 border-[#E8C547] text-[#E8C547] hover:bg-[#E8C547]/20 px-8 py-6 text-lg h-auto font-semibold premium-body bg-transparent transition-colors"
                 >
-                  Hire a Dedicated Recruiter
+                  AI + Recruiter
                 </Button>
               </Link>
             </div>
@@ -108,7 +108,7 @@ export default function Home() {
               </div>
               <h3 className="text-lg font-bold mb-2 text-foreground premium-heading">Dedicated Recruiter</h3>
               <p className="text-sm text-muted-foreground leading-relaxed premium-body">
-                Hire a dedicated recruiter to apply on your behalf daily to consulting and contract opportunities.
+                A dedicated recruiter, matched by AI, applies on your behalf daily to consulting and contract opportunities.
               </p>
             </Card>
 

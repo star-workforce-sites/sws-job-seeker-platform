@@ -224,12 +224,12 @@ export default function Pricing() {
         </div>
       </section>
 
-      {/* NEW: Hire-a-Recruiter Section */}
+      {/* AI + Recruiter Section */}
       <section className="py-16 px-4 sm:px-6 lg:px-8 bg-muted/30">
         <div className="max-w-6xl mx-auto">
           <div className="text-center mb-12">
             <h2 className="text-3xl md:text-4xl font-bold mb-3 text-foreground premium-heading">
-              Hire an Offshore Recruiter
+              AI + Recruiter
             </h2>
             <p className="text-xl text-muted-foreground mb-2 premium-body">
               Let professionals handle your job search while you focus on interviews

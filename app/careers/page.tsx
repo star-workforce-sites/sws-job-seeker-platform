@@ -50,7 +50,7 @@ export default function CareersPage() {
             <section>
               <h2 className="text-2xl font-bold text-foreground mb-3">Interested in Recruiting for Us?</h2>
               <p className="text-muted-foreground">
-                Our Hire-a-Recruiter service is powered by professional offshore recruiters. If you have staffing
+                Our AI + Recruiter service is powered by professional, dedicated recruiters. If you have staffing
                 or recruiting experience and are interested in working with us, mention that in your message and
                 we'll follow up.
               </p>

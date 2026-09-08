@@ -137,14 +137,14 @@ export default function ServicesClient() {
             </Card>
           </div>
 
-          {/* NEW: Service 3: Hire a Dedicated Recruiter */}
+          {/* Service 3: AI + Recruiter */}
           <div className="mb-16">
             <Card className="p-8 border-2 border-primary bg-primary/5">
               <div className="grid md:grid-cols-2 gap-8">
                 <div>
                   <div className="flex items-center gap-3 mb-4">
                     <Users className="w-8 h-8 text-primary" />
-                    <h2 className="text-2xl font-bold text-foreground premium-heading">Hire a Dedicated Recruiter</h2>
+                    <h2 className="text-2xl font-bold text-foreground premium-heading">AI + Recruiter</h2>
                   </div>
                   <p className="text-muted-foreground mb-6 leading-relaxed premium-body">
                     Stop spending 10-20 hours per week applying to jobs. Let our professional offshore recruiters

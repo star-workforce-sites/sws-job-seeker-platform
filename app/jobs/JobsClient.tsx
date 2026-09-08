@@ -531,7 +531,7 @@ export default function Jobs() {
               </Link>
               <Link href="/hire-recruiter">
                 <Button className="bg-[#0A1A2F] hover:bg-[#132A47] text-white font-bold">
-                  Hire a Recruiter Instead
+                  Try AI + Recruiter
                 </Button>
               </Link>
             </div>
@@ -785,7 +785,7 @@ export default function Jobs() {
             STEM OPT, CPT, EAD, and F1 work authorization. Use our free{" "}
             <a href="/tools/ats-optimizer" className="text-primary underline underline-offset-2">ATS Resume Optimizer</a>{" "}
             to tailor your resume to each role, and consider our{" "}
-            <a href="/hire-recruiter" className="text-primary underline underline-offset-2">Recruiter Job Search Service</a>{" "}
+            <a href="/hire-recruiter" className="text-primary underline underline-offset-2">AI + Recruiter Job Search Service</a>{" "}
             to have a dedicated recruiter apply to roles on your behalf — including H1B-friendly employers.
           </p>
         </div>
