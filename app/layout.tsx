@@ -173,6 +173,22 @@ export default function RootLayout({
             });
           `}
         </Script>
+        {/* Microsoft Advertising - UET tag (STAR Workforce Solutions - Main Site) */}
+        <Script id="bing-uet" strategy="afterInteractive">
+          {`
+            (function(w,d,t,r,u){
+              w[u]=w[u]||[],w[u].push({ti:"343270857",enableAutoSpaTracking:true});
+              var s=d.createElement(t),c=d.getElementsByTagName(t)[0];
+              s.src=r,s.async=1,s.onload=s.onreadystatechange=function(){
+                var y,readyState=s.readyState;
+                if(!readyState||readyState=="loaded"||readyState=="complete"){
+                  try{y=w[u],y.q=y.q||[]}catch(e){}
+                }
+              };
+              c.parentNode.insertBefore(s,c);
+            })(window,document,"script","https://bat.bing.net/bat.js","uetq");
+          `}
+        </Script>
       </head>
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
         <ErrorBoundary>
