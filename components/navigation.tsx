@@ -25,11 +25,22 @@ export default function Navigation() {
     { href: '/hire-recruiter', label: 'AI + Recruiter' },
     { href: '/tools/resume-distribution', label: 'Resume Distribution' },
   ]
-  const siteLinks = [
+  const baseSiteLinks = [
     { href: '/pricing', label: 'Pricing' },
     { href: '/employer/register', label: 'For Employers' },
     { href: '/contact', label: 'Contact' },
   ]
+  // Role-aware nav fix (Sept 8, 2026 -- see claude/knowledge-base.md section 0l):
+  // "For Employers" used to render identically for every visitor
+  // regardless of login state or role. A job seeker shouldn't be
+  // steered into the employer-registration flow, and an employer is
+  // already registered, so hide that one link for those two roles.
+  // Stays visible for logged-out visitors and for other roles.
+  const role = session?.user?.role
+  const siteLinks = baseSiteLinks.filter((link) => {
+    if (link.href !== '/employer/register') return true
+    return role !== 'jobseeker' && role !== 'employer'
+  })
   const navLinks = [...diyLinks, ...serviceLinks, ...siteLinks]
 
   const handleSignOut = () => {
