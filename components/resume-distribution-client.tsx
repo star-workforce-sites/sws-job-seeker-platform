@@ -37,6 +37,13 @@ interface UploadResult {
 }
 
 export default function ResumeDistributionClient() {
+  // Feature flag added Sept 8, 2026 (see claude/knowledge-base.md §0m/§5):
+  // the actual recruiter-email fulfillment pipeline for this $149 product
+  // has not been tested/confirmed working end-to-end. Set to true only
+  // once that's verified live -- nothing else in this file needs to
+  // change to re-enable the real form + checkout.
+  const DISTRIBUTION_ENABLED = false
+
   const [formData, setFormData] = useState<FormData>({
     resume: null,
     targetJobTitle: "",
@@ -484,6 +491,43 @@ export default function ResumeDistributionClient() {
   }
 
   // Form state
+  if (!DISTRIBUTION_ENABLED) {
+    return (
+      <div className="min-h-screen bg-background flex flex-col">
+        <Navigation />
+        <section className="flex-1 flex items-center justify-center px-4 py-24">
+          <div className="max-w-xl w-full text-center space-y-6">
+            <div className="inline-flex items-center gap-2 bg-accent/10 px-4 py-2 rounded-full border border-accent/30">
+              <Send className="w-4 h-4 text-accent" />
+              <span className="text-sm font-medium premium-body">Resume Distribution</span>
+            </div>
+            <h1 className="text-3xl sm:text-4xl font-bold">Coming Soon</h1>
+            <p className="text-muted-foreground text-base leading-relaxed">
+              Our Resume Distribution service is being finalized and isn't open for new orders
+              right now. Check back soon, or explore our other tools -- the ATS Optimizer, Cover
+              Letter Generator, and Interview Prep -- in the meantime.
+            </p>
+            <div className="flex flex-wrap items-center justify-center gap-3 pt-2">
+              <a
+                href="/tools/ats-optimizer"
+                className="inline-flex items-center justify-center rounded-md bg-primary text-primary-foreground px-5 py-2.5 text-sm font-medium hover:opacity-90 transition-opacity"
+              >
+                Try the ATS Optimizer
+              </a>
+              <a
+                href="/contact"
+                className="inline-flex items-center justify-center rounded-md border border-input bg-background px-5 py-2.5 text-sm font-medium hover:bg-accent/10 transition-colors"
+              >
+                Contact Us
+              </a>
+            </div>
+          </div>
+        </section>
+        <Footer />
+      </div>
+    )
+  }
+
   return (
     <div className="min-h-screen bg-background flex flex-col">
       <Navigation />
